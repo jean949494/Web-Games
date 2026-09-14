@@ -24,11 +24,11 @@ ganz ohne Deploy. Beenden mit `Strg+C`.
 Die Seite liegt auf GitHub Pages unter:
 
 ```
-https://jean949494.github.io/Poki/
+https://jean949494.github.io/Web-Games/
 ```
 
 Einzelnes Spiel direkt:
-`https://jean949494.github.io/Poki/games/ninja-wandsprung/`
+`https://jean949494.github.io/Web-Games/games/ninja-wandsprung/`
 
 **Aktualisieren nach einer Änderung:**
 
@@ -50,7 +50,7 @@ npm run deploy "Sprunghöhe angepasst"
 
 Nur beim allerersten Mal nötig:
 
-1. Im Browser öffnen: `github.com/jean949494/Poki/settings/pages`
+1. Im Browser öffnen: `github.com/jean949494/Web-Games/settings/pages`
 2. Bei **Source**: „Deploy from a branch" wählen
 3. Branch: **`main`**, Ordner: **`/ (root)`**
 4. **Save**
@@ -62,7 +62,7 @@ Danach zeigt dieselbe Seite oben die genaue URL an.
 1. Neuen Ordner `games/<spielname>/` anlegen mit eigener `index.html`
 2. In der `index.html` im Repo-Root eine Karte für das Spiel ergänzen
 3. `npm run deploy` – fertig, das neue Spiel ist unter
-   `https://jean949494.github.io/Poki/games/<spielname>/` erreichbar
+   `https://jean949494.github.io/Web-Games/games/<spielname>/` erreichbar
 
 ## Kurzfassung
 
