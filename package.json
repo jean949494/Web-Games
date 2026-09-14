@@ -1,0 +1,10 @@
+{
+  "name": "games",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Browser-Spiele (Web-Portale, zuerst Poki)",
+  "scripts": {
+    "dev": "node scripts/dev-server.js",
+    "deploy": "bash scripts/deploy.sh"
+  }
+}
