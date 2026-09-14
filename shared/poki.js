@@ -1,10 +1,10 @@
 /**
- * Poki SDK Wrapper – austauschbares Modul.
+ * Poki SDK Wrapper – austauschbares Modul, geteilt von allen Spielen.
  *
- * Nutzt das echte Poki SDK (window.PokiSDK), falls es geladen ist
- * (z.B. beim Export für das Poki-Portal via deren Script-Tag).
- * Läuft es standalone / auf einer anderen Test-URL, sind alle Aufrufe
- * No-Ops – das Spiel verhält sich exakt gleich, nur ohne Portal-Feedback.
+ * Nutzt das echte Poki SDK (window.PokiSDK), falls es geladen ist (z.B.
+ * beim Export für das Poki-Portal via deren Script-Tag). Läuft es
+ * standalone / auf einer anderen Test-URL, sind alle Aufrufe No-Ops –
+ * das Spiel verhält sich exakt gleich, nur ohne Portal-Feedback.
  *
  * Wichtig laut Spec: zuerst NUR bei Poki einreichen (Web-Exklusivität),
  * andere Portale erst bei Absage. Dieses Modul macht den späteren
@@ -13,7 +13,7 @@
 (function (global) {
   'use strict';
 
-  var NW = global.NW = global.NW || {};
+  var SG = global.SG = global.SG || {};
 
   var sdk = global.PokiSDK || null;
   var ready = false;
@@ -64,5 +64,5 @@
     },
   };
 
-  NW.poki = poki;
+  SG.poki = poki;
 })(window);

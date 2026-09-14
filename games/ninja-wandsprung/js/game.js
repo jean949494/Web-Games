@@ -11,6 +11,7 @@
   'use strict';
 
   var NW = global.NW = global.NW || {};
+  var SG = global.SG;
   var C = NW.constants;
 
   var STEP_MS = 1000 / 60; // Physik läuft fix mit 60Hz, Werte sind "pro Frame" kalibriert
@@ -116,7 +117,7 @@
     if (!ninja.onWall || ninja.charging) return;
     ninja.charging = true;
     ninja.chargingMs = 0;
-    NW.audio.unlock();
+    SG.audio.unlock();
   }
 
   function releaseCharge() {
@@ -129,8 +130,8 @@
     ninja.vx = C.jumpVXForTier(tier) * dir;
     ninja.vy = C.TIER_JY[tier];
     ninja.gm = C.TIER_GM[tier];
-    NW.audio.playJump(tier);
-    NW.analytics.track('jump', { tier: tier });
+    NW.sounds.playJump(tier);
+    SG.analytics.track('jump', { tier: tier });
   }
 
   function killNinja(reason) {
@@ -138,11 +139,11 @@
     state = STATES.GAMEOVER;
     var finalScore = currentScore();
     score = finalScore;
-    var isNewBest = NW.storage.setBest(finalScore);
-    best = NW.storage.getBest();
-    NW.audio.playGameOver();
-    NW.poki.gameplayStop();
-    NW.analytics.track('game_over', { reason: reason, score: finalScore, best: best, newBest: isNewBest });
+    var isNewBest = SG.storage.setBest(NW.GAME_ID, finalScore);
+    best = SG.storage.getBest(NW.GAME_ID);
+    SG.audio.playGameOver();
+    SG.poki.gameplayStop();
+    SG.analytics.track('game_over', { reason: reason, score: finalScore, best: best, newBest: isNewBest });
     emitChange({ reason: reason, newBest: isNewBest });
   }
 
@@ -179,8 +180,8 @@
         ninja.squash = C.SQUASH_INITIAL;
         var dustDir = targetSide === 'left' ? 1 : -1;
         NW.particles.spawnDust(ninja.x, ninja.y, dustDir);
-        NW.audio.playLand();
-        NW.analytics.track('land', { side: targetSide });
+        NW.sounds.playLand();
+        SG.analytics.track('land', { side: targetSide });
       }
     }
 
@@ -228,8 +229,8 @@
         s.checked = true;
         if (s.minDist < C.KNAPP_DISTANCE_PX) {
           flashes.push({ x: tip.x, y: s.y, life: 1, text: 'Knapp!' });
-          NW.audio.playKnapp();
-          NW.analytics.track('close_call', {});
+          NW.sounds.playKnapp();
+          SG.analytics.track('close_call', {});
         }
       }
     }
@@ -391,7 +392,7 @@
     init: function (canvasEl) {
       canvas = canvasEl;
       ctx = canvas.getContext('2d');
-      best = NW.storage.getBest();
+      best = SG.storage.getBest(NW.GAME_ID);
       resetWorld();
       draw();
       rafId = global.requestAnimationFrame(tick);
@@ -410,9 +411,9 @@
       state = STATES.PLAYING;
       accMs = 0;
       lastTs = null;
-      NW.audio.unlock();
-      NW.poki.gameplayStart();
-      NW.analytics.track('game_start', {});
+      SG.audio.unlock();
+      SG.poki.gameplayStart();
+      SG.analytics.track('game_start', {});
       emitChange();
     },
 
@@ -423,7 +424,7 @@
     pause: function () {
       if (state !== STATES.PLAYING) return;
       state = STATES.PAUSED;
-      NW.analytics.track('pause', {});
+      SG.analytics.track('pause', {});
       emitChange();
     },
 
@@ -431,7 +432,7 @@
       if (state !== STATES.PAUSED) return;
       state = STATES.PLAYING;
       lastTs = null;
-      NW.analytics.track('resume', {});
+      SG.analytics.track('resume', {});
       emitChange();
     },
 
@@ -444,8 +445,8 @@
     chargeRelease: releaseCharge,
 
     toggleSound: function () {
-      var on = NW.audio.toggle();
-      NW.analytics.track('sound_toggle', { enabled: on });
+      var on = SG.audio.toggle();
+      SG.analytics.track('sound_toggle', { enabled: on });
       return on;
     },
 
