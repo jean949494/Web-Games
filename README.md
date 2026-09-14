@@ -11,6 +11,9 @@ HTML/CSS/JavaScript.
 - [`games/kurve-solo`](games/kurve-solo/) – Solo gegen 3 KI-Bots: Linie
   hinter sich herziehen, Wand/eigener/fremder Linie ausweichen, möglichst
   lange überleben
+- [`games/team-duell`](games/team-duell/) – 3 gegen 3 mit Schutzmauer:
+  Wasserkanone (blockierbar) vs. Superwurf (über die Mauer), Teammates
+  per Kommando steuern
 
 ## Loslegen
 
