@@ -92,6 +92,40 @@ Repo-Root, Abschnitt "Gemeinsames Grundgerüst".
   sofortiger Start ohne Login, ein Tap zum Neustart, Minimal-Menü,
   kindgerechte Optik/Sounds
 
+## Balance- & Politur-Pass (nach erstem Spieltest)
+
+Der erste End-to-End-Test (Playwright, stehender Spieler) zeigte
+140→4 HP in ~7s: alle drei Gegner feuerten unkoordiniert auf das
+jeweils NÄCHSTE Ziel und haben dadurch gemeinsam eine einzelne
+Mauer-Spalte binnen Sekunden durchlöchert statt sich über die Mauer zu
+verteilen. Behoben in `ai.js`/`constants.js`, ohne die Spec-Schadenswerte
+anzufassen:
+
+- **Lane-Zielwahl** (`AI_LANE_TARGET_CHANCE`, 70%): jede KI-Einheit
+  bevorzugt ihr Gegenstück nach Index statt strikt des nächsten Ziels –
+  verteilt den Beschuss über die Mauerbreite, mit etwas Restanteil
+  "nächstes Ziel" gegen mechanisches Wirken.
+- **Start-Schonfrist** (`AI_START_GRACE_MS`, 900ms) und leicht
+  entschärftes Feuerintervall (`AI_FIRE_INTERVAL_*`, 700–1400ms ->
+  900–1900ms).
+
+Test danach (aktiv ausweichender + feuernder simulierter Spieler):
+Runde dauerte ~19s statt Sofort-Wipe, Gegner-Team auf 14/140 HP
+runtergeschossen, bevor die Runde verloren ging – spürbar fairer, aber
+weiterhin knackig. Bleibt ein Tuning-Kandidat, siehe Punkt
+"Schuss- vs. Wurf-Schaden-Balance" unten.
+
+Dazu ein Game-Feel-Pass: Treffer-Flash auf der konkret getroffenen
+Einheit, Mündungsblitz beim Abfeuern, größerer Effekt + eigener Sound
+beim tatsächlichen Mauer-Durchbruch (nicht nur bei jedem Treffer),
+feine Risse auf beschädigten Segmenten, dezentes Idle-Wippen der
+Einheiten, pulsierende rote Vignette bei kritischem Team-HP
+(`LOW_HP_VIGNETTE_FRAC`), Konfetti-Regen beim Sieg, kurze Vibration bei
+eigenem Treffer/Sieg/Niederlage (`navigator.vibrate`, still ignoriert wo
+nicht unterstützt, z.B. iOS Safari) sowie optisches Feedback auf den
+Sticks/Kommando-Buttons selbst (aktiver Rand während gehalten,
+Press-Skalierung).
+
 ## Bewusst offen gelassen (siehe Spec, "Bekannte offene Punkte")
 
 Laut Spec selbst noch nicht fertig entschieden bzw. braucht echtes

@@ -18,13 +18,19 @@
 
   function clamp(v, min, max) { return v < min ? min : v > max ? max : v; }
 
-  function makeUnit(id, side, role, x, y, color) {
+  // laneIndex: eigener Index innerhalb der Seite (0..2 bei Gegnern, 0..1
+  // bei Teammates) – legt fest, welche gegnerische Einheit diese Einheit
+  // BEVORZUGT anvisiert (siehe pickFireTarget). Für den Menschen ohne
+  // Bedeutung (er feuert nicht über decideFire).
+  function makeUnit(id, side, role, x, y, color, laneIndex) {
     return {
-      id: id, side: side, role: role,
+      id: id, side: side, role: role, laneIndex: laneIndex || 0,
       x: x, y: y, prevX: x, prevY: y, vx: 0, vy: 0,
-      color: color,
-      fireTimer: 300 + Math.random() * 600,
-      throwTimer: 1500 + Math.random() * 2000,
+      color: color, flashFrames: 0,
+      // Schonfrist zu Rundenbeginn (siehe AI_START_GRACE_MS) + etwas
+      // Streuung, damit nicht alle Einheiten exakt gleichzeitig loslegen.
+      fireTimer: C.AI_START_GRACE_MS + Math.random() * 500,
+      throwTimer: C.AI_START_GRACE_MS + 1200 + Math.random() * 1500,
       wobblePhase: Math.random() * Math.PI * 2,
     };
   }
@@ -104,14 +110,31 @@
     return best;
   }
 
+  // Zielwahl fürs Feuer: meist (AI_LANE_TARGET_CHANCE) die "Lane" – das
+  // gegnerische Gegenstück nach Index – statt strikt des nächsten Ziels.
+  // Grund (siehe Kommentar bei AI_LANE_TARGET_CHANCE in constants.js):
+  // "immer das nächste Ziel" lässt alle KI-Einheiten auf dieselbe
+  // gegnerische Einheit einprügeln und reißt dadurch binnen Sekunden eine
+  // einzelne Mauer-Spalte auf, statt dass sich der Beschuss über die
+  // Mauerbreite verteilt. Der Rest-Anteil bleibt "nächstes Ziel", damit
+  // sich die KI nicht komplett mechanisch anfühlt.
+  function pickFireTarget(unit, opponents) {
+    if (Math.random() < C.AI_LANE_TARGET_CHANCE) {
+      var lane = opponents[Math.min(unit.laneIndex, opponents.length - 1)];
+      if (lane) return lane;
+    }
+    return nearestOpponent(unit, opponents);
+  }
+
   // Feuerentscheidung: fester Countdown pro Einheit (Annahme,
-  // AI_FIRE_INTERVAL_*), zielt mit leichter Streuung auf das nächste
-  // gegnerische Ziel. Gibt {angle} zurück, wenn geschossen werden soll.
+  // AI_FIRE_INTERVAL_*), zielt mit leichter Streuung auf das gewählte
+  // Ziel (siehe pickFireTarget). Gibt {angle} zurück, wenn geschossen
+  // werden soll.
   function decideFire(unit, opponents, dtMs) {
     unit.fireTimer -= dtMs;
     if (unit.fireTimer > 0) return null;
     unit.fireTimer = C.AI_FIRE_INTERVAL_MIN_MS + Math.random() * (C.AI_FIRE_INTERVAL_MAX_MS - C.AI_FIRE_INTERVAL_MIN_MS);
-    var target = nearestOpponent(unit, opponents);
+    var target = pickFireTarget(unit, opponents);
     if (!target) return null;
     var spread = (Math.random() - 0.5) * C.AI_AIM_SPREAD;
     var angle = Math.atan2((target.y + spread) - unit.y, (target.x + spread) - unit.x);

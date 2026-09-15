@@ -164,12 +164,17 @@ canvas#game {
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
+  transition: transform 0.1s, background 0.15s, color 0.15s;
 }
 
 .cmd-btn.active {
   background: var(--accent);
   color: #0b2e35;
   border-color: transparent;
+}
+
+.cmd-btn:active {
+  transform: scale(0.93);
 }
 
 .stick-row {
@@ -185,6 +190,16 @@ canvas#game {
   border: 1px solid rgba(255, 255, 255, 0.16);
   touch-action: none;
   flex: 0 0 auto;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+/* Rein optisches Feedback während ein Finger den Stick hält (siehe
+   input.js) – hilft besonders bei drei gleichzeitigen Sticks zu spüren,
+   welcher gerade wirklich erfasst ist. */
+.stick.stick-active {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(94, 230, 255, 0.18);
 }
 
 .stick-move { width: 84px; height: 84px; }
@@ -209,4 +224,7 @@ canvas#game {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.4);
   pointer-events: none;
+  /* Kurze, kaum spürbare Glättung statt hartem Sprung bei jedem Move-Event
+     UND ein sanftes Zurückschnappen zur Mitte beim Loslassen. */
+  transition: transform 0.08s ease-out;
 }

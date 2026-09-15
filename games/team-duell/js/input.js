@@ -54,6 +54,7 @@
       if (pointerId !== null) return; // Stick wird schon von einem anderen Finger gehalten
       pointerId = e.pointerId;
       try { baseEl.setPointerCapture(pointerId); } catch (err) { /* ältere Browser: kein Capture nötig, move/up feuern trotzdem */ }
+      baseEl.classList.add('stick-active'); // rein optisches Feedback, siehe style.css
       onChange(vectorFromClient(e.clientX, e.clientY));
       e.preventDefault();
     });
@@ -67,6 +68,7 @@
     function release(e) {
       if (pointerId === null || (e && e.pointerId !== pointerId)) return;
       pointerId = null;
+      baseEl.classList.remove('stick-active');
       resetKnob();
       onChange(null);
     }

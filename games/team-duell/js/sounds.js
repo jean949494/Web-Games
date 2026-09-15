@@ -19,6 +19,12 @@
       SG.audio.tone(200, 70, { type: 'square', slideTo: 90, gain: 0.06 });
     },
 
+    // Etwas kräftiger/tiefer als ein normaler Wandtreffer – markiert den
+    // Moment, in dem ein Segment tatsächlich durchbricht (Lücke entsteht).
+    playWallBreak: function () {
+      SG.audio.tone(150, 150, { type: 'square', slideTo: 50, gain: 0.1 });
+    },
+
     playUnitHit: function () {
       SG.audio.tone(340, 90, { type: 'sine', slideTo: 160, gain: 0.08 });
     },

@@ -42,8 +42,10 @@
     });
   }
 
-  // onDamage(defendingSide, amount, x, y, kind) wird bei jedem Treffer
-  // aufgerufen; kind ist 'wall' | 'unit', dient game.js für Sound/Partikel.
+  // onDamage(info) wird bei jedem Treffer aufgerufen; info.kind ist
+  // 'wall' | 'unit'. Bei 'unit' trägt info.unit die konkret getroffene
+  // Einheit (für Treffer-Flash o.ä.), bei 'wall' info.justBroke, ob genau
+  // dieser Treffer das Segment zerstört hat (für einen größeren Effekt).
   function updateBullets(bullets, world, onDamage) {
     for (var i = bullets.length - 1; i >= 0; i--) {
       var b = bullets[i];
@@ -63,7 +65,7 @@
         if (res.inBand) {
           b.checkedWall = true;
           if (res.blocked) {
-            onDamage(null, 0, b.x, targetWall.y, 'wall');
+            onDamage({ defSide: null, amount: 0, x: b.x, y: targetWall.y, kind: 'wall', justBroke: res.justBroke });
             bullets.splice(i, 1);
             continue;
           }
@@ -79,7 +81,7 @@
         var dx = b.x - unit.x, dy = b.y - unit.y;
         if (dx * dx + dy * dy <= C.BULLET_HIT_RADIUS * C.BULLET_HIT_RADIUS) {
           var dmg = defSide === 'player' ? C.SHOT_DAMAGE_TO_PLAYER : C.SHOT_DAMAGE_TO_ENEMY;
-          onDamage(defSide, dmg, b.x, b.y, 'unit');
+          onDamage({ defSide: defSide, amount: dmg, x: b.x, y: b.y, kind: 'unit', unit: unit });
           hit = true;
           break;
         }
@@ -88,7 +90,8 @@
     }
   }
 
-  // onLand(defendingSide, amount, x, y, wasHit) beim Aufschlag des Wurfs.
+  // onLand(info) beim Aufschlag des Wurfs; info.wasHit, info.unit ist bei
+  // einem Treffer die getroffene Einheit (für Treffer-Flash), sonst leer.
   function updateThrows(throws, world, onLand) {
     for (var i = throws.length - 1; i >= 0; i--) {
       var t = throws[i];
@@ -100,13 +103,16 @@
       if (progress >= 1) {
         var defSide = otherSide(t.side);
         var units = defSide === 'player' ? world.playerUnits : world.enemyUnits;
-        var bestDist = Infinity;
+        var bestDist = Infinity, bestUnit = null;
         for (var u = 0; u < units.length; u++) {
           var d = Math.hypot(units[u].x - t.targetX, units[u].y - t.targetY);
-          if (d < bestDist) bestDist = d;
+          if (d < bestDist) { bestDist = d; bestUnit = units[u]; }
         }
         var wasHit = bestDist <= C.THROW_HIT_RADIUS;
-        onLand(defSide, wasHit ? C.THROW_HIT_DAMAGE : 0, t.targetX, t.targetY, wasHit);
+        onLand({
+          defSide: defSide, amount: wasHit ? C.THROW_HIT_DAMAGE : 0,
+          x: t.targetX, y: t.targetY, wasHit: wasHit, unit: wasHit ? bestUnit : null,
+        });
         throws.splice(i, 1);
       }
     }

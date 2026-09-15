@@ -96,13 +96,26 @@
     THROW_COOLDOWN_MS: 900, // Annahme: minimaler Abstand zwischen eigenen Würfen
 
     // ---------- KI-Timing (Annahmen, Spec nennt keine Werte) ----------
-    AI_FIRE_INTERVAL_MIN_MS: 700,
-    AI_FIRE_INTERVAL_MAX_MS: 1400,
+    // Angepasst nach erstem Spieltest: alle 3 Gegner feuerten unkoordiniert
+    // aufs jeweils NÄCHSTE Ziel und haben dadurch gemeinsam eine einzelne
+    // Mauer-Spalte binnen Sekunden durchlöchert ("Fokus-Feuer"-Effekt) –
+    // siehe AI_LANE_TARGET_CHANCE weiter unten, das ist der eigentliche
+    // Fix. Das Intervall wurde zusätzlich leicht entschärft.
+    AI_FIRE_INTERVAL_MIN_MS: 900,
+    AI_FIRE_INTERVAL_MAX_MS: 1900,
     AI_THROW_INTERVAL_MIN_MS: 2600,
     AI_THROW_INTERVAL_MAX_MS: 4600,
     // Ungenauigkeit der KI-Schüsse (Radius in px um das anvisierte Ziel),
     // damit die Gegner nicht unmenschlich präzise wirken.
     AI_AIM_SPREAD: 10,
+    // Kurze Schonfrist zu Rundenbeginn, bevor die erste KI-Einheit feuern
+    // darf – gibt dem Spieler Zeit sich zu orientieren, bevor es losgeht.
+    AI_START_GRACE_MS: 900,
+    // Anteil der Feuerentscheidungen, die auf die "Lane" (das eigene
+    // Gegenstück nach Index) statt auf das rein nächste Ziel gehen – siehe
+    // ai.js `pickFireTarget`. Verhindert, dass alle KI-Einheiten dieselbe
+    // gegnerische Einheit (und damit dieselbe Mauer-Spalte) fokussieren.
+    AI_LANE_TARGET_CHANCE: 0.7,
 
     // ---------- Team-Kommandos (Spec: Rückzug/Angriff/Deckung) ----------
     // Zieloffsets der beiden Teammates relativ zur Spielerposition (px),
@@ -125,6 +138,9 @@
     // Juice
     SHAKE_FRAMES: 12,
     SHAKE_MAGNITUDE: 3,
+    HIT_FLASH_FRAMES: 10, // kurzer weißer Blitz auf einer getroffenen Einheit
+    LOW_HP_VIGNETTE_FRAC: 0.25, // ab diesem Team-HP-Anteil pulsiert der Bildschirmrand rot
+    CONFETTI_COLORS: ['#5ee6ff', '#7ee787', '#ffd166', '#ff6fae', '#f4f1ea'],
   };
 
   // Zonen-Grenzen: eigenes Feldareal, in dem sich Einheiten bewegen dürfen

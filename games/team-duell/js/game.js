@@ -36,12 +36,12 @@
   }
 
   function resetWorld() {
-    var player = TD.ai.makeUnit('you', 'player', 'human', C.PLAYER_START_X[0], C.PLAYER_START_Y, C.PLAYER_COLOR);
-    var mateA = TD.ai.makeUnit('mate-a', 'player', 'teammate', C.PLAYER_START_X[1], C.PLAYER_START_Y, C.TEAMMATE_COLOR);
-    var mateB = TD.ai.makeUnit('mate-b', 'player', 'teammate', C.PLAYER_START_X[2], C.PLAYER_START_Y, C.TEAMMATE_COLOR);
+    var player = TD.ai.makeUnit('you', 'player', 'human', C.PLAYER_START_X[0], C.PLAYER_START_Y, C.PLAYER_COLOR, 0);
+    var mateA = TD.ai.makeUnit('mate-a', 'player', 'teammate', C.PLAYER_START_X[1], C.PLAYER_START_Y, C.TEAMMATE_COLOR, 0);
+    var mateB = TD.ai.makeUnit('mate-b', 'player', 'teammate', C.PLAYER_START_X[2], C.PLAYER_START_Y, C.TEAMMATE_COLOR, 1);
     var enemies = [];
     for (var i = 0; i < C.TEAM_SIZE; i++) {
-      enemies.push(TD.ai.makeUnit('foe-' + i, 'enemy', 'enemy', C.ENEMY_START_X[i], C.ENEMY_START_Y, C.ENEMY_COLOR));
+      enemies.push(TD.ai.makeUnit('foe-' + i, 'enemy', 'enemy', C.ENEMY_START_X[i], C.ENEMY_START_Y, C.ENEMY_COLOR, i));
     }
 
     world = {
@@ -68,32 +68,60 @@
 
   // ---------- Schaden/Treffer-Feedback ----------
 
+  function vibrate(pattern) {
+    // Rein kosmetisch, nie das Spiel stören lassen: iOS Safari kennt die
+    // API z.B. nicht, andere Browser können sie ablehnen (kein Nutzer-Tap
+    // zuvor). try/catch statt Feature-Verzweigung, da manche Browser die
+    // Methode zwar anbieten, aber wirft, statt still false zurückzugeben.
+    try { if (global.navigator && global.navigator.vibrate) global.navigator.vibrate(pattern); } catch (e) { /* ignorieren */ }
+  }
+
   function damageTeam(side, amount) {
     if (!amount) return;
     world.teamHP[side] = Math.max(0, world.teamHP[side] - amount);
-    if (side === 'player') world.shakeFrames = C.SHAKE_FRAMES;
+    if (side === 'player') {
+      world.shakeFrames = C.SHAKE_FRAMES;
+      vibrate(15);
+    }
   }
 
-  function onBulletDamage(defSide, amount, x, y, kind) {
-    if (kind === 'wall') {
-      TD.particles.spawnPoof(x, y, '#dfe9ff', 6);
-      TD.sounds.playWallHit();
+  function onBulletDamage(info) {
+    if (info.kind === 'wall') {
+      if (info.justBroke) {
+        TD.particles.spawnPoof(info.x, info.y, '#dfe9ff', 14);
+        TD.sounds.playWallBreak();
+      } else {
+        TD.particles.spawnPoof(info.x, info.y, '#dfe9ff', 6);
+        TD.sounds.playWallHit();
+      }
       return;
     }
-    var color = defSide === 'player' ? C.PLAYER_COLOR : C.ENEMY_COLOR;
-    TD.particles.spawnPoof(x, y, color, 9);
+    var color = info.defSide === 'player' ? C.PLAYER_COLOR : C.ENEMY_COLOR;
+    TD.particles.spawnPoof(info.x, info.y, color, 9);
     TD.sounds.playUnitHit();
-    damageTeam(defSide, amount);
+    if (info.unit) info.unit.flashFrames = C.HIT_FLASH_FRAMES;
+    damageTeam(info.defSide, info.amount);
   }
 
-  function onThrowLand(defSide, amount, x, y, wasHit) {
-    var color = wasHit ? (defSide === 'player' ? C.PLAYER_COLOR : C.ENEMY_COLOR) : 'rgba(244,241,234,0.6)';
-    TD.particles.spawnSplash(x, y, color);
-    if (wasHit) {
+  function onThrowLand(info) {
+    var color = info.wasHit ? (info.defSide === 'player' ? C.PLAYER_COLOR : C.ENEMY_COLOR) : 'rgba(244,241,234,0.6)';
+    TD.particles.spawnSplash(info.x, info.y, color);
+    if (info.wasHit) {
       TD.sounds.playSplashHit();
-      damageTeam(defSide, amount);
+      if (info.unit) info.unit.flashFrames = C.HIT_FLASH_FRAMES;
+      damageTeam(info.defSide, info.amount);
     } else {
       TD.sounds.playSplashMiss();
+    }
+  }
+
+  function decayFlash() {
+    var i;
+    for (i = 0; i < world.playerUnits.length; i++) {
+      if (world.playerUnits[i].flashFrames > 0) world.playerUnits[i].flashFrames--;
+    }
+    for (i = 0; i < world.enemyUnits.length; i++) {
+      if (world.enemyUnits[i].flashFrames > 0) world.enemyUnits[i].flashFrames--;
     }
   }
 
@@ -112,6 +140,7 @@
     if (world.aimActive && world.playerFireTimer <= 0) {
       var player = world.playerUnits[0];
       TD.projectiles.spawnBullet(world.bullets, player.x, player.y, world.aimAngle, 'player');
+      TD.particles.spawnMuzzle(player.x, player.y, C.PLAYER_COLOR);
       TD.sounds.playShoot();
       world.playerFireTimer = C.PLAYER_FIRE_INTERVAL_MS;
     }
@@ -132,14 +161,20 @@
     for (i = 1; i < world.playerUnits.length; i++) {
       var mate = world.playerUnits[i];
       var fire = TD.ai.decideFire(mate, world.enemyUnits, STEP_MS);
-      if (fire) TD.projectiles.spawnBullet(world.bullets, mate.x, mate.y, fire.angle, 'player');
+      if (fire) {
+        TD.projectiles.spawnBullet(world.bullets, mate.x, mate.y, fire.angle, 'player');
+        TD.particles.spawnMuzzle(mate.x, mate.y, C.TEAMMATE_COLOR);
+      }
       var throwDecision = TD.ai.decideThrow(mate, world.enemyUnits, STEP_MS);
       if (throwDecision) TD.projectiles.spawnThrow(world.throws, mate.x, mate.y, throwDecision.x, throwDecision.y, 'player');
     }
     for (i = 0; i < world.enemyUnits.length; i++) {
       var foe = world.enemyUnits[i];
       var foeFire = TD.ai.decideFire(foe, world.playerUnits, STEP_MS);
-      if (foeFire) TD.projectiles.spawnBullet(world.bullets, foe.x, foe.y, foeFire.angle, 'enemy');
+      if (foeFire) {
+        TD.projectiles.spawnBullet(world.bullets, foe.x, foe.y, foeFire.angle, 'enemy');
+        TD.particles.spawnMuzzle(foe.x, foe.y, C.ENEMY_COLOR);
+      }
       var foeThrow = TD.ai.decideThrow(foe, world.playerUnits, STEP_MS);
       if (foeThrow) TD.projectiles.spawnThrow(world.throws, foe.x, foe.y, foeThrow.x, foeThrow.y, 'enemy');
     }
@@ -163,6 +198,7 @@
 
     TD.projectiles.updateBullets(world.bullets, world, onBulletDamage);
     TD.projectiles.updateThrows(world.throws, world, onThrowLand);
+    decayFlash();
 
     checkRoundEnd();
   }
@@ -175,8 +211,14 @@
     var score = result === 'win' ? Math.round(world.teamHP.player) : 0;
     var isNewBest = result === 'win' && SG.storage.setBest(TD.GAME_ID, score);
     best = SG.storage.getBest(TD.GAME_ID);
-    if (result === 'win') TD.sounds.playWin();
-    else TD.sounds.playLose();
+    if (result === 'win') {
+      TD.sounds.playWin();
+      TD.particles.spawnConfetti(C.CANVAS_W, C.CONFETTI_COLORS);
+      vibrate([20, 40, 20, 40, 60]);
+    } else {
+      TD.sounds.playLose();
+      vibrate(80);
+    }
     SG.poki.gameplayStop();
     SG.analytics.track('game_over', { result: result, score: score, best: best, newBest: isNewBest });
     emitChange({ result: result, score: score, newBest: isNewBest });
@@ -208,7 +250,10 @@
     TD.particles.draw(ctx);
     ctx.restore();
 
-    if (world) drawHud();
+    if (world) {
+      drawHud();
+      drawLowHpVignette();
+    }
   }
 
   function drawZones() {
@@ -226,14 +271,26 @@
   function drawUnits(units) {
     for (var i = 0; i < units.length; i++) {
       var u = units[i];
+      // Dezentes Idle-Wippen (rein kosmetisch, keine Wirkung auf u.x/u.y
+      // selbst) – macht stehende Einheiten lebendiger statt starr.
+      var bob = Math.sin(world.frameCount * 0.06 + u.wobblePhase) * 1.4;
       ctx.fillStyle = u.color;
       ctx.beginPath();
-      ctx.arc(u.x, u.y, C.UNIT_RADIUS, 0, Math.PI * 2);
+      ctx.arc(u.x, u.y + bob, C.UNIT_RADIUS, 0, Math.PI * 2);
       ctx.fill();
       if (u.role === 'human') {
         ctx.strokeStyle = '#10141f';
         ctx.lineWidth = 2;
         ctx.stroke();
+      }
+      // Kurzer weißer Treffer-Blitz (siehe HIT_FLASH_FRAMES), klingt linear ab.
+      if (u.flashFrames > 0) {
+        ctx.globalAlpha = u.flashFrames / C.HIT_FLASH_FRAMES;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(u.x, u.y + bob, C.UNIT_RADIUS * 0.72, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
       }
     }
   }
@@ -268,6 +325,25 @@
     ctx.fillRect(x, y, w, 8);
     ctx.fillStyle = color;
     ctx.fillRect(x, y, Math.max(0, w * frac), 8);
+  }
+
+  // Warnsignal bei kritischem eigenem Team-HP: pulsierender roter Rand
+  // (siehe LOW_HP_VIGNETTE_FRAC) – zusätzlich zu HP-Balken und Screen-Shake,
+  // damit "es wird knapp" auch peripher/ohne auf den Balken zu schauen
+  // ankommt. Nicht während Pause/Gameover (dann irrelevant/verwirrend).
+  function drawLowHpVignette() {
+    if (state !== STATES.PLAYING) return;
+    var frac = world.teamHP.player / C.TEAM_HP_MAX;
+    if (frac >= C.LOW_HP_VIGNETTE_FRAC || frac <= 0) return;
+    var urgency = 1 - frac / C.LOW_HP_VIGNETTE_FRAC; // 0 knapp unter Schwelle -> 1 bei 0 HP
+    var pulse = 0.5 + 0.5 * Math.sin(world.frameCount * 0.15);
+    var alpha = (0.12 + urgency * 0.22) * (0.6 + 0.4 * pulse);
+    var cx = C.CANVAS_W / 2, cy = C.CANVAS_H / 2;
+    var grad = ctx.createRadialGradient(cx, cy, C.CANVAS_H * 0.32, cx, cy, C.CANVAS_H * 0.62);
+    grad.addColorStop(0, 'rgba(255, 60, 60, 0)');
+    grad.addColorStop(1, 'rgba(255, 40, 40, ' + alpha.toFixed(3) + ')');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, C.CANVAS_W, C.CANVAS_H);
   }
 
   // ---------- Loop ----------

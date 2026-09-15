@@ -39,8 +39,11 @@
     if (Math.abs(bulletY - wall.y) > C.WALL_BAND_HALF) return { inBand: false, blocked: false };
     var seg = wall.segments[segmentIndexForX(bulletX)];
     if (seg.hp <= 0) return { inBand: true, blocked: false }; // Lücke, fliegt durch
+    var wasIntact = seg.hp > 0;
     seg.hp -= C.WALL_HIT_DAMAGE;
-    return { inBand: true, blocked: true, segment: seg };
+    // justBroke: dieser Treffer hat das Segment gerade erst zerstört (für
+    // einen größeren Bruch-Effekt statt des normalen kleinen Treffer-Poofs).
+    return { inBand: true, blocked: true, segment: seg, justBroke: wasIntact && seg.hp <= 0 };
   }
 
   function draw(ctx, wall) {
@@ -52,6 +55,22 @@
       ctx.fillStyle = wall.color;
       ctx.fillRect(seg.x + 1, wall.y - C.WALL_THICKNESS / 2, seg.w - 2, C.WALL_THICKNESS);
       ctx.globalAlpha = 1;
+
+      // Ab spürbarem Schaden ein bis zwei feine Risse andeuten (fester,
+      // segmentabhängiger statt zufällig flackernder Verlauf pro Frame).
+      if (frac < 0.66) {
+        var midY = wall.y;
+        ctx.strokeStyle = 'rgba(16, 20, 31, 0.55)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(seg.x + seg.w * 0.35, midY - C.WALL_THICKNESS / 2 + 1);
+        ctx.lineTo(seg.x + seg.w * 0.55, midY + C.WALL_THICKNESS / 2 - 1);
+        if (frac < 0.33) {
+          ctx.moveTo(seg.x + seg.w * 0.68, midY - C.WALL_THICKNESS / 2 + 1);
+          ctx.lineTo(seg.x + seg.w * 0.5, midY + C.WALL_THICKNESS / 2 - 1);
+        }
+        ctx.stroke();
+      }
     }
   }
 
