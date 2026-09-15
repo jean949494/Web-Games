@@ -8,9 +8,9 @@ HTML/CSS/JavaScript.
 
 - [`games/ninja-wandsprung`](games/ninja-wandsprung/) – Endless-Climber:
   Ladesprung von Wand zu Wand, Stacheln ausweichen
-- [`games/kurve-solo`](games/kurve-solo/) – Solo gegen 3 KI-Bots: Linie
-  hinter sich herziehen, Wand/eigener/fremder Linie ausweichen, möglichst
-  lange überleben
+- [`games/kurve-solo`](games/kurve-solo/) – Endlos-Climber: Linie hinter
+  sich herziehen, Hindernissen ausweichen, Feld wird mit der Höhe
+  schmaler und verzwickter
 
 ## Loslegen
 

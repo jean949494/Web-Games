@@ -1,12 +1,15 @@
 /**
- * Kurve Solo – Spiellogik & Rendering.
+ * Kurve Solo – Spiellogik & Rendering (Endlos-Modus).
  *
- * Werte 1:1 aus der Spec übernommen (siehe constants.js). Diese Datei
- * implementiert die Zustandsmaschine (Menü/Spiel/Pause/Game Over), die
- * Kernmechanik (konstante Geschwindigkeit, Lenken, Linien mit Lücken,
- * Kollision mit Wand/eigener/fremder Linie) sowie die Bot-Runde: Solo
- * gegen 3 KI-Bots, Ziel ist möglichst lange zu überleben. Score = Anzahl
- * überlebter Physik-Frames (fix 60Hz).
+ * Der Punkt steigt endlos nach oben (Kamera folgt, wie bei Ninja
+ * Wandsprung), zieht dabei seine Linie mit gelegentlichen Lücken.
+ * Kollision mit dem Spielfeldrand, einem Hindernis oder der eigenen
+ * Linie = Tod. Das Spielfeld wird mit der Höhe schmaler, die Lücken in
+ * den Hindernissen werden enger und ihre Position springt stärker hin
+ * und her – siehe constants.js für alle Rampen-Werte.
+ *
+ * Score = höchster je erreichter Punkt (px Höhe), analog zu Ninja
+ * Wandsprung: fällt nicht mit, falls kurz rückwärts gelenkt wird.
  */
 (function (global) {
   'use strict';
@@ -24,7 +27,7 @@
   var state = STATES.MENU;
   var changeListeners = [];
 
-  var players, score, best, shakeFrames, accMs, lastTs, rafId;
+  var player, camera, obstacles, nextObstacleY, lastGapX, score, best, shakeFrames, accMs, lastTs, rafId;
 
   function emitChange(extra) {
     var payload = Object.assign({ state: state, score: Math.floor(score || 0), best: best || 0 }, extra || {});
@@ -33,68 +36,78 @@
     });
   }
 
-  function makePlayer(id, isBot, pos, color) {
-    return {
-      id: id,
-      isBot: isBot,
-      x: pos.x,
-      y: pos.y,
-      angle: pos.angle,
-      color: color,
-      alive: true,
-      trail: [{ x: pos.x, y: pos.y, draw: false }], // erster Punkt startet ohne Rückwärtslinie
-      gapFrames: 0,
-      turnInput: 0, // nur für den menschlichen Spieler relevant
-      avoidDir: 0, avoidHold: 0, wobbleDir: 0, wobbleHold: 0, // nur für Bots relevant
-    };
+  function startY() {
+    return C.CANVAS_H - C.START_Y_FROM_BOTTOM;
   }
 
   function resetWorld() {
-    var layout = C.START_LAYOUT();
-    players = [makePlayer('you', false, layout[0], C.PLAYER_COLOR)];
-    for (var i = 0; i < C.BOT_COUNT; i++) {
-      players.push(makePlayer('bot' + i, true, layout[i + 1], C.BOT_COLORS[i % C.BOT_COLORS.length]));
-    }
+    var sy = startY();
+    player = {
+      x: C.CANVAS_W / 2,
+      y: sy,
+      angle: -Math.PI / 2, // nach oben
+      turnInput: 0,
+      trail: [{ x: C.CANVAS_W / 2, y: sy, draw: false }],
+      gapFrames: 0,
+      startY: sy,
+      maxHeight: 0,
+    };
+    camera = { y: 0 };
+    obstacles = [];
+    lastGapX = C.CANVAS_W / 2;
+    nextObstacleY = sy - C.OBSTACLE_FIRST_CLEARANCE;
     score = 0;
     shakeFrames = 0;
     KS.particles.reset();
+    ensureObstaclesAhead();
   }
 
-  function checkLineCollision(p) {
-    var thresholdSq = C.HIT_FACTOR_SQ * C.THICK * C.THICK;
-    for (var i = 0; i < players.length; i++) {
-      var other = players[i];
-      var trail = other.trail;
-      // Eigene Linie: die letzten paar Punkte ignorieren, sonst crasht man
-      // sofort in die gerade selbst gezogene Linie (siehe Spec).
-      var ignoreFrom = other === p ? trail.length - C.SELF_IGNORE_RECENT_POINTS : trail.length;
-      for (var j = 0; j < ignoreFrom; j++) {
-        var pt = trail[j];
-        if (!pt.draw) continue; // Lücke -> keine Kollision
-        var dx = p.x - pt.x, dy = p.y - pt.y;
-        if (dx * dx + dy * dy < thresholdSq) return true;
-      }
-    }
-    return false;
+  function heightClimbed() {
+    return Math.max(0, player.startY - player.y);
   }
 
-  function killPlayer(p, reason) {
-    p.alive = false;
-    KS.particles.spawnBurst(p.x, p.y, p.color);
-    SG.analytics.track('player_down', { id: p.id, reason: reason, isBot: p.isBot });
+  // Score = höchster je erreichter Punkt, nicht die aktuelle Position
+  // (die beim Ausweichen/Zurücklenken kurz sinken kann).
+  function currentScore() {
+    return Math.floor(player.maxHeight);
+  }
 
-    if (p.id === 'you') {
-      KS.sounds.playCrash();
-      shakeFrames = C.SHAKE_FRAMES;
-      endRound();
-    } else {
-      KS.sounds.playBotDown();
+  function ensureObstaclesAhead() {
+    // Sorgt dafür, dass immer genug Hindernisse oberhalb der Kamera vorhanden sind.
+    var horizon = camera.y - C.CANVAS_H * 2.2;
+    while (nextObstacleY > horizon) {
+      var h = player.startY - nextObstacleY; // Höhe dieser Reihe (für die Rampen)
+      var tGap = C.rampT(h, C.OBSTACLE_RAMP_START_HEIGHT, C.OBSTACLE_RAMP_RANGE);
+      var gapHalf = C.lerp(C.OBSTACLE_GAP_START, C.OBSTACLE_GAP_MIN, tGap) / 2;
+      var jitter = C.lerp(C.OBSTACLE_JITTER_START, C.OBSTACLE_JITTER_MAX, tGap);
+      var spacing = C.lerp(C.OBSTACLE_SPACING_START, C.OBSTACLE_SPACING_MIN, tGap);
+      var halfW = C.fieldHalfWidthAt(h);
+      var cx = C.CANVAS_W / 2;
+      var minX = cx - halfW + gapHalf + 4;
+      var maxX = cx + halfW - gapHalf - 4;
+
+      var gapX = lastGapX + (Math.random() * 2 - 1) * jitter;
+      gapX = maxX > minX ? Math.max(minX, Math.min(maxX, gapX)) : cx;
+      lastGapX = gapX;
+
+      obstacles.push({ y: nextObstacleY, gapX: gapX, gapHalf: gapHalf });
+      nextObstacleY -= spacing;
     }
+  }
+
+  function killPlayer(reason) {
+    if (state !== STATES.PLAYING) return;
+    KS.particles.spawnBurst(player.x, player.y, C.PLAYER_COLOR);
+    KS.sounds.playCrash();
+    shakeFrames = C.SHAKE_FRAMES;
+    SG.analytics.track('player_down', { reason: reason });
+    endRound();
   }
 
   function endRound() {
     state = STATES.GAMEOVER;
-    var finalScore = score;
+    var finalScore = currentScore();
+    score = finalScore;
     var isNewBest = SG.storage.setBest(KS.GAME_ID, finalScore);
     best = SG.storage.getBest(KS.GAME_ID);
     SG.audio.playGameOver();
@@ -103,41 +116,89 @@
     emitChange({ newBest: isNewBest });
   }
 
-  function updatePlayer(p) {
-    if (!p.alive) return;
+  function checkWallCollision() {
+    var halfW = C.fieldHalfWidthAt(heightClimbed());
+    var cx = C.CANVAS_W / 2;
+    return player.x < cx - halfW || player.x > cx + halfW;
+  }
 
-    var turn = p.isBot ? KS.bots.decideTurn(p, players) : p.turnInput;
-    p.angle += turn * C.TURN;
-
-    // Zufällige Lücke: pro Frame ca. GAP_CHANCE, sobald keine aktive
-    // Lücke läuft (Kernfairness-Mechanik aus dem Original).
-    var inGap = p.gapFrames > 0;
-    if (inGap) {
-      p.gapFrames--;
-    } else if (Math.random() < C.GAP_CHANCE) {
-      p.gapFrames = C.GAP_LENGTH_FRAMES - 1;
-      inGap = true;
+  // Hindernis = Balken über die volle Breite mit einer Lücke. Kollision,
+  // sobald man in der Höhenbande des Balkens ist UND außerhalb der
+  // Lücke (mit demselben großzügigen Kollisionsradius wie bei Linien).
+  function checkObstacleCollision() {
+    var r = Math.sqrt(C.HIT_FACTOR_SQ) * C.THICK;
+    for (var i = 0; i < obstacles.length; i++) {
+      var o = obstacles[i];
+      if (Math.abs(player.y - o.y) < C.OBSTACLE_THICK / 2 + r) {
+        if (player.x < o.gapX - o.gapHalf + r || player.x > o.gapX + o.gapHalf - r) {
+          return true;
+        }
+      }
     }
+    return false;
+  }
 
-    p.x += Math.cos(p.angle) * C.SPEED;
-    p.y += Math.sin(p.angle) * C.SPEED;
-    p.trail.push({ x: p.x, y: p.y, draw: !inGap });
+  function checkSelfCollision() {
+    var thresholdSq = C.HIT_FACTOR_SQ * C.THICK * C.THICK;
+    var trail = player.trail;
+    // Die letzten paar Punkte ignorieren, sonst crasht man sofort in die
+    // gerade selbst gezogene Linie (siehe Spec).
+    var ignoreFrom = trail.length - C.SELF_IGNORE_RECENT_POINTS;
+    for (var j = 0; j < ignoreFrom; j++) {
+      var pt = trail[j];
+      if (!pt.draw) continue; // Lücke -> keine Kollision
+      var dx = player.x - pt.x, dy = player.y - pt.y;
+      if (dx * dx + dy * dy < thresholdSq) return true;
+    }
+    return false;
+  }
 
-    var m = C.FIELD_MARGIN;
-    if (p.x < m || p.x > C.CANVAS_W - m || p.y < m || p.y > C.CANVAS_H - m) {
-      killPlayer(p, 'wall');
-      return;
+  function pruneOld() {
+    while (obstacles.length && obstacles[0].y - camera.y > C.CANVAS_H + C.PRUNE_MARGIN) {
+      obstacles.shift();
     }
-    if (checkLineCollision(p)) {
-      killPlayer(p, 'line');
+    var trail = player.trail;
+    var cut = 0;
+    var keepFrom = trail.length - C.SELF_IGNORE_RECENT_POINTS;
+    while (cut < keepFrom && trail[cut].y - camera.y > C.CANVAS_H + C.PRUNE_MARGIN) {
+      cut++;
     }
+    if (cut > 0) trail.splice(0, cut);
   }
 
   function updatePhysics() {
-    for (var i = 0; i < players.length; i++) {
-      updatePlayer(players[i]);
+    player.angle += player.turnInput * C.TURN;
+
+    // Zufällige Lücke: pro Frame ca. GAP_CHANCE, sobald keine aktive
+    // Lücke läuft (Kernfairness-Mechanik aus dem Original).
+    var inGap = player.gapFrames > 0;
+    if (inGap) {
+      player.gapFrames--;
+    } else if (Math.random() < C.GAP_CHANCE) {
+      player.gapFrames = C.GAP_LENGTH_FRAMES - 1;
+      inGap = true;
     }
-    if (state === STATES.PLAYING) score++;
+
+    player.x += Math.cos(player.angle) * C.SPEED;
+    player.y += Math.sin(player.angle) * C.SPEED;
+    player.trail.push({ x: player.x, y: player.y, draw: !inGap });
+
+    player.maxHeight = Math.max(player.maxHeight, heightClimbed());
+    if (state === STATES.PLAYING) score = currentScore();
+
+    // Kamera folgt nur nach oben (nie zurück nach unten)
+    var targetCamY = player.y - C.CANVAS_H * C.CAMERA_FOLLOW_RATIO;
+    if (targetCamY < camera.y) camera.y = targetCamY;
+
+    ensureObstaclesAhead();
+
+    if (checkWallCollision()) { killPlayer('wall'); return; }
+    if (checkObstacleCollision()) { killPlayer('obstacle'); return; }
+    if (checkSelfCollision()) { killPlayer('self'); return; }
+    // Sicherheitsnetz: weit unterhalb der Kamera "verbummelt"
+    if (player.y - camera.y > C.CANVAS_H + C.FALL_MARGIN) { killPlayer('fell'); return; }
+
+    pruneOld();
   }
 
   // ---------- Rendering ----------
@@ -153,58 +214,79 @@
       ctx.translate((Math.random() * 2 - 1) * mag, (Math.random() * 2 - 1) * mag);
     }
 
-    drawField();
-    if (players) {
-      drawTrails();
-      drawHeads();
+    drawWalls();
+    if (state !== STATES.MENU) {
+      drawObstacles();
+      drawTrail();
     }
+    drawHead();
     KS.particles.draw(ctx);
 
     ctx.restore();
   }
 
-  function drawField() {
-    var m = C.FIELD_MARGIN;
-    ctx.strokeStyle = 'rgba(244, 241, 234, 0.18)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(m, m, C.CANVAS_W - m * 2, C.CANVAS_H - m * 2);
+  function drawWalls() {
+    var halfW = C.fieldHalfWidthAt(heightClimbed());
+    var cx = C.CANVAS_W / 2;
+    ctx.fillStyle = C.WALL_COLOR;
+    ctx.fillRect(0, 0, cx - halfW, C.CANVAS_H);
+    ctx.fillRect(cx + halfW, 0, C.CANVAS_W - (cx + halfW), C.CANVAS_H);
   }
 
-  function drawTrails() {
-    for (var i = 0; i < players.length; i++) {
-      var p = players[i];
-      if (p.trail.length < 2) continue;
-      ctx.strokeStyle = p.color;
-      ctx.lineWidth = C.THICK;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      // Tote Spieler: Linie bleibt als Hindernis stehen, aber gedimmt.
-      ctx.globalAlpha = p.alive ? 1 : 0.5;
-      ctx.beginPath();
-      var penDown = false;
-      for (var j = 1; j < p.trail.length; j++) {
-        var prev = p.trail[j - 1], cur = p.trail[j];
-        if (cur.draw) {
-          if (!penDown) { ctx.moveTo(prev.x, prev.y); penDown = true; }
-          ctx.lineTo(cur.x, cur.y);
-        } else {
-          penDown = false;
-        }
+  function roundedBar(x, y, w, h) {
+    if (w <= 0) return;
+    ctx.beginPath();
+    if (typeof ctx.roundRect === 'function') {
+      ctx.roundRect(x, y, w, h, h / 2);
+    } else {
+      ctx.rect(x, y, w, h);
+    }
+    ctx.fill();
+  }
+
+  function drawObstacles() {
+    ctx.fillStyle = C.OBSTACLE_COLOR;
+    var half = C.OBSTACLE_THICK / 2;
+    for (var i = 0; i < obstacles.length; i++) {
+      var o = obstacles[i];
+      var sy = o.y - camera.y;
+      if (sy < -40 || sy > C.CANVAS_H + 40) continue;
+      var leftEnd = o.gapX - o.gapHalf;
+      var rightStart = o.gapX + o.gapHalf;
+      // Volle Breite minus Lücke zeichnen; die Seitenwände werden
+      // danach obendrauf gemalt und decken den Überstand sauber ab.
+      roundedBar(0, sy - half, leftEnd, C.OBSTACLE_THICK);
+      roundedBar(rightStart, sy - half, C.CANVAS_W - rightStart, C.OBSTACLE_THICK);
+    }
+  }
+
+  function drawTrail() {
+    var trail = player.trail;
+    if (trail.length < 2) return;
+    ctx.strokeStyle = C.PLAYER_COLOR;
+    ctx.lineWidth = C.THICK;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    var penDown = false;
+    for (var j = 1; j < trail.length; j++) {
+      var prev = trail[j - 1], cur = trail[j];
+      if (cur.draw) {
+        if (!penDown) { ctx.moveTo(prev.x, prev.y - camera.y); penDown = true; }
+        ctx.lineTo(cur.x, cur.y - camera.y);
+      } else {
+        penDown = false;
       }
-      ctx.stroke();
-      ctx.globalAlpha = 1;
     }
+    ctx.stroke();
   }
 
-  function drawHeads() {
-    for (var i = 0; i < players.length; i++) {
-      var p = players[i];
-      if (!p.alive) continue;
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, C.THICK * 1.6, 0, Math.PI * 2);
-      ctx.fill();
-    }
+  function drawHead() {
+    var sy = player.y - camera.y;
+    ctx.fillStyle = C.PLAYER_COLOR;
+    ctx.beginPath();
+    ctx.arc(player.x, sy, C.THICK * 1.6, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   // ---------- Loop ----------
@@ -227,8 +309,6 @@
       }
     }
 
-    // Partikel/Screen-Shake laufen unabhängig von der festen Physik-Rate
-    // weiter aus, auch kurz nach Game Over, für einen sauberen Ausklang.
     if (state !== STATES.PAUSED) {
       KS.particles.update();
       if (shakeFrames > 0) shakeFrames--;
@@ -294,11 +374,10 @@
       else if (state === STATES.PAUSED) game.resume();
     },
 
-    // side: -1 (links), 0 (geradeaus), 1 (rechts) – nur für den
-    // menschlichen Spieler; Bots lenken über bots.js.
+    // side: -1 (links), 0 (geradeaus), 1 (rechts).
     setTurn: function (side) {
-      if (!players || !players.length) return;
-      players[0].turnInput = side;
+      if (!player) return;
+      player.turnInput = side;
     },
 
     toggleSound: function () {
@@ -309,11 +388,21 @@
 
     // Für manuelle/automatisierte Tests (siehe README).
     getDebugState: function () {
+      var nextObstacle = null;
+      if (obstacles && player) {
+        for (var i = 0; i < obstacles.length; i++) {
+          if (obstacles[i].y < player.y) { nextObstacle = obstacles[i]; break; }
+        }
+      }
       return {
         state: state,
         score: Math.floor(score || 0),
         best: best,
-        aliveCount: players ? players.filter(function (p) { return p.alive; }).length : 0,
+        playerX: player ? player.x : null,
+        playerY: player ? player.y : null,
+        angle: player ? player.angle : null,
+        fieldHalfWidth: player ? C.fieldHalfWidthAt(heightClimbed()) : null,
+        nextObstacle: nextObstacle,
       };
     },
   };

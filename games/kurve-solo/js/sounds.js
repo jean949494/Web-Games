@@ -13,10 +13,6 @@
     playCrash: function () {
       SG.audio.tone(180, 140, { type: 'square', slideTo: 60, gain: 0.12 });
     },
-
-    playBotDown: function () {
-      SG.audio.tone(260, 70, { type: 'triangle', slideTo: 140, gain: 0.05 });
-    },
   };
 
   KS.sounds = sounds;

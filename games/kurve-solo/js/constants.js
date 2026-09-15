@@ -1,15 +1,15 @@
 /**
- * Kurve Solo – Konstanten
+ * Kurve Solo – Konstanten (Endlos-Modus)
  *
- * Physik-/Bot-Werte stammen 1:1 aus der Spielspezifikation (Prototyp-
- * Phase, Chat/Visualizer, durch Testspielen gefunden) – siehe
- * `SPEED`, `TURN`, `THICK`, `HIT_FACTOR_SQ`, `GAP_CHANCE`,
- * `GAP_LENGTH_FRAMES`, `SELF_IGNORE_RECENT_POINTS`, `BOT_LOOKAHEAD`,
- * `BOT_COUNT`. Nicht ohne erneutes Playtesting verändern.
+ * Kernphysik 1:1 aus der urspruenglichen Spielspezifikation (Prototyp-
+ * Phase, Chat/Visualizer, durch Testspielen gefunden): SPEED, TURN,
+ * THICK, HIT_FACTOR_SQ, GAP_CHANCE, GAP_LENGTH_FRAMES,
+ * SELF_IGNORE_RECENT_POINTS. Nicht ohne erneutes Playtesting veraendern.
  *
- * Alle anderen Werte hier (Startaufstellung, Bot-Ausweich-/Wobble-
- * Timing, Farben, Juice) waren in der Spec nicht beziffert und sind
- * Implementierungs-Annahmen – siehe README.md, Abschnitt "Annahmen".
+ * Alles rund um Endlos-Steigerung (Feldbreite, Hindernisse) ist eine
+ * spaetere Erweiterung auf Wunsch (siehe README.md, "Umgesetzt") und
+ * war in keiner Spec beziffert – Platzhalterwerte, mit `npm run dev`
+ * gegenspielen und anpassen.
  */
 (function (global) {
   'use strict';
@@ -20,65 +20,75 @@
   KS.GAME_ID = 'kurve-solo';
 
   var constants = {
-    // Feld
     CANVAS_W: 340,
     CANVAS_H: 480,
-    FIELD_MARGIN: 6, // Innenabstand der Spielfeldwand zur Canvas-Kante
 
     // Kernphysik (1:1 aus der Spec)
     SPEED: 1.7, // px/frame
     TURN: 0.05, // rad/frame bei gehaltener Richtung
     THICK: 3, // px Linienstärke
-    HIT_FACTOR_SQ: 2.2, // Kollisionsradius²  =  HIT_FACTOR_SQ * THICK²  (großzügiger als die sichtbare Linie)
+    HIT_FACTOR_SQ: 2.2, // Kollisionsradius²  =  HIT_FACTOR_SQ * THICK²
 
     // Zufällige Lücken (Kernfairness-Mechanik aus dem Original)
-    GAP_CHANCE: 0.006, // Chance pro Frame auf eine neue Lücke (0.6%)
+    GAP_CHANCE: 0.006,
     GAP_LENGTH_FRAMES: 12,
-
-    // Eigene Kollision erst ab dem (N+1)-letzten gezeichneten Punkt prüfen,
-    // sonst crasht man sofort in die eigene gerade gezogene Linie.
     SELF_IGNORE_RECENT_POINTS: 10,
 
-    // Bot-KI
-    BOT_COUNT: 3,
-    BOT_LOOKAHEAD: 26, // px Blickweite in Bewegungsrichtung
-    // Annahme (Spec nennt keinen Wert): Ausweichrichtung wird beim ersten
-    // Erkennen zufällig gewählt und dann kurz gehalten.
-    BOT_AVOID_HOLD_FRAMES: 20,
-    // Annahme: etwas großzügigere Vorwarnschwelle als die exakte
-    // Kollisionsgrenze, damit Bots vor der Wand/Linie abdrehen statt sie
-    // erst im letzten Frame zu berühren.
-    BOT_LOOKAHEAD_FACTOR_SQ: 3.4,
-    // Annahme: gelegentliche kleine Richtungsänderungen für organisches
-    // Wirken (nicht nur reaktiv).
-    BOT_WOBBLE_CHANCE: 0.02,
-    BOT_WOBBLE_FRAMES: 10,
+    // Kamera: folgt nur nach oben, wie bei Ninja Wandsprung.
+    CAMERA_FOLLOW_RATIO: 0.6,
+    // Sicherheitsnetz: wer absichtlich rückwärts/abwärts lenkt, stirbt
+    // irgendwann statt endlos unterhalb der Kamera zu trödeln.
+    FALL_MARGIN: 140,
+    // Wie weit unterhalb der Kamera alte Linienpunkte/Hindernisse
+    // gelöscht werden (Speicher & Kollisionscheck bleiben bei einer
+    // echten Endlos-Session begrenzt).
+    PRUNE_MARGIN: 200,
 
-    // Farben (kein Original-Look – eigene, kindgerecht-freundliche Palette)
+    START_Y_FROM_BOTTOM: 90,
+
+    // Das Spielfeld wird mit der Höhe schmaler ("es wird immer enger").
+    FIELD_WIDTH_START: 328, // = CANVAS_W - 2*6, wie der alte FIELD_MARGIN
+    FIELD_WIDTH_MIN: 170,
+    WIDTH_RAMP_START_HEIGHT: 600, // Gnadenfrist, bevor es losgeht
+    WIDTH_RAMP_RANGE: 7000,
+
+    // Hindernisse: waagerechte Balken mit einer Lücke (quer zur
+    // Bewegungsrichtung), durch die man lenken muss. Lücke wird mit der
+    // Höhe schmaler, der Abstand knapper und die Position springt
+    // stärker hin und her ("verzwickter").
+    OBSTACLE_THICK: 10,
+    OBSTACLE_FIRST_CLEARANCE: 320, // grosszügiger Abstand bis zum ersten Hindernis
+    OBSTACLE_GAP_START: 130,
+    OBSTACLE_GAP_MIN: 74,
+    OBSTACLE_SPACING_START: 175,
+    OBSTACLE_SPACING_MIN: 130,
+    OBSTACLE_JITTER_START: 35, // max. Sprung der Lücken-Mitte zur vorigen (px)
+    OBSTACLE_JITTER_MAX: 95,
+    OBSTACLE_RAMP_START_HEIGHT: 600,
+    OBSTACLE_RAMP_RANGE: 7000,
+
     PLAYER_COLOR: '#5ee6ff',
-    BOT_COLORS: ['#ffb454', '#ff6fae', '#7ee787'],
+    OBSTACLE_COLOR: '#f2a154',
+    WALL_COLOR: '#3a4a63',
 
-    // Juice
     DEATH_PARTICLE_COUNT: 16,
     SHAKE_FRAMES: 14,
-    SHAKE_MAGNITUDE: 4, // px
+    SHAKE_MAGNITUDE: 4,
   };
 
-  // Startaufstellung: "Windmühle" an den 4 Feldecken, jeder startet
-  // tangential im Uhrzeigersinn statt frontal aufeinander zu. Eine
-  // naheliegendere Kompass-Aufstellung (Spieler unten/Bot oben usw.)
-  // schickt gegenüberliegende Spieler exakt frontal aufeinander zu – das
-  // führt garantiert zu einem sehr frühen Kopf-an-Kopf-Crash, egal wie
-  // gut gelenkt wird. Die Windmühle vermeidet das.
-  constants.START_LAYOUT = function () {
-    var w = constants.CANVAS_W, h = constants.CANVAS_H;
-    var inset = 80;
-    return [
-      { x: inset, y: h - inset, angle: -Math.PI / 2 },     // Spieler (unten links): nach oben
-      { x: inset, y: inset, angle: 0 },                     // Bot A (oben links): nach rechts
-      { x: w - inset, y: inset, angle: Math.PI / 2 },       // Bot B (oben rechts): nach unten
-      { x: w - inset, y: h - inset, angle: Math.PI },       // Bot C (unten rechts): nach links
-    ];
+  // t=0 bis Höhe startHeight, dann linear auf 1 über range, danach gedeckelt.
+  constants.rampT = function (h, startHeight, range) {
+    if (h <= startHeight) return 0;
+    return Math.min(1, (h - startHeight) / range);
+  };
+
+  constants.lerp = function (a, b, t) {
+    return a + (b - a) * t;
+  };
+
+  constants.fieldHalfWidthAt = function (h) {
+    var t = constants.rampT(h, constants.WIDTH_RAMP_START_HEIGHT, constants.WIDTH_RAMP_RANGE);
+    return constants.lerp(constants.FIELD_WIDTH_START, constants.FIELD_WIDTH_MIN, t) / 2;
   };
 
   KS.constants = constants;

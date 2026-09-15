@@ -2,19 +2,42 @@
 
 Arcade-Prototyp (Canvas, Vanilla JS, keine Build-Abhängigkeiten). Eigener
 Name und eigener Look, inspiriert von der Genre-Mechanik "Kurve ziehen,
-Kollision = Tod" (siehe Spec-Dokument) – keine Original-Assets oder der
-Originaltitel wurden übernommen. Wichtigste Abweichung vom Vorbild: kein
-Online-Multiplayer, stattdessen **solo gegen 3 KI-Bots** (spart Server/
-Matchmaking/Anti-Cheat, bis ein Spiel nachweislich Publikum hat).
+Kollision = Tod" (siehe Original-Spec-Dokument) – keine Original-Assets
+oder der Originaltitel wurden übernommen.
 
-Spieler steuert einen Punkt, der eine durchgehende Linie (mit
-gelegentlichen Lücken) hinter sich zieht. Konstante Geschwindigkeit,
-Lenken nur links/rechts, keine Bremse. Kollision mit Wand, eigener Linie
-oder fremder Linie = Tod. Ziel: möglichst lange überleben.
+**Endlos-Modus** (Stand: zweiter Umbau, siehe "Änderungen" unten): der
+Punkt steigt endlos nach oben (Kamera folgt, wie bei Ninja Wandsprung)
+und zieht dabei seine Linie mit gelegentlichen Lücken hinter sich her.
+Waagerechte Hindernis-Balken mit einer Lücke stehen im Weg, durch die
+man lenken muss. Das Spielfeld wird mit der Höhe schmaler und die
+Hindernis-Lücken springen stärker hin und her – es wird also mit der
+Zeit **enger und verzwickter**. Kollision mit Spielfeldrand, Hindernis
+oder eigener Linie = Tod. Ziel: möglichst hoch kommen.
 
-Alle Physik-/Bot-Werte stammen 1:1 aus dem Spec-Dokument der
+Kernphysik-Werte stammen 1:1 aus dem ursprünglichen Spec-Dokument der
 Prototyp-Phase (Chat/Visualizer) – siehe `js/constants.js`, jeder Wert
 dort kommentiert. Nicht ohne erneutes Playtesting verändern.
+
+## Änderungen gegenüber der ursprünglichen Spec
+
+Die ursprüngliche Spec beschrieb "Solo gegen 3 KI-Bots" in einem festen
+340×480-Feld (siehe Original-Spec-Dokument). Nach dem ersten Testspielen
+kam der Wunsch nach einem echten Endlos-Modus statt Bots:
+
+- **Bots entfernt** – reiner Single-Player.
+- **Endlos statt festes Feld**: Kamera scrollt endlos nach oben (analog
+  Ninja Wandsprung) statt eines festen 340×480-Kastens.
+- **Hindernisse statt Bot-Linien**: waagerechte Balken mit einer Lücke
+  (siehe `js/game.js`, `ensureObstaclesAhead`/`checkObstacleCollision`).
+- **Steigende Schwierigkeit**: Feldbreite und Hindernis-Lücke schrumpfen
+  mit der Höhe, die Lücken-Position springt stärker – damit ist der
+  Punkt "Schwierigkeit über die Zeit steigern (Feld verengt sich
+  langsam)" aus der ursprünglichen Spec (dort als "noch offen"
+  markiert) umgesetzt.
+
+Kernmechanik (konstante Geschwindigkeit, Lenken nur links/rechts,
+Linie mit Lücken, Kollision mit Wand/eigener Linie) ist unverändert
+1:1 aus der Original-Spec übernommen.
 
 ## Starten
 
@@ -33,10 +56,10 @@ Das Spiel liegt dann unter `http://localhost:5173/games/kurve-solo/`
 
 - `index.html` – Markup + Overlay-Screens (Menü, Pause, Game Over)
 - `style.css` – Layout, responsive Skalierung auf 340×480-Referenz
-- `js/constants.js` – alle Spec-Werte (Physik, Bot-KI, Startaufstellung)
-- `js/game.js` – Zustandsmaschine, Physik-Loop (fix 60Hz), Kollision,
-  Rendering
-- `js/bots.js` – Bot-KI (Blickweite-Ausweichen + gelegentliches Wobbeln)
+- `js/constants.js` – alle Werte (Physik, Endlos-Rampen für
+  Feldbreite/Hindernisse)
+- `js/game.js` – Zustandsmaschine, Physik-Loop (fix 60Hz), Kamera,
+  Hindernis-Generierung, Kollision, Rendering
 - `js/input.js` – Touch- (Pointer Events) und Tastatursteuerung
 - `js/particles.js` – Partikel-Burst beim Tod
 - `js/sounds.js` – kurve-spezifische Ton-Sequenzen auf Basis von
@@ -54,73 +77,58 @@ Repo-Root, Abschnitt "Gemeinsames Grundgerüst".
 - Zufällige Lücken: ca. 0.6% Chance/Frame auf eine 12-Frame-Lücke,
   solange keine aktive Lücke läuft
 - Eigenkollision ignoriert die letzten 10 gezeichneten Punkte
-- Bot-KI: Blickweite ~26px in Bewegungsrichtung, weicht bei erkannter
-  Gefahr in eine beim ersten Erkennen zufällig gewählte, kurz gehaltene
-  Richtung aus; sonst gelegentliche kleine zufällige Richtungsänderungen
-  für organisches Wirken
-- 3 Bots als Startwert, unterschiedliche Farben zur Unterscheidung
 - Touch-Steuerung: linke/rechte Bildschirmhälfte halten, nur Pointer
   Events (keine Redundanz-Lösung, siehe Spec-Hinweis zur
   Chat-Iframe-Testumgebung)
 - Gelöstes Problem aus der Spec: ein Tap nach Game Over startet
   gleichzeitig neu UND lenkt – das gesamte Game-Over-Overlay ist der
-  Tap-Ziel, kein separater Restart-Button nötig (siehe `js/input.js`)
+  Tap-Bereich, kein separater Restart-Button nötig (siehe `js/input.js`)
+- Schwierigkeit über die Zeit steigend (siehe "Änderungen" oben):
+  Feldbreite und Hindernis-Lücke schrumpfen mit der Höhe, Hindernis-
+  Position springt stärker
 - Grundgerüst: Menü, Pause, Game Over, Highscore lokal (geteilter
   Storage), Sound an/aus, Touch- **und** Tastatursteuerung
   (Pfeiltasten/A-D, Esc = Pause), Analytics-Event-Hooks, Poki-SDK als
   austauschbares Modul
-- Design-Leitplanken der Spec: kein Tutorial-Text (nur ein Zeile Hinweis
+- Design-Leitplanken: kein Tutorial-Text (nur eine Zeile Hinweis
   "Linke/rechte Seite halten"), sofortiger Start ohne Login, ein Tap zum
   Neustart, Minimal-Menü, kindgerechte Optik (freundlicher "Puff"- statt
   Crash-Sound)
-- Juice: Partikel-Burst beim Tod (für alle Spieler, nicht nur den
-  Menschen), leichter Screen-Shake beim eigenen Tod
+- Juice: Partikel-Burst beim Tod, leichter Screen-Shake
 
-## Bewusst offen gelassen (siehe Spec, "Noch offen")
+## Bewusst offen gelassen
 
-Laut Spec selbst noch nicht getestet bzw. eine reine Geschäfts-/
-Prozessentscheidung – deshalb hier nicht spekulativ vorweggenommen:
-
-- **Schwierigkeit über die Zeit steigern** (Feld verengt sich, mehr/
-  aggressivere Bots) – die Spec nennt hierfür explizit nur Beispiele,
-  keine Werte ("im Prototyp noch nicht getestet"). Ohne belastbare
-  Zahlen hätte eine Umsetzung hier raten bedeutet statt die Spec 1:1
-  zu übernehmen; mit `npm run dev` gegenspielen und bei Bedarf in
-  `constants.js`/`game.js` ergänzen.
-- **Sound-Feintuning/weiteres Juice** (z.B. Ton beim Ausweichen selbst) –
-  Grundsound und Partikel/Screen-Shake sind umgesetzt, weitere Verfeinerung
-  laut Spec optional ("ggf.").
+- **Genaues Balancing der Rampen** (`WIDTH_RAMP_RANGE`,
+  `OBSTACLE_RAMP_RANGE`, `OBSTACLE_JITTER_MAX` in `constants.js`) sind
+  Platzhalter, mit einem einfachen automatisierten Testlauf
+  (proportionale Steuerung Richtung nächster Lücke) auf ca. 30–40
+  Sekunden Überlebenszeit bis zum Tod kalibriert – für echtes
+  menschliches Spielgefühl mit `npm run dev` gegenspielen und anpassen.
+- **Zusätzliche Juice-Elemente** (z.B. Ton beim knappen Vorbeifliegen an
+  einem Hindernis, wie Ninjas "Knapp!"-Flash) – nicht umgesetzt, um den
+  Umbau überschaubar zu halten; wäre eine einfache spätere Ergänzung.
 - **Build-Skript für Portal-Export** – aktuell reicht der Ordner als
   statische Seite; ein Poki-spezifisches Zip/Export-Skript kommt erst,
   wenn die Einreichung ansteht.
-- **Portal-Strategie** – laut Spec zuerst exklusiv bei Poki einreichen,
-  andere Portale erst bei Absage. Reine Prozessentscheidung, keine
-  Code-Änderung.
+- **Portal-Strategie** – laut Ninja-Spec zuerst exklusiv bei Poki
+  einreichen, andere Portale erst bei Absage. Reine
+  Prozessentscheidung, keine Code-Änderung.
 
-## Annahmen / Interpretationen (Spec war an diesen Stellen nicht exakt)
+## Annahmen / Interpretationen
 
-- **Score** = Anzahl überlebter Physik-Frames (fix 60Hz) des
-  menschlichen Spielers. Die Spec nennt kein konkretes Punktesystem,
-  nur "möglichst lange überleben" – Frames sind direkt proportional
-  zur Überlebenszeit und ergeben angenehm große, stetig wachsende Zahlen
-  (ähnlich der Höhen-Score-Logik in Ninja Wandsprung).
-- **Rundenende**: Die Runde endet, sobald der menschliche Spieler
-  stirbt – unabhängig davon, ob noch Bots leben. Tote Bots werden aus
-  der KI-Aktualisierung genommen, ihre Linie bleibt aber (gedimmt) als
-  Hindernis stehen, wie im Original üblich.
-- **Startaufstellung**: Spec nennt keine Positionen/Blickrichtungen.
-  "Windmühle" an den 4 Feldecken, alle starten tangential im
-  Uhrzeigersinn (siehe `START_LAYOUT` in `constants.js`). Eine
-  naheliegendere Kompass-Aufstellung (Spieler unten, Bots an den übrigen
-  Himmelsrichtungen) wurde verworfen: Sie schickt gegenüberliegende
-  Spieler exakt frontal aufeinander zu und führt dadurch garantiert zu
-  einem sehr frühen Kopf-an-Kopf-Crash, unabhängig vom Können.
-- **Bot-Ausweichdauer** (`BOT_AVOID_HOLD_FRAMES` = 20 Frames) und
-  **Vorwarnschwelle** (`BOT_LOOKAHEAD_FACTOR_SQ` = 3.4, etwas großzügiger
-  als die exakte Kollisionsgrenze) sind Platzhalter, da die Spec nur
-  "kurz gehalten" bzw. "ein Stück voraus" sagt, ohne Zahlen. Mit
-  `npm run dev` gegenspielen und anpassen.
-- **Steuerung bei Fingerbewegung**: Bleibt der Finger gehalten und
-  überquert die Bildschirmmitte, wechselt die Lenkrichtung live mit
-  (nicht nur beim ersten Antippen fixiert) – fühlt sich natürlicher an
-  und war durch die Spec nicht ausgeschlossen.
+- **Score** = höchster je erreichter Punkt (px Höhe), analog zur
+  Höhen-Logik in Ninja Wandsprung – fällt nicht mit, falls kurz
+  rückwärts/abwärts gelenkt wird. Alte Highscores aus der
+  Bots-Version (Score = überlebte Frames) sind mit diesem Umbau
+  nicht mehr vergleichbar und werden vom neuen, deutlich größeren
+  Höhen-Score schnell überholt.
+- **Speicher-/Kollisions-Begrenzung für echte Endlosigkeit**: alte
+  Linienpunkte und Hindernisse, die weit unterhalb der Kamera liegen,
+  werden regelmäßig gelöscht (`pruneOld()`), damit eine lange Session
+  nicht immer langsamer wird.
+- **Rückwärts-Sicherheitsnetz**: wer absichtlich abwärts lenkt, wird
+  irgendwann durch `FALL_MARGIN` beendet (man kann also nicht durch
+  Stillstand/Rückwärtslenken die Verengung dauerhaft umgehen).
+- **Hindernis-Optik**: Balken statt Original-Stacheln, in einer eigenen
+  Warnfarbe (Amber) statt der Ninja-Stachel-Farbe, damit beide Spiele
+  visuell unterscheidbar bleiben.
