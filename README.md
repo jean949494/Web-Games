@@ -11,6 +11,9 @@ HTML/CSS/JavaScript.
 - [`games/kurve-solo`](games/kurve-solo/) – Endlos-Climber: Linie hinter
   sich herziehen, Hindernissen ausweichen, Feld wird mit der Höhe
   schmaler und verzwickter
+- [`games/team-duell`](games/team-duell/) – 3 gegen 3 mit Schutzmauer:
+  Wasserkanone (blockierbar) vs. Superwurf (über die Mauer), Teammates
+  per Kommando steuern
 
 ## Loslegen
 
