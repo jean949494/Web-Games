@@ -97,24 +97,25 @@
     ET.game.setSkin(currentSkin);
     renderSkinPicker();
 
-    // Bremsstufen zum Antesten: im Menü und in der Pause umschaltbar,
-    // damit man Stufen direkt hintereinander vergleichen kann.
-    var brakePickers = [document.getElementById('brake-picker'), document.getElementById('brake-picker-pause')];
-    var brakeIndex = ET.settings.getDashBrake(C.DASH_BRAKE_LEVELS, C.DASH_BRAKE_DEFAULT);
+    // Schonzeit-Stufen zum Antesten: im Menü und in der Pause umschaltbar,
+    // damit sich Stufen direkt hintereinander vergleichen lassen.
+    var gracePickers = [document.getElementById('brake-picker'), document.getElementById('brake-picker-pause')];
+    var graceIndex = ET.settings.getDashGrace(C.DASH_GRACE_LEVELS, C.DASH_GRACE_DEFAULT);
 
-    function renderBrakePickers() {
-      brakePickers.forEach(function (host) {
+    function renderGracePickers() {
+      gracePickers.forEach(function (host) {
         host.innerHTML = '';
-        C.DASH_BRAKE_LEVELS.forEach(function (_, i) {
+        C.DASH_GRACE_LEVELS.forEach(function (ms, i) {
           var btn = document.createElement('button');
-          btn.className = 'brake-btn' + (i === brakeIndex ? ' active' : '');
+          btn.className = 'brake-btn' + (i === graceIndex ? ' active' : '');
           btn.textContent = String(i + 1);
+          btn.title = ms + ' ms';
           btn.addEventListener('click', function (e) {
             e.stopPropagation();
-            brakeIndex = i;
-            ET.settings.setDashBrake(i);
-            ET.game.setDashBrake(i);
-            renderBrakePickers();
+            graceIndex = i;
+            ET.settings.setDashGrace(i);
+            ET.game.setDashGrace(i);
+            renderGracePickers();
           });
           btn.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
           host.appendChild(btn);
@@ -122,8 +123,8 @@
       });
     }
 
-    ET.game.setDashBrake(brakeIndex);
-    renderBrakePickers();
+    ET.game.setDashGrace(graceIndex);
+    renderGracePickers();
 
     var CONTROL_HINTS = {};
     CONTROL_HINTS[ET.settings.MODES.TILT] = 'Handy neigen zum Laufen &middot; Antippen zum Springen<br />Länger halten springt höher, Finger liegen lassen springt durchgehend';

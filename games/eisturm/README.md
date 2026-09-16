@@ -26,11 +26,11 @@ Im Menü umschaltbar (lokal gespeichert, siehe `js/settings.js`):
 - Die Figur **springt durchgehend von selbst**
 - **Linke/rechte Bildschirmhälfte drücken** – in die Richtung laufen,
   loslassen – ausrollen. Die Neigung ist in diesem Modus ohne Wirkung.
-- Ein Druck auf die Gegenseite **bremst** den Schwung aus dem Wandabprall
-  aus, statt ihn schlagartig umzudrehen. Wie hart, stellt die Leiste
-  "Dash-Bremse" im Menü und in der Pause ein (Stufe 1–10, siehe
-  `DASH_BRAKE_LEVELS`): Stufe 1 lässt den Dash fast auslaufen (~0,9 s bis
-  zur Gegenrichtung), Stufe 10 dreht praktisch sofort um (~0,09 s).
+- Direkt nach dem Abprall läuft der Dash kurz **geschützt** weiter
+  (`DASH_GRACE_LEVELS`, im Menü und in der Pause in fünf Stufen wählbar):
+  So bleibt Zeit, den Finger zu lösen und den Dash ganz auszukosten.
+  Danach greift ein Druck auf die Gegenseite sofort und **bremst** den
+  Schwung mit `DASH_BRAKE` aus, statt ihn schlagartig umzudrehen.
   Beim Neigen bleibt der Schwung dagegen erhalten, weil man das Handy gar
   nicht so schnell zurückkippen könnte.
 - Mehrere Finger werden mitgeführt: es zählt der zuletzt aufgesetzte,

@@ -49,7 +49,7 @@
   // Neigen wäre das unfair, weil man das Handy nicht so schnell
   // zurückkippen kann – da bremst Gegenlenken nur sanft.
   var directSteering = false;
-  var dashBrake = C.DASH_BRAKE_LEVELS[C.DASH_BRAKE_DEFAULT];
+  var dashGrace = C.DASH_GRACE_LEVELS[C.DASH_GRACE_DEFAULT];
 
   function emitChange(extra) {
     var payload = Object.assign({ state: state, score: currentScore(), best: best || 0 }, extra || {});
@@ -287,8 +287,12 @@
     if (chr.wallBoostMs > 0) chr.wallBoostMs -= STEP_MS;
 
     if (chr.wallLockMs > 0) {
-      if (directSteering && steerFactor !== 0) {
-        chr.wallLockMs = 0; // bewusster Druck holt die Kontrolle sofort zurück
+      // Direkt nach dem Abprall ist der Dash kurz geschützt (Schonzeit),
+      // damit man den Finger lösen und ihn ganz auskosten kann. Danach
+      // holt ein Druck die Kontrolle sofort zurück.
+      var sinceBounce = C.WALL_BOOST_MS - chr.wallBoostMs;
+      if (directSteering && steerFactor !== 0 && sinceBounce >= dashGrace) {
+        chr.wallLockMs = 0;
       } else {
         chr.wallLockMs -= STEP_MS;
         return; // Abprall wirkt, Steuerung greift gleich wieder
@@ -314,7 +318,7 @@
       if (wantDir === bdir || wantDir === 0) {
         chr.dashBraking = false; // wieder mitgelenkt oder losgelassen
       } else {
-        chr.vx -= bdir * dashBrake;
+        chr.vx -= bdir * C.DASH_BRAKE;
         if (chr.vx * bdir <= 0) { chr.vx = 0; chr.dashBraking = false; }
         return;
       }
@@ -709,9 +713,10 @@
       directSteering = !!on;
     },
 
-    // Bremsstärke gegen einen laufenden Dash (Index in DASH_BRAKE_LEVELS)
-    setDashBrake: function (index) {
-      dashBrake = C.DASH_BRAKE_LEVELS[index] || C.DASH_BRAKE_LEVELS[C.DASH_BRAKE_DEFAULT];
+    // Schonzeit nach dem Abprall (Index in DASH_GRACE_LEVELS)
+    setDashGrace: function (index) {
+      dashGrace = C.DASH_GRACE_LEVELS[index];
+      if (dashGrace == null) dashGrace = C.DASH_GRACE_LEVELS[C.DASH_GRACE_DEFAULT];
     },
 
     // Dauerspringen an/aus (Touch-Steuerung). Greift ab der nächsten

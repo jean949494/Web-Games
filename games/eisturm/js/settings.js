@@ -15,7 +15,7 @@
 
   var KEY = 'et_control_mode';
   var KEY_SKIN = 'et_skin';
-  var KEY_BRAKE = 'et_dash_brake';
+  var KEY_GRACE = 'et_dash_grace';
   var MODES = { TILT: 'tilt', TOUCH: 'touch' };
   var DEFAULT_MODE = MODES.TILT;
   var current = null;
@@ -56,14 +56,14 @@
       safeSet(KEY_SKIN, id);
     },
 
-    // Index in DASH_BRAKE_LEVELS
-    getDashBrake: function (levels, fallback) {
-      var v = parseInt(safeGet(KEY_BRAKE), 10);
+    // Index in DASH_GRACE_LEVELS
+    getDashGrace: function (levels, fallback) {
+      var v = parseInt(safeGet(KEY_GRACE), 10);
       return (v >= 0 && v < levels.length) ? v : fallback;
     },
 
-    setDashBrake: function (index) {
-      safeSet(KEY_BRAKE, String(index));
+    setDashGrace: function (index) {
+      safeSet(KEY_GRACE, String(index));
     },
   };
 })(window);
