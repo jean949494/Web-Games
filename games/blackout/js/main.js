@@ -54,6 +54,7 @@
     var bestScoreEl = document.getElementById('best-score');
     var goScoreEl = document.getElementById('go-score');
     var goBestEl = document.getElementById('go-best');
+    var goDeathsEl = document.getElementById('go-deaths');
 
     SG.analytics.setGame(BO.GAME_ID);
     BO.game.init(canvas);
@@ -96,6 +97,7 @@
           break;
         case BO.game.STATES.GAMEOVER:
           goScoreEl.textContent = payload.score;
+          goDeathsEl.textContent = payload.deaths ? (payload.deaths + (payload.deaths === 1 ? ' Versuch daneben' : ' Versuche daneben')) : 'ohne einen Tod';
           goBestEl.textContent = payload.newBest
             ? 'Neuer Rekord!'
             : ('Rekord: ' + payload.best + ' Räume');

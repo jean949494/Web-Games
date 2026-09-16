@@ -118,15 +118,33 @@ Nach Absprache **spürbar entschärft**, aber nicht zahnlos:
 - Raum 1 ist bewusst leer: dort lernt man die Bewegung ohne Strafe.
   Minen ab Raum 2, Drohnen ab Raum 3, Geschütze ab Raum 4.
 
-Zeit: Start 45 s, pro geschafftem Raum +15 s, pro Goldstück +2 s, Deckel bei
-99 s. Wer trödelt, verliert – wer Gold mitnimmt, kauft sich Luft.
+## Die Uhr ist dein Leben – und der Tod beendet nichts
+
+Zwei Regeln aus dem Original, die die ganze Spannung tragen:
+
+**Ein durchlaufender Countdown statt Rundenuhr.** In N sind die 90 Sekunden
+nicht pro Level, sondern die *Lebensspanne* des Ninjas über eine ganze
+Episode. Hier läuft genauso eine einzige Uhr durch den kompletten Lauf:
+Start 45 s, pro geschafftem Raum +10 s, Deckel bei 99 s.
+
+**Gold zählt erst an der Tür.** Jedes Stück bringt +2 s (exakt wie im
+Original), aber gutgeschrieben wird es erst beim Durchschreiten der Tür.
+Stirbst du vorher, ist es weg. Das macht den Rückweg zur eigentlichen
+Entscheidung: Nimmst du das Goldstück neben dem Geschütz noch mit?
+Ungebanktes Gold steht sichtbar getrennt neben der Uhr (`+6s`).
+
+**Sterben kostet Zeit, nicht den Lauf.** In N startet man nach dem Tod
+sofort dasselbe Level neu, ohne Strafe. Hier kostet ein Tod 3 Sekunden,
+das ungebankte Gold und den Fortschritt im Raum – aber der Lauf geht
+weiter. Der einzige echte Gegner ist die Uhr. Das erhält das „sofort
+nochmal" des Originals und passt zugleich zur Vorgabe, es spürbar
+zu entschärfen.
 
 ## Bewusst noch offen
 
-- **Schrägen** sind in der Kollision und im Renderer vorbereitet
-  (`T_SLOPE_*`), werden vom Generator aber noch nicht gesetzt. Im Original
-  sind sie ein großer Teil des Flows (Fall wird in Tempo umgelenkt) – das ist
-  der nächste sinnvolle Ausbauschritt.
+- **Schrägen** sind eingebaut (Rampen ab Raum 2), aber noch sparsam
+  eingesetzt. Im Original prägen sie ganze Levelabschnitte – hier wäre mehr
+  drin, etwa durchgehende Rutschen über den halben Raum.
 - **Ragdoll-Tod**: aktuell ein Partikel-Burst statt des Original-Ragdolls.
 - **Raumvielfalt**: drei Archetypen sind ein Anfang, keine Endlösung.
 - Die Zahlen für Zeit, Gegnerdichte und Geschütz-Timing sind ein erster

@@ -17,10 +17,16 @@
 
   // Zeit-Ökonomie: knapp genug, dass man sich bewegen muss, großzügig genug
   // für das Poki-Publikum.
+  // Die Uhr ist im Original die LEBENSSPANNE des Ninjas, keine Rundenuhr:
+  // ein einziger durchlaufender Countdown. Gold ist wörtlich
+  // Lebensverlängerung - und wird erst beim Durchschreiten der Tür
+  // gutgeschrieben. Wer vorher stirbt, verliert es.
   var TIME_START = 45 * 60; // Frames
-  var TIME_PER_ROOM = 15 * 60;
-  var TIME_PER_GOLD = 2 * 60;
+  var TIME_PER_ROOM = 10 * 60;
+  var TIME_PER_GOLD = 2 * 60; // exakt wie im Original
+  var TIME_DEATH_PENALTY = 3 * 60;
   var TIME_MAX = 99 * 60;
+  var RESPAWN_FRAMES = 36;
 
   var canvas, ctx;
   var state = STATES.MENU;
@@ -28,6 +34,7 @@
 
   var room, ninja, roomIndex, timeLeft, score, best, seed;
   var switchOn, particles, flash, shake, doorPulse, thinkCursor;
+  var pendingGold, deaths, respawnTimer;
   var accMs, lastTs, rafId, simFrame;
   var settings = { impactOriginal: false, scheme: 'halves' };
 
@@ -48,9 +55,13 @@
     ninja.onDeath = function (reason) {
       spawnDeathBurst(reason);
       shake = 14;
+      deaths++;
+      // Ungebanktes Gold ist weg - das ist der Preis, nicht der Lauf.
+      pendingGold = 0;
+      timeLeft = Math.max(0, timeLeft - TIME_DEATH_PENALTY);
+      respawnTimer = RESPAWN_FRAMES;
       if (BO.sounds) BO.sounds.playDeath();
-      SG.analytics.track('death', { reason: reason, room: roomIndex });
-      setTimeout(endRun, 550);
+      SG.analytics.track('death', { reason: reason, room: roomIndex, deaths: deaths });
     };
     ninja.onJump = function (kind) {
       if (BO.sounds) BO.sounds.playJump(kind);
@@ -71,6 +82,9 @@
     flash = 0;
     shake = 0;
     simFrame = 0;
+    pendingGold = 0;
+    deaths = 0;
+    respawnTimer = 0;
     loadRoom(0);
     state = STATES.PLAYING;
     accMs = 0;
@@ -88,14 +102,16 @@
     best = SG.storage.getBest(BO.GAME_ID);
     SG.audio.playGameOver();
     SG.poki.gameplayStop();
-    SG.analytics.track('game_over', { score: score, rooms: roomIndex, best: best, newBest: isNewBest });
-    emitChange({ newBest: isNewBest });
+    SG.analytics.track('game_over', { score: score, rooms: roomIndex, best: best, newBest: isNewBest, deaths: deaths });
+    emitChange({ newBest: isNewBest, deaths: deaths });
   }
 
   function nextRoom() {
     roomIndex++;
     score = roomIndex;
-    timeLeft = Math.min(TIME_MAX, timeLeft + TIME_PER_ROOM);
+    // Jetzt erst wird das gesammelte Gold gutgeschrieben.
+    timeLeft = Math.min(TIME_MAX, timeLeft + TIME_PER_ROOM + pendingGold * TIME_PER_GOLD);
+    pendingGold = 0;
     flash = 12;
     if (BO.sounds) BO.sounds.playDoor();
     SG.analytics.track('room_cleared', { room: roomIndex });
@@ -110,13 +126,21 @@
     if (flash > 0) flash--;
     doorPulse += 0.08;
 
-    if (!ninja.dead) {
-      timeLeft--;
-      if (timeLeft <= 0) {
-        timeLeft = 0;
-        ninja.kill('time');
-        return;
-      }
+    // Die Uhr ist der einzige echte Gegner: Sie läuft immer weiter, auch
+    // während man nach einem Tod neu eingesetzt wird. Ein Tod beendet den
+    // Lauf NICHT - er kostet Zeit, das gesammelte Gold und den Fortschritt
+    // im Raum. So bleibt das "nochmal sofort" aus dem Original erhalten.
+    timeLeft--;
+    if (timeLeft <= 0) {
+      timeLeft = 0;
+      endRun();
+      return;
+    }
+
+    if (ninja.dead) {
+      updateParticles();
+      if (respawnTimer > 0 && --respawnTimer <= 0) loadRoom(roomIndex);
+      return;
     }
 
     ninja.tick();
@@ -149,7 +173,7 @@
       var dx = ninja.xpos - gold.x, dy = ninja.ypos - gold.y;
       if (dx * dx + dy * dy < 240) {
         gold.taken = true;
-        timeLeft = Math.min(TIME_MAX, timeLeft + TIME_PER_GOLD);
+        pendingGold++; // erst an der Tür wird daraus Zeit
         spawnSparkle(gold.x, gold.y);
         if (BO.sounds) BO.sounds.playGold();
       }
@@ -453,6 +477,13 @@
     ctx.font = 'bold 20px system-ui, sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText(secs + 's', 14, 28);
+    // Ungebanktes Gold getrennt anzeigen - es zählt erst, wenn man die Tür
+    // erreicht. Genau das macht den Rückweg spannend.
+    if (pendingGold > 0) {
+      ctx.fillStyle = '#ffd45c';
+      ctx.font = 'bold 13px system-ui, sans-serif';
+      ctx.fillText('+' + (pendingGold * 2) + 's', 16 + ctx.measureText(secs + 's').width + 26, 27);
+    }
     ctx.textAlign = 'right';
     ctx.fillStyle = '#eef3ff';
     ctx.fillText('Raum ' + (roomIndex + 1), C.CANVAS_W - 14, 28);
@@ -568,6 +599,14 @@
       return true;
     },
 
+    /** Testhilfe: gezielter Tod (nur mit "?debug"). */
+    debugKill: function () {
+      if (!/[?&]debug\b/.test(global.location ? global.location.search : '')) return false;
+      if (!ninja || ninja.dead) return false;
+      ninja.kill('debug');
+      return true;
+    },
+
     getDebugState: function () {
       return {
         state: state,
@@ -576,6 +615,8 @@
         room: roomIndex,
         timeLeft: timeLeft,
         switchOn: switchOn,
+        pendingGold: pendingGold,
+        deaths: deaths,
         ninja: ninja ? {
           x: Math.round(ninja.xpos), y: Math.round(ninja.ypos),
           vx: +ninja.xspeed.toFixed(3), vy: +ninja.yspeed.toFixed(3),

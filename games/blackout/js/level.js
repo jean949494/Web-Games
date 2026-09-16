@@ -201,6 +201,36 @@
     return { x: x * C.TILE + C.TILE / 2, y: y * C.TILE + C.TILE / 2 };
   }
 
+  /**
+   * Rampe aus 45-Grad-Schrägen, die vom Boden aus ansteigt.
+   *
+   * Schrägen sind bei dieser Physik kein Deko-Element: Beim Aufprall zählt
+   * nur die Normalkomponente, dadurch überlebt man auf einer Schräge Stürze,
+   * die auf flachem Boden töten (nachgemessen: 15 statt 11 Kacheln). Und
+   * herunterrutschen lenkt Fallgeschwindigkeit in Lauftempo um, statt sie zu
+   * vernichten - das ist der "Flow", für den N bekannt ist.
+   */
+  function addRamp(grid, x0, len, dir) {
+    for (var i = 0; i < len; i++) {
+      var x = dir > 0 ? x0 + i : x0 - i;
+      var y = FLOOR_Y - i;
+      if (x < 2 || x > C.ROOM_W - 3 || y < 3) break;
+      if (grid[y][x] !== C.T_EMPTY) break;
+      grid[y][x] = dir > 0 ? C.T_SLOPE_BR : C.T_SLOPE_BL;
+      for (var yy = y + 1; yy <= FLOOR_Y; yy++) grid[yy][x] = C.T_SOLID;
+    }
+  }
+
+  function addRamps(grid, rnd) {
+    var count = Math.floor(rnd() * 3); // 0 bis 2 Rampen
+    for (var i = 0; i < count; i++) {
+      var len = 2 + Math.floor(rnd() * 4);
+      var dir = rnd() < 0.5 ? 1 : -1;
+      var x0 = 4 + Math.floor(rnd() * (C.ROOM_W - 10));
+      addRamp(grid, x0, len, dir);
+    }
+  }
+
   /** Steht auf dieser Kachel schon eine begehbare Fläche? */
   function isStandable(grid, x, y) {
     if (x < 1 || x > C.ROOM_W - 2 || y < 1 || y > C.ROOM_H - 2) return false;
@@ -263,6 +293,9 @@
     if (archetype === 0) buildPlatformRoom(grid, rnd);
     else if (archetype === 1) buildShaftRoom(grid, rnd);
     else buildPillarRoom(grid, rnd);
+    // Rampen vor der Treppen-Garantie einziehen, damit die Treppe sie
+    // berücksichtigt statt mit ihnen zu kollidieren.
+    if (index >= 1) addRamps(grid, rnd);
 
     var platforms = buildPlatforms(grid);
     if (!platforms.length) return null;
