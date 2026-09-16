@@ -109,6 +109,7 @@
     var tiltActive = false;
     var needsCalibration = true;
     var baseGamma = 0;
+    var smoothGamma = 0;
 
     function angleDelta(a, b) {
       var d = a - b;
@@ -121,16 +122,26 @@
       if (e.gamma == null) return;
       if (needsCalibration) {
         baseGamma = e.gamma;
+        smoothGamma = 0;
         needsCalibration = false;
         return;
       }
 
       var dGamma = angleDelta(e.gamma, baseGamma);
-      var steer = Math.max(-1, Math.min(1, dGamma / C.TILT_STEER_MAX_DEG));
+      smoothGamma += (dGamma - smoothGamma) * C.TILT_SMOOTH;
+
+      // Totzone abziehen, danach stufenlos bis zum vollen Ausschlag – so
+      // bleibt die Mitte ruhig, ohne dass die feine Dosierung verloren geht.
+      var d = smoothGamma;
+      if (Math.abs(d) <= C.TILT_DEAD_DEG) d = 0;
+      else d = d - (d > 0 ? 1 : -1) * C.TILT_DEAD_DEG;
+
+      var span = C.TILT_STEER_MAX_DEG - C.TILT_DEAD_DEG;
+      var steer = Math.max(-1, Math.min(1, d / span));
       ET.game.setSteer(steer);
 
       if (debugEl) {
-        debugEl.textContent = 'γΔ ' + dGamma.toFixed(1) + '°  Lenkung ' + steer.toFixed(2);
+        debugEl.textContent = 'γΔ ' + smoothGamma.toFixed(1) + '°  Lenkung ' + steer.toFixed(2);
       }
     }
 

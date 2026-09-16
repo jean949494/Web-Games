@@ -1,11 +1,11 @@
 # Eisturm
 
 Icy-Tower-Prototyp (Canvas, Vanilla JS, keine Build-Abhängigkeiten):
-Etagen erklimmen, Anlauftempo und Haltedauer bestimmen die Sprunghöhe,
-an den Seitenwänden prallt man mit vollem Schwung ab, mehrere Etagen in
-einem Sprung starten eine Combo-Serie. Der Bildausschnitt wandert von
-selbst nach oben und wird immer schneller – wer stehen bleibt oder zu
-tief zurückfällt, fällt unten raus.
+Etagen erklimmen, Anlauftempo und Haltedauer bestimmen die Sprunghöhe.
+Der Dreh- und Angelpunkt ist der Wandabprall: an den Seitenwänden kommt
+man schneller zurück als man ankam, und **nur** aus diesem Schwung heraus
+gibt es Combo-Punkte. Der Bildausschnitt wandert von selbst nach oben und
+wird immer schneller – wer stehen bleibt oder aus dem Bild fällt, ist raus.
 
 ## Steuerung
 
@@ -50,9 +50,19 @@ Handy nachzujustieren.
 - `js/game.js` – Zustandsmaschine, Physik-Loop (fix 60Hz), Rendering,
   Etagen-Kollision, Wandabprall, Combo-Wertung, Auto-Scroll-Kamera
 - `js/input.js` – Neigung (Lenken), Antippen/Halten (Sprunghöhe), Tastatur
+- `js/sprites.js` – Figur (Posen: stehen/laufen/springen/fallen) und
+  Eisplatten, prozedural gezeichnet
+- `js/trail.js` – Regenbogen-Schweif
 - `js/particles.js` – Landestaub, Wandabprall-Funken
 - `js/sounds.js` – spielspezifische Ton-Sequenzen (aufbauend auf
   `shared/audio.js`)
+
+## Bild-Studio
+
+`preview.html` im Spielordner zeigt alle Grafiken vergrößert nebeneinander
+(Figur in allen Posen, Schweif nach Tempo, Etagen-Breiten, Beispielszene).
+Praktisch, um an der Optik zu schrauben, ohne im Spiel danach zu jagen:
+`https://jean949494.github.io/Web-Games/games/eisturm/preview.html`
 
 ## Mechanik im Detail
 
@@ -64,16 +74,27 @@ Handy nachzujustieren.
   `JUMP_VY_BASE + JUMP_VY_BONUS * Tempo-Anteil`; das Loslassen kappt
   einen noch steigenden Sprung auf `JUMP_CUT_FACTOR` (mindestens
   `JUMP_VY_MIN`, damit ein kurzer Tipp nie völlig ins Leere geht).
-- **Wandabprall**: an den Seitenwänden geht es mit `WALL_BOUNCE` des
-  Schwungs zurück. Für `WALL_LOCK_MS` ignoriert die Figur dabei die
+- **Wandabprall**: an den Seitenwänden kommt man mit `WALL_BOUNCE` (> 1,
+  also schneller als man ankam) zurück, gedeckelt durch
+  `WALL_BOUNCE_MAX`. Für `WALL_LOCK_MS` ignoriert die Figur dabei die
   Steuerung – sonst würde die weiterhin gehaltene Richtung sie sofort
-  wieder in die Wand ziehen und der Abpraller verpuffen.
-- **Combo**: Etagen, die in EINEM Sprung übersprungen werden (ab
-  `COMBO_MIN_FLOORS`), starten eine Serie. Solange innerhalb von
-  `COMBO_WINDOW_MS` nachgelegt wird, läuft die Serie weiter, der
+  wieder in die Wand ziehen und der Abpraller verpuffen. Der Überschuss
+  über das normale Lauftempo hinaus wird nicht hart gekappt, sondern baut
+  sich nur mit `OVERSPEED_FRICTION` ab und trägt über
+  `JUMP_SPEED_FACTOR_MAX` in höhere Sprünge.
+- **Combo nur aus dem Wandabprall**: ein Sprung zählt nur dann als Combo,
+  wenn er innerhalb von `WALL_BOOST_MS` nach einem Wandabprall startet
+  (oder die Figur mitten im Flug eine Wand trifft). Genau dieser Zustand
+  ist am vollen Regenbogen-Schweif sichtbar. Übersprungene Etagen ab
+  `COMBO_MIN_FLOORS` starten dann eine Serie; solange innerhalb von
+  `COMBO_WINDOW_MS` nachgelegt wird, läuft sie weiter und der
   Multiplikator steigt je `COMBO_FLOORS_PER_MULT` Serien-Etagen. Oben
-  läuft dazu ein Restzeit-Balken, bei jedem Combo-Sprung ploppt eine
+  läuft ein Restzeit-Balken, bei jedem Combo-Sprung ploppt eine
   Stufen-Meldung auf ("Gut!" bis "UNFASSBAR!", siehe `COMBO_LABELS`).
+- **Richtungswechsel** schlägt sofort um (`TURN_SNAP_FACTOR`) statt erst
+  auszubremsen; volles Tempo braucht danach trotzdem wieder Anlauf. Die
+  Neigung hat eine Totzone (`TILT_DEAD_DEG`) und einen Tiefpass
+  (`TILT_SMOOTH`), damit leichtes Handzittern die Figur nicht eiern lässt.
 - **Zeitdruck**: ab Etage `SCROLL_START_FLOOR` (spätestens nach
   `SCROLL_START_MS`) wandert die Kamera von selbst nach oben und
   beschleunigt über `SCROLL_RAMP_FLOORS` Etagen von
@@ -83,8 +104,9 @@ Handy nachzujustieren.
 - **Score** = erreichte Etage × `POINTS_PER_FLOOR` + Combo-Punkte. Jede
   zehnte Etage ist farblich hervorgehoben, die Etagennummern stehen am
   linken Rand.
-- **Verloren** ist nur, wer `FALL_MARGIN` unter den Bildausschnitt
-  fällt. Es gibt keine andere Verlustbedingung.
+- **Verloren** ist, wer komplett unter den sichtbaren Bildausschnitt
+  fällt – ohne Puffer, sobald die Figur weg ist, ist die Runde vorbei.
+  Es gibt keine andere Verlustbedingung.
 
 ## Bewusst offen gelassen / noch zu tunen
 

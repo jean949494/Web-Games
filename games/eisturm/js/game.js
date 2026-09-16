@@ -79,9 +79,12 @@
       floor: groundFloor,
       facing: 1,
       squash: 0,
+      runPhase: 0,
       jumpHeld: false,
       jumpFromSeq: 0,
       wallLockMs: 0,
+      wallBoostMs: 0, // läuft nach einem Wandabprall ab
+      wallJump: false, // zählt der laufende Sprung als Wand-Sprung (= Combo möglich)?
       maxFloor: 0,
     };
     camera = { y: 0, scrolling: false, ageMs: 0 };
@@ -93,6 +96,7 @@
     flashes = [];
     steerFactor = 0;
     ET.particles.reset();
+    ET.trail.reset();
     ensureFloorsAhead();
   }
 
@@ -131,8 +135,10 @@
   function jumpStart() {
     if (state !== STATES.PLAYING) return;
     if (!chr.grounded) return;
-    var speedFactor = Math.min(1, Math.abs(chr.vx) / C.MAX_RUN_SPEED);
+    var speedFactor = Math.min(C.JUMP_SPEED_FACTOR_MAX, Math.abs(chr.vx) / C.MAX_RUN_SPEED);
     chr.jumpFromSeq = chr.floor.seq;
+    // Nur ein Sprung aus dem Wandabprall heraus kann eine Combo geben.
+    chr.wallJump = chr.wallBoostMs > 0;
     chr.grounded = false;
     chr.floor = null;
     chr.jumpHeld = true;
@@ -168,7 +174,8 @@
 
     if (floor.seq > chr.maxFloor) chr.maxFloor = floor.seq;
 
-    if (skipped >= C.COMBO_MIN_FLOORS) {
+    // Combo gibt es ausschließlich für Sprünge aus einem Wandabprall.
+    if (skipped >= C.COMBO_MIN_FLOORS && chr.wallJump) {
       combo.floors += skipped;
       combo.timerMs = C.COMBO_WINDOW_MS;
       var mult = 1 + Math.floor(combo.floors / C.COMBO_FLOORS_PER_MULT);
@@ -188,14 +195,19 @@
     }
   }
 
+  // dir: -1 = linke Wand, +1 = rechte Wand. Der Abprall gibt mehr Tempo
+  // zurück als ankam und schaltet für WALL_BOOST_MS den Combo-Zustand
+  // scharf (sichtbar am Regenbogen-Schweif).
   function hitWall(dir) {
-    // dir: -1 = linke Wand, +1 = rechte Wand
     if (Math.abs(chr.vx) < C.WALL_BOUNCE_MIN_SPEED) {
       chr.vx = 0;
       return;
     }
-    chr.vx = -dir * Math.abs(chr.vx) * C.WALL_BOUNCE;
+    var speed = Math.min(C.WALL_BOUNCE_MAX, Math.abs(chr.vx) * C.WALL_BOUNCE);
+    chr.vx = -dir * speed;
     chr.wallLockMs = C.WALL_LOCK_MS;
+    chr.wallBoostMs = C.WALL_BOOST_MS;
+    if (!chr.grounded) chr.wallJump = true; // auch mitten im Flug abgeprallt zählt
     chr.squash = C.SQUASH_WALL;
     ET.particles.spawnWallSpark(chr.x, chr.y, -dir);
     ET.sounds.playWall();
@@ -238,12 +250,32 @@
   }
 
   function updateSteering() {
+    if (chr.wallBoostMs > 0) chr.wallBoostMs -= STEP_MS;
+
     if (chr.wallLockMs > 0) {
       chr.wallLockMs -= STEP_MS;
       return; // Abprall wirkt, Steuerung greift gleich wieder
     }
+
     var targetVx = steerFactor * C.MAX_RUN_SPEED;
-    // Gegenlenken beschleunigt stärker als weiter Gas geben -> wendiger
+    // Bewusst grobe Schwelle: ein Snap soll nur bei gewolltem Gegenlenken
+    // auslösen, nicht schon bei minimalem Wackeln um die Nulllage.
+    var wantDir = steerFactor > 0.25 ? 1 : (steerFactor < -0.25 ? -1 : 0);
+    var moveDir = chr.vx > 0.2 ? 1 : (chr.vx < -0.2 ? -1 : 0);
+
+    // Gegenlenken kippt die Richtung sofort um, statt erst auszubremsen.
+    if (wantDir !== 0 && moveDir !== 0 && wantDir !== moveDir) {
+      chr.vx = wantDir * Math.min(Math.abs(targetVx), C.MAX_RUN_SPEED * C.TURN_SNAP_FACTOR);
+      return;
+    }
+
+    // Extra-Schwung aus dem Wandabprall nicht hart auf Lauftempo kappen,
+    // sondern nur langsam abbauen – das ist der Wert des Dashs.
+    if (Math.abs(chr.vx) > C.MAX_RUN_SPEED && wantDir === moveDir) {
+      chr.vx -= (chr.vx > 0 ? 1 : -1) * C.OVERSPEED_FRICTION;
+      return;
+    }
+
     var accel = (targetVx * chr.vx < 0) ? C.RUN_ACCEL_TURN : C.RUN_ACCEL;
     if (chr.vx < targetVx) chr.vx = Math.min(targetVx, chr.vx + accel);
     else if (chr.vx > targetVx) chr.vx = Math.max(targetVx, chr.vx - accel);
@@ -256,6 +288,7 @@
 
     if (chr.vx > 0.05) chr.facing = 1;
     else if (chr.vx < -0.05) chr.facing = -1;
+    chr.runPhase += Math.abs(chr.vx) * 0.24;
 
     chr.x += chr.vx;
     var minX = C.EDGE_MARGIN + C.CHAR_R;
@@ -290,13 +323,27 @@
 
     ET.particles.update();
 
+    // Regenbogen-Schweif: ab genügend Tempo – und nach einem Wandabprall
+    // in voller Pracht, denn genau dann zählen Sprünge als Combo. Der
+    // Schweif ist also die Anzeige für "jetzt bringt ein Sprung was".
+    var speedFactor = Math.min(1, Math.abs(chr.vx) / C.MAX_RUN_SPEED);
+    var intensity = 0;
+    if (speedFactor > C.TRAIL_MIN_SPEED_FACTOR) {
+      intensity = (speedFactor - C.TRAIL_MIN_SPEED_FACTOR) / (1 - C.TRAIL_MIN_SPEED_FACTOR);
+      intensity *= 0.55; // ohne Wand-Boost nur ein angedeuteter Schweif
+    }
+    if (chr.wallBoostMs > 0 || chr.wallJump) intensity = 1;
+    ET.trail.push(chr.x, chr.y + C.CHAR_R * 0.5, Math.min(1, intensity));
+    ET.trail.update();
+
     for (var f = flashes.length - 1; f >= 0; f--) {
       flashes[f].life -= 0.015;
       flashes[f].y -= 0.5;
       if (flashes[f].life <= 0) flashes.splice(f, 1);
     }
 
-    if (chr.y - camera.y > C.CANVAS_H + C.FALL_MARGIN) {
+    // Verloren, sobald die Figur komplett unter dem sichtbaren Bild ist.
+    if (chr.y - C.CHAR_R - camera.y > C.CANVAS_H) {
       killChar('fell');
       return;
     }
@@ -322,6 +369,7 @@
 
     drawFloors();
     ET.particles.draw(ctx, camera.y);
+    ET.trail.draw(ctx, camera.y);
     drawChar();
     drawFlashes();
     drawCombo();
@@ -343,54 +391,32 @@
     for (var i = 0; i < floors.length; i++) {
       var floor = floors[i];
       var screenY = floor.y - camera.y;
-      if (screenY < -20 || screenY > C.CANVAS_H + 20) continue;
+      if (screenY < -30 || screenY > C.CANVAS_H + 40) continue;
 
-      var marked = !floor.isGround && floor.seq % C.FLOOR_MARK_EVERY === 0;
-      ctx.fillStyle = floor.isGround ? '#5ee6ff' : (marked ? '#ffd15c' : '#bfe9ff');
-      ctx.fillRect(floor.plankX, screenY - C.FLOOR_THICK / 2, floor.plankWidth, C.FLOOR_THICK);
-
-      if (!floor.isGround) {
-        ctx.fillStyle = marked ? 'rgba(255, 209, 92, 0.9)' : 'rgba(191, 233, 255, 0.35)';
-        ctx.font = (marked ? 'bold 11px' : '10px') + ' sans-serif';
-        ctx.fillText(floor.seq, C.EDGE_MARGIN + 3, screenY - 5);
+      if (floor.isGround) {
+        ET.sprites.drawGround(ctx, screenY, C.CANVAS_W);
+        continue;
       }
+
+      var marked = floor.seq % C.FLOOR_MARK_EVERY === 0;
+      ET.sprites.drawFloor(ctx, floor, screenY, marked);
+
+      ctx.fillStyle = marked ? 'rgba(255, 209, 92, 0.9)' : 'rgba(191, 233, 255, 0.35)';
+      ctx.font = (marked ? 'bold 11px' : '10px') + ' sans-serif';
+      ctx.fillText(floor.seq, C.EDGE_MARGIN + 3, screenY - 5);
     }
   }
 
   function drawChar() {
-    var screenY = chr.y - camera.y;
-    var s = Math.max(-0.7, Math.min(0.7, chr.squash));
-    var sx = 1 + s * 0.45;
-    var sy = 1 - s * 0.45;
-
-    ctx.save();
-    // Um den Fußpunkt skalieren, damit die Figur beim Stauchen auf der
-    // Plattform stehen bleibt statt in sie hineinzurutschen.
-    ctx.translate(chr.x, screenY + C.CHAR_R);
-    ctx.scale(sx, sy);
-    ctx.translate(0, -C.CHAR_R);
-
-    ctx.fillStyle = '#2b2f3a';
-    ctx.beginPath();
-    ctx.arc(0, 0, C.CHAR_R, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#e63946';
-    ctx.fillRect(-C.CHAR_R, -3, C.CHAR_R * 2, 4);
-
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(-3.5, -1, 2.2, 0, Math.PI * 2);
-    ctx.arc(3.5, -1, 2.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#111';
-    var lookDir = chr.facing || 1;
-    ctx.beginPath();
-    ctx.arc(-3.5 + lookDir * 0.8, -1, 1.1, 0, Math.PI * 2);
-    ctx.arc(3.5 + lookDir * 0.8, -1, 1.1, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
+    ET.sprites.drawChar(ctx, chr.x, chr.y - camera.y, {
+      vx: chr.vx,
+      vy: chr.vy,
+      grounded: chr.grounded,
+      facing: chr.facing,
+      squash: chr.squash,
+      runPhase: chr.runPhase,
+      speedFactor: Math.min(1, Math.abs(chr.vx) / C.MAX_RUN_SPEED),
+    });
   }
 
   function drawFlashes() {

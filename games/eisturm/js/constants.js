@@ -41,6 +41,11 @@
     MAX_RUN_SPEED: 3.8, // px/frame bei voller Neigung/Zone
     RUN_ACCEL: 0.38, // px/frame² Richtung Zielgeschwindigkeit
     RUN_ACCEL_TURN: 0.75, // beim Lenken gegen die aktuelle Laufrichtung
+    // Beim Gegenlenken kippt die Laufrichtung SOFORT um (auf diesen Anteil
+    // des Zieltempos) statt erst auszubremsen – sonst läuft die Figur
+    // gefühlt noch weiter, obwohl man schon in die andere Richtung neigt.
+    // Vollgas braucht danach trotzdem wieder Anlauf.
+    TURN_SNAP_FACTOR: 0.35,
 
     // Sprungphysik. Höhe ergibt sich aus Lauftempo (Anlauf) UND Haltedauer:
     // beim Loslassen wird ein noch steigender Sprung gekappt (JUMP_CUT_*),
@@ -50,13 +55,23 @@
     JUMP_VY_BONUS: -5.6, // zusätzlich bei voller Laufgeschwindigkeit
     JUMP_CUT_FACTOR: 0.5, // beim Loslassen: Rest-Steiggeschwindigkeit * dieser Faktor
     JUMP_VY_MIN: -5.0, // Untergrenze nach dem Kappen: ein Tipp reicht immer für ~50px
+    // Tempo-Anteil, der maximal in die Sprunghöhe eingeht. Über 1, damit
+    // der Extra-Schwung aus einem Wandabprall wirklich höher trägt.
+    JUMP_SPEED_FACTOR_MAX: 1.35,
 
-    // Wandabprall: prallt mit einem Großteil des Schwungs zurück und
-    // ignoriert dabei kurz die Steuerung, sonst würde die gehaltene
-    // Richtung die Figur sofort wieder in die Wand ziehen ("klebt").
-    WALL_BOUNCE: 0.92,
-    WALL_BOUNCE_MIN_SPEED: 1.0, // darunter einfach stoppen statt abprallen
-    WALL_LOCK_MS: 190,
+    // Wandabprall: das Herzstück des Tempoaufbaus. Man kommt SCHNELLER
+    // zurück als man ankam (Faktor > 1) und ignoriert dabei kurz die
+    // Steuerung, sonst würde die gehaltene Richtung die Figur sofort
+    // wieder in die Wand ziehen ("klebt"). Der Überschuss über das normale
+    // Lauftempo hinaus baut sich nur langsam ab (OVERSPEED_FRICTION) und
+    // gibt so auch höhere Sprünge – Combos gibt es nur aus diesem Zustand.
+    WALL_BOUNCE: 1.3,
+    WALL_BOUNCE_MIN_SPEED: 0.8, // darunter einfach stoppen statt abprallen
+    WALL_BOUNCE_MAX: 6.4, // Deckel, damit es sich nicht endlos aufschaukelt
+    WALL_LOCK_MS: 260,
+    OVERSPEED_FRICTION: 0.035, // px/frame², so langsam verliert sich der Dash-Schwung
+    // Zeitfenster nach einem Wandabprall, in dem ein Sprung als Combo zählt.
+    WALL_BOOST_MS: 1500,
 
     // Etagen: schmale Plattform (nicht die volle Breite), von unten immer
     // durchspringbar (wie bei Doodle Jump). Steht man beim Fallen über
@@ -85,7 +100,8 @@
     SCROLL_SPEED_START: 0.55, // px/frame (~33 px/s: Stehenbleiben kostet nach ~10s die Runde)
     SCROLL_SPEED_MAX: 2.6,
     SCROLL_RAMP_FLOORS: 100, // über so viele Etagen von START auf MAX
-    FALL_MARGIN: 130, // so weit unter dem Bildausschnitt ist die Runde vorbei
+    // Verloren, sobald die Figur komplett aus dem sichtbaren Bild ist –
+    // kein zusätzlicher Puffer darunter.
     PRUNE_MARGIN: 200,
 
     START_Y_FROM_BOTTOM: 60,
@@ -104,6 +120,10 @@
     // Steuerung: Neigung. Kleiner Winkel = sensibler (weniger kippen für
     // volles Tempo); die Zwischenwerte bleiben stufenlos für feines Dosieren.
     TILT_STEER_MAX_DEG: 13, // Neigungswinkel für volles Lauftempo
+    // Totzone um die Nulllage: ohne sie lässt schon leichtes Handzittern
+    // das Vorzeichen kippen und die Figur eiert hin und her.
+    TILT_DEAD_DEG: 2.2,
+    TILT_SMOOTH: 0.35, // Tiefpass gegen Sensorrauschen (1 = ungefiltert)
     // Vorzeichen/Schwelle fürs Sprung-Kippen (Richtung Gesicht). Muss
     // evtl. auf dem echten Handy angepasst werden (TILT_JUMP_SIGN auf
     // -1 drehen, falls der Sprung in die falsche Richtung auslöst).
@@ -112,11 +132,18 @@
     TILT_JUMP_REARM_DEG: 6,
 
     // Juice. squash > 0 = breiter/flacher (Landung), < 0 = schmaler/höher
-    // (Wandabprall); skaliert wird um den Fußpunkt, siehe game.js drawChar.
+    // (Wandabprall); skaliert wird um den Fußpunkt, siehe sprites.js.
     SQUASH_DECAY: 0.09,
     SQUASH_LAND: 0.7,
     SQUASH_WALL: -0.55,
     DUST_PARTICLE_COUNT: 7,
+
+    // Regenbogen-Schweif (Icy-Tower-Markenzeichen): erscheint ab diesem
+    // Anteil der Höchstgeschwindigkeit und wird mit dem Tempo kräftiger.
+    TRAIL_MIN_SPEED_FACTOR: 0.45,
+    TRAIL_MAX_POINTS: 46,
+    TRAIL_FADE: 0.045,
+    TRAIL_HUE_STEP: 11,
   };
 
   // Lineare Annäherung von start -> target über [rampStart, rampStart+range],
