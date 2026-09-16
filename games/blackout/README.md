@@ -125,6 +125,22 @@ Nach Absprache **spürbar entschärft**, aber nicht zahnlos:
 - Raum 1 ist bewusst leer: dort lernt man die Bewegung ohne Strafe.
   Minen ab Raum 2, Drohnen ab Raum 3, Geschütze ab Raum 4.
 
+## Der Tod als Pointe
+
+In N ist das Sterben nicht bloß ein Game-Over, sondern die Pointe: Die Figur
+klappt zusammen und purzelt mit dem Schwung weiter, den sie hatte. In einem
+Spiel, in dem man ständig stirbt, ist genau das der Unterschied zwischen
+„nochmal!" und „weg damit".
+
+Hier umgesetzt als Verlet-Puppe aus sieben Punkten (Kopf, Brust, Becken,
+zwei Arme, zwei Beine) mit Abstands-Zwangsbedingungen, die gegen dieselbe
+Weltgeometrie kollidiert wie die Spielfigur. Zwei Fallen dabei, beide
+behoben: Die Schwerkraft beschleunigt die Punkte in wenigen Frames über die
+Dicke ihrer Kollisionshülle hinaus (sie tunnelten durch den Boden), und wer
+auf dem Boden stirbt, hat die Beine bereits *im* Boden – ein Punkt im
+Inneren wird beim Entpenetrieren in die falsche Richtung gedrückt und zieht
+die ganze Puppe nach unten.
+
 ## Die Uhr ist dein Leben – und der Tod beendet nichts
 
 Zwei Regeln aus dem Original, die die ganze Spannung tragen:
@@ -152,7 +168,6 @@ zu entschärfen.
 - **Schrägen** sind eingebaut (Rampen ab Raum 2), aber noch sparsam
   eingesetzt. Im Original prägen sie ganze Levelabschnitte – hier wäre mehr
   drin, etwa durchgehende Rutschen über den halben Raum.
-- **Ragdoll-Tod**: aktuell ein Partikel-Burst statt des Original-Ragdolls.
 - **Raumvielfalt**: vier Archetypen sind ein Anfang, keine Endlösung.
 - Die Zahlen für Zeit, Gegnerdichte und Geschütz-Timing sind ein erster
   Wurf und noch nicht über viele Runden gegengespielt.

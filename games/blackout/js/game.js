@@ -34,7 +34,7 @@
 
   var room, ninja, roomIndex, timeLeft, score, best, seed;
   var switchOn, particles, flash, shake, doorPulse, thinkCursor;
-  var pendingGold, deaths, respawnTimer;
+  var pendingGold, deaths, respawnTimer, ragdoll;
   var accMs, lastTs, rafId, simFrame;
   var settings = { impactOriginal: false, scheme: 'halves' };
 
@@ -53,6 +53,7 @@
       impactLimit: settings.impactOriginal ? C.IMPACT_LIMIT_ORIGINAL : C.IMPACT_LIMIT_MILD,
     });
     ninja.onDeath = function (reason) {
+      ragdoll = new BO.Ragdoll(room.world, ninja.xpos, ninja.ypos, ninja.xspeed, ninja.yspeed);
       spawnDeathBurst(reason);
       shake = 14;
       deaths++;
@@ -69,6 +70,7 @@
     switchOn = false;
     doorPulse = 0;
     thinkCursor = 0;
+    ragdoll = null;
     // Geschütze getrennt führen, damit sie reihum denken können
     room.turrets = room.hazards.filter(function (h) { return h.kind === 'turret'; });
   }
@@ -139,6 +141,7 @@
 
     if (ninja.dead) {
       updateParticles();
+      if (ragdoll) ragdoll.update();
       if (respawnTimer > 0 && --respawnTimer <= 0) loadRoom(roomIndex);
       return;
     }
@@ -206,7 +209,7 @@
   }
 
   function spawnDeathBurst() {
-    for (var i = 0; i < 26; i++) {
+    for (var i = 0; i < 14; i++) {
       var a = Math.random() * Math.PI * 2;
       var s = 1 + Math.random() * 3.4;
       particles.push({
@@ -250,6 +253,7 @@
       drawSwitchAndDoor();
       drawHazards();
       drawParticles();
+      if (ragdoll) ragdoll.draw(ctx);
       if (ninja && !ninja.dead) drawNinja();
     }
 
@@ -617,6 +621,7 @@
         switchOn: switchOn,
         pendingGold: pendingGold,
         deaths: deaths,
+        ragdoll: ragdoll ? { life: +ragdoll.life.toFixed(2), head: [Math.round(ragdoll.points[0].x), Math.round(ragdoll.points[0].y)] } : null,
         ninja: ninja ? {
           x: Math.round(ninja.xpos), y: Math.round(ninja.ypos),
           vx: +ninja.xspeed.toFixed(3), vy: +ninja.yspeed.toFixed(3),
