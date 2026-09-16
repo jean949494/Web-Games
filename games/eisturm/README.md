@@ -13,6 +13,9 @@ wird immer schneller – wer stehen bleibt oder aus dem Bild fällt, ist raus.
   desto schneller
 - **Antippen** (egal wo) – springen; **länger gedrückt halten springt
   höher**, kurzes Tippen gibt nur einen kleinen Hüpfer
+- **Finger liegen lassen** – die Figur springt bei jeder Landung sofort
+  weiter. Damit lässt sich die Runde komplett über die Neigung spielen,
+  ohne nachzutippen.
 
 Tastatur am PC zum Testen: Pfeiltasten/A+D halten = laufen,
 Leertaste/Pfeil-hoch halten = springen (Höhe ebenfalls über die
@@ -81,8 +84,11 @@ Praktisch, um an der Optik zu schrauben, ohne im Spiel danach zu jagen:
   wieder in die Wand ziehen und der Abpraller verpuffen. Solange das
   Tempo über dem normalen Lauftempo liegt, hat der Schwung generell
   Vorrang vor der Steuerung (auch vor dem Richtungs-Snap, der ihn sonst
-  schlagartig vernichten würde); bewusstes Gegenlenken bremst ihn
-  allmählich, sonst baut er sich nur mit `OVERSPEED_FRICTION` ab. Über
+  schlagartig vernichten würde). Gegenlenken bremst ihn dabei nur sanft
+  (`BOOST_COUNTER_BRAKE`): nach dem Abprall hält man das Handy fast immer
+  noch in die Anlaufrichtung geneigt, normales Gegenbremsen würde den
+  Dash in ~130 ms abwürgen – schneller, als man zurückkippen kann. Sonst
+  baut er sich nur mit `OVERSPEED_FRICTION` ab. Über
   `JUMP_SPEED_FACTOR_MAX` trägt er direkt in die Sprunghöhe:
   **7,3 Etagen aus dem Dash gegenüber 1,7 aus dem Stand.**
 - **Combo nur aus dem Wandabprall**: ein Sprung zählt nur dann als Combo,
@@ -98,7 +104,9 @@ Praktisch, um an der Optik zu schrauben, ohne im Spiel danach zu jagen:
   auszubremsen; volles Tempo braucht danach trotzdem wieder Anlauf.
 - **Neigung**: Totzone (`TILT_DEAD_DEG`) und Tiefpass (`TILT_SMOOTH`)
   halten die Nulllage ruhig, damit leichtes Handzittern die Figur nicht
-  eiern lässt. Darüber wirkt eine Kennlinie (`TILT_EXPO` < 1), die kleine
+  eiern lässt; hält man ruhig, zentriert sich die Nulllage langsam nach
+  (`TILT_RECENTER`), damit sie sich nicht verzieht, wenn man sich während
+  der Runde anders hinsetzt. Darüber wirkt eine Kennlinie (`TILT_EXPO` < 1), die kleine
   Winkel überproportional umsetzt: das Handy bleibt nahezu aufrecht
   (1,5° ≈ 22 % Tempo, 2° ≈ 39 %, 2,5° ≈ 53 %, ab 5° Vollgas), man sieht
   den Bildschirm also weiterhin gut. Gegengetestet: ±1,6° Handzittern

@@ -130,6 +130,12 @@
       var dGamma = angleDelta(e.gamma, baseGamma);
       smoothGamma += (dGamma - smoothGamma) * C.TILT_SMOOTH;
 
+      // Ruhige Haltung zentriert die Nulllage langsam nach – sonst
+      // verzieht sie sich, sobald man sich anders hinsetzt.
+      if (Math.abs(smoothGamma) < C.TILT_DEAD_DEG) {
+        baseGamma += smoothGamma * C.TILT_RECENTER;
+      }
+
       // Totzone abziehen, danach stufenlos bis zum vollen Ausschlag – so
       // bleibt die Mitte ruhig, ohne dass die feine Dosierung verloren geht.
       var d = smoothGamma;

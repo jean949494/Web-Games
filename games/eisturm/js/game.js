@@ -36,7 +36,10 @@
 
   var chr, camera, floors, nextFloorY, floorSeq, best, comboPoints, combo, flashes;
   var accMs, lastTs, rafId;
-  var steerFactor = 0; // -1..1, von input.js gesetzt (Neigung, Zone-Halten oder Tastatur)
+  var steerFactor = 0; // -1..1, von input.js gesetzt (Neigung oder Tastatur)
+  // Liegt der Finger (bzw. die Taste) gerade auf? Dann wird bei jeder
+  // Landung sofort wieder abgesprungen, ohne neu antippen zu müssen.
+  var jumpInputDown = false;
 
   function emitChange(extra) {
     var payload = Object.assign({ state: state, score: currentScore(), best: best || 0 }, extra || {});
@@ -133,6 +136,7 @@
   // ---------- Eingaben ----------
 
   function jumpStart() {
+    jumpInputDown = true;
     if (state !== STATES.PLAYING) return;
     if (!chr.grounded) return;
     var speedFactor = Math.min(C.JUMP_SPEED_FACTOR_MAX, Math.abs(chr.vx) / C.MAX_RUN_SPEED);
@@ -152,6 +156,7 @@
   // Höhensteuerung über die Haltedauer. JUMP_VY_MIN sorgt dafür, dass
   // auch ein ganz kurzer Tipp noch ein brauchbarer Hüpfer bleibt.
   function jumpRelease() {
+    jumpInputDown = false;
     if (!chr || !chr.jumpHeld) return;
     chr.jumpHeld = false;
     if (chr.vy < C.JUMP_VY_MIN) {
@@ -193,6 +198,9 @@
       ET.sounds.playCombo(skipped);
       SG.analytics.track('combo', { floors: skipped, serie: combo.floors, mult: mult });
     }
+
+    // Finger liegt noch auf -> direkt weiterspringen, ohne neu zu tippen.
+    if (jumpInputDown) jumpStart();
   }
 
   // dir: -1 = linke Wand, +1 = rechte Wand. Der Abprall gibt mehr Tempo
@@ -270,7 +278,7 @@
     // trotzdem ab – nur eben allmählich statt schlagartig.
     if (Math.abs(chr.vx) > C.MAX_RUN_SPEED) {
       var gegen = wantDir !== 0 && moveDir !== 0 && wantDir !== moveDir;
-      chr.vx -= (chr.vx > 0 ? 1 : -1) * (gegen ? C.RUN_ACCEL_TURN : C.OVERSPEED_FRICTION);
+      chr.vx -= (chr.vx > 0 ? 1 : -1) * (gegen ? C.BOOST_COUNTER_BRAKE : C.OVERSPEED_FRICTION);
       return;
     }
 
@@ -504,6 +512,7 @@
 
     start: function () {
       resetWorld();
+      jumpInputDown = false;
       state = STATES.PLAYING;
       accMs = 0;
       lastTs = null;

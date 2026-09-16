@@ -64,8 +64,14 @@
     WALL_BOUNCE: 1.55,
     WALL_BOUNCE_MIN_SPEED: 0.8, // darunter einfach stoppen statt abprallen
     WALL_BOUNCE_MAX: 8.5, // Deckel, damit es sich nicht endlos aufschaukelt
-    WALL_LOCK_MS: 300,
+    WALL_LOCK_MS: 380,
     OVERSPEED_FRICTION: 0.022, // px/frame², so langsam verliert sich der Dash-Schwung
+    // Hält man nach dem Abprall noch in die alte Richtung geneigt (was
+    // fast immer passiert, man kam ja gerade von dort), würde normales
+    // Gegenlenk-Bremsen den Dash in ~130ms abwürgen – schneller als man
+    // das Handy überhaupt zurückkippen kann. Während des Überschusses
+    // bremst Gegenlenken deshalb nur sanft.
+    BOOST_COUNTER_BRAKE: 0.1,
     // Zeitfenster nach einem Wandabprall, in dem ein Sprung als Combo zählt.
     WALL_BOOST_MS: 1500,
 
@@ -128,6 +134,11 @@
     // Etwas stärker geglättet, weil die kleinere Totzone Sensorrauschen
     // sonst eher durchlässt.
     TILT_SMOOTH: 0.25,
+    // Selbstzentrierung: hält man ruhig (Auslenkung innerhalb der Totzone),
+    // wandert die Nulllage ganz langsam mit. So verzieht sich die Mitte
+    // nicht, wenn man sich während der Runde anders hinsetzt. Beim aktiven
+    // Lenken passiert nichts, sonst würde die Steuerung wegdriften.
+    TILT_RECENTER: 0.01,
 
     // Juice. squash > 0 = breiter/flacher (Landung), < 0 = schmaler/höher
     // (Wandabprall); skaliert wird um den Fußpunkt, siehe sprites.js.
