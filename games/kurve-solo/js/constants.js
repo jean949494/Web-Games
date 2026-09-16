@@ -32,7 +32,10 @@
 
     // Kernphysik (1:1 aus der Spec)
     SPEED: 1.7, // px/frame
-    TURN: 0.05, // rad/frame bei gehaltener Richtung
+    // War 1:1 aus der Spec 0.05, nach Live-Feedback ("später schwer
+    // einzulenken", Lücken inzwischen sehr eng) auf 0.07 erhöht – kleinerer
+    // Wenderadius (SPEED/TURN: 34px -> 24px), spürbar wendiger.
+    TURN: 0.07, // rad/frame bei gehaltener Richtung
     THICK: 3, // px Linienstärke
     HIT_FACTOR_SQ: 2.2, // Kollisionsradius²  =  HIT_FACTOR_SQ * THICK²
     SELF_IGNORE_RECENT_POINTS: 10, // sonst crasht man sofort in die eigene gerade gezogene Linie
@@ -109,6 +112,14 @@
     // letzten WARNING_FRAMES davon – klares "gleich vorbei"-Signal statt
     // durchgehendem Blinken (Feedback: "muss kurz blinken bevor's endet").
     POWERUP_WARNING_FRAMES: 45, // 0.75s Vorwarnung
+    // Feedback: Timer läuft in einer Wand/einem Hindernis ab -> sofortiger
+    // Crash direkt nach dem Boost, kein Reaktionsfenster. Fix: die
+    // Unverwundbarkeit endet erst, sobald eine sichere Stelle erreicht ist
+    // (nicht in einer Wand, nicht in einem Hindernis-Balken, nicht direkt
+    // an einem Gegner) – siehe `isSafeToEndBuff()` in game.js. Damit sich
+    // das nicht zum Dauer-unschlagbar-Campen missbrauchen lässt, gibt es
+    // eine harte Obergrenze für diese Kulanzzeit.
+    POWERUP_MAX_GRACE_FRAMES: 90, // max. 1,5s zusätzliche Kulanz
     POWERUP_BLINK_FRAMES: 6, // Blink-Rhythmus während der Vorwarnung
     POWERUP_COLOR: '#ffe066',
 

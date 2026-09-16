@@ -55,6 +55,7 @@
       startY: sy,
       maxHeight: 0,
       invincibleFrames: 0,
+      buffGraceFrames: 0,
     };
     camera = { y: 0 };
     obstacles = [];
@@ -81,7 +82,36 @@
   }
 
   function currentSpeed() {
-    return player.invincibleFrames > 0 ? C.SPEED * C.POWERUP_SPEED_MULT : C.SPEED;
+    if (player.invincibleFrames <= 0) return C.SPEED;
+    if (player.invincibleFrames > C.POWERUP_WARNING_FRAMES) return C.SPEED * C.POWERUP_SPEED_MULT;
+    // Sanftes Abbremsen in der Vorwarnphase statt hartem Schnitt auf
+    // Normaltempo – fühlt sich sonst wie ein Stolpern kurz vor der Wand an.
+    var t = player.invincibleFrames / C.POWERUP_WARNING_FRAMES; // 1 -> 0
+    return C.SPEED * (1 + (C.POWERUP_SPEED_MULT - 1) * t);
+  }
+
+  // Nicht mitten in einer Wand, einem Hindernis-Balken, der eigenen
+  // Linie oder direkt an einem Gegner enden lassen – sonst crasht man,
+  // sobald die Unverwundbarkeit endet, ohne jede Reaktionschance
+  // (`checkSelfCollision` weiter unten definiert, wird hier vorab genutzt).
+  function isSafeToEndBuff() {
+    var halfW = C.fieldHalfWidthAt(heightClimbed());
+    var cx = C.CANVAS_W / 2;
+    if (player.x < cx - halfW || player.x > cx + halfW) return false;
+
+    var margin = Math.sqrt(C.HIT_FACTOR_SQ) * C.THICK;
+    for (var i = 0; i < obstacles.length; i++) {
+      var o = obstacles[i];
+      if (Math.abs(player.y - o.y) < C.OBSTACLE_THICK / 2 + margin) return false;
+    }
+    for (var j = 0; j < enemies.length; j++) {
+      var e = enemies[j];
+      var dx = player.x - e.x, dy = player.y - e.y;
+      var minDist = e.r + margin;
+      if (dx * dx + dy * dy < minDist * minDist) return false;
+    }
+    if (checkSelfCollision()) return false;
+    return true;
   }
 
   function ensureObstaclesAhead() {
@@ -206,6 +236,7 @@
       if (dx * dx + dy * dy < C.POWERUP_PICKUP_RADIUS * C.POWERUP_PICKUP_RADIUS) {
         p.taken = true;
         player.invincibleFrames = C.POWERUP_DURATION_FRAMES;
+        player.buffGraceFrames = 0;
         KS.particles.spawnBurst(p.x, p.y, C.POWERUP_COLOR);
         KS.sounds.playPowerup();
         SG.analytics.track('powerup', {});
@@ -248,7 +279,17 @@
     player.maxHeight = Math.max(player.maxHeight, heightClimbed());
     if (state === STATES.PLAYING) score = currentScore();
 
-    if (player.invincibleFrames > 0) player.invincibleFrames--;
+    if (player.invincibleFrames > 0) {
+      // Timer läuft ab, aber nicht mitten in einer Wand/einem Hindernis
+      // enden lassen ("hinter der nächsten Wand ausgehen") – sonst
+      // crasht man ohne jede Reaktionschance direkt nach dem Boost.
+      // Gedeckelt, damit man sich damit nicht dauerhaft unschlagbar hält.
+      if (player.invincibleFrames === 1 && !isSafeToEndBuff() && player.buffGraceFrames < C.POWERUP_MAX_GRACE_FRAMES) {
+        player.buffGraceFrames++;
+      } else {
+        player.invincibleFrames--;
+      }
+    }
     if (controlHintFrames > 0) controlHintFrames--;
     elapsedFrames++;
     updateEnemies();

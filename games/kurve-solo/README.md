@@ -83,10 +83,29 @@ sind das jetzt drei Umbauten in Folge:
      Dauerblinken. Währenddessen zeigt ein steady Farbring in der
      Power-Up-Farbe durchgehend an, dass man gerade unschlagbar ist.
    - Steuerungs-Hinweis-Dauer deutlich verkürzt (`CONTROL_HINT_FRAMES`).
+4. **Power-Up-Ende entschärft**, nach dem Bug-Report "spätere Runden
+   wird er kurz vor einer Wand langsamer und knallt direkt dagegen":
+   - **Ursache**: Während der Unverwundbarkeit sind alle Kollisionen
+     (auch die Wand) abgeschaltet – lief der 2,5s-Timer ausgerechnet
+     ab, während man gerade durch eine Wand/ein Hindernis/die eigene
+     Linie "geistert", crashte man im selben Frame, in dem die
+     Unverwundbarkeit endete, ohne jede Reaktionschance.
+   - **Fix**: `isSafeToEndBuff()` – der Timer läuft ab, aber die
+     Unverwundbarkeit endet erst, sobald man wieder an einer
+     ungefährlichen Stelle ist (nicht in der Wand, nicht in einem
+     Hindernis-Balken, nicht an der eigenen Linie, nicht direkt an
+     einem Gegner). Gedeckelt über `POWERUP_MAX_GRACE_FRAMES` (1,5s),
+     damit man sich damit nicht absichtlich dauerhaft unschlagbar hält.
+   - Zusätzlich bremst das Tempo in der Vorwarnphase jetzt sanft von
+     `SPEED*MULT` auf `SPEED` ab (`currentSpeed()`), statt hart zu
+     schalten – synchron zum Blink-Countdown.
+   - **`TURN`** (Wenderadius) nach Feedback "später schwer einzulenken"
+     von 0.05 auf 0.07 rad/frame erhöht (Wenderadius 34px → 24px) –
+     spürbar wendiger, gerade bei sehr engen Lücken wichtig.
 
 Kernmechanik (konstante Geschwindigkeit, Lenken nur links/rechts,
-Kollision mit Wand/eigener Linie) bleibt unverändert 1:1 aus der
-Original-Spec übernommen.
+Kollision mit Wand/eigener Linie) ist bis auf `TURN` (siehe Punkt 4)
+unverändert 1:1 aus der Original-Spec übernommen.
 
 ## Starten
 
