@@ -1,0 +1,243 @@
+:root {
+  color-scheme: dark;
+  --bg: #101a2b;
+  --accent: #5ee6ff;
+  --accent-2: #e63946;
+  --text: #f4f1ea;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#stage {
+  position: relative;
+  margin: 0 auto;
+  width: 340px;
+  height: 480px;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+canvas#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.hud-score {
+  position: absolute;
+  top: max(10px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 22px;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.corner-btn {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  z-index: 5;
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.icon-btn:active { background: rgba(255, 255, 255, 0.22); }
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(16, 26, 43, 0.78);
+  backdrop-filter: blur(2px);
+  text-align: center;
+  padding: 20px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.title.small { font-size: 20px; }
+
+.btn-primary {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: #0a2733;
+  font-size: 30px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(94, 230, 255, 0.35);
+}
+
+.btn-primary:active { transform: scale(0.96); }
+
+.btn-secondary {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-secondary:active { background: rgba(255, 255, 255, 0.18); }
+
+.hint {
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.75;
+  max-width: 280px;
+}
+
+.best-score, .go-best {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.go-score {
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.row {
+  display: flex;
+  gap: 14px;
+}
+
+.sound-corner {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+}
+
+.brake-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.brake-label {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.brake-picker {
+  display: flex;
+  gap: 3px;
+}
+
+.brake-btn {
+  width: 25px;
+  height: 25px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+}
+
+.brake-btn.active {
+  border-color: var(--accent);
+  background: rgba(94, 230, 255, 0.22);
+}
+
+.skin-picker {
+  display: flex;
+  gap: 8px;
+}
+
+.skin-btn {
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 4px 4px 2px;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.skin-btn.active {
+  border-color: var(--accent);
+  background: rgba(94, 230, 255, 0.16);
+}
+
+.skin-btn canvas { display: block; }
+
+.skin-btn span {
+  display: block;
+  font-size: 9px;
+  line-height: 12px;
+  color: var(--text);
+  opacity: 0.75;
+}
+
+.mode-switch {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-mode {
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border-radius: 18px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-mode.active {
+  border-color: var(--accent);
+  background: rgba(94, 230, 255, 0.16);
+}
+
+.go-floor {
+  font-size: 15px;
+  font-weight: 600;
+  opacity: 0.85;
+  margin-top: -10px;
+}

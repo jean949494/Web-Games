@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#101a2b" />
+  <title>Eisturm</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="stage">
+    <canvas id="game" width="340" height="480"></canvas>
+
+    <div id="hud-score" class="hud-score" hidden>0</div>
+
+    <button id="btn-pause" class="icon-btn corner-btn" aria-label="Pause" hidden>⏸</button>
+
+    <div id="screen-menu" class="screen">
+      <div class="title">🧊 Eisturm</div>
+      <button id="btn-start" class="btn-primary" aria-label="Start">▶</button>
+      <div id="hint-controls" class="hint"></div>
+      <div id="skin-picker" class="skin-picker"></div>
+      <div class="brake-row">
+        <span class="brake-label">Dash-Schonzeit (nur Tippen)</span>
+        <div id="brake-picker" class="brake-picker"></div>
+      </div>
+      <div class="mode-switch">
+        <button id="btn-mode-tilt" class="btn-mode" data-mode="tilt">📱 Neigen</button>
+        <button id="btn-mode-touch" class="btn-mode" data-mode="touch">👆 Tippen</button>
+      </div>
+      <button id="btn-tilt" class="btn-secondary" hidden>📱 Neigungssteuerung erlauben</button>
+      <div id="best-score" class="best-score"></div>
+      <button id="btn-sound-menu" class="icon-btn sound-corner" aria-label="Sound an/aus">🔊</button>
+    </div>
+
+    <div id="screen-pause" class="screen" hidden>
+      <div class="title small">Pause</div>
+      <button id="btn-resume" class="btn-primary" aria-label="Weiter">▶</button>
+      <div class="brake-row">
+        <span class="brake-label">Dash-Schonzeit (nur Tippen)</span>
+        <div id="brake-picker-pause" class="brake-picker"></div>
+      </div>
+      <div class="row">
+        <button id="btn-sound-pause" class="icon-btn" aria-label="Sound an/aus">🔊</button>
+        <button id="btn-restart-pause" class="icon-btn" aria-label="Neustart">↻</button>
+      </div>
+    </div>
+
+    <div id="screen-gameover" class="screen" hidden>
+      <div class="title small">Game Over</div>
+      <div id="go-score" class="go-score">0</div>
+      <div id="go-floor" class="go-floor"></div>
+      <div id="go-best" class="go-best"></div>
+      <button id="btn-restart" class="btn-primary" aria-label="Neustart">↻</button>
+    </div>
+  </div>
+
+  <script src="../../shared/storage.js"></script>
+  <script src="../../shared/audio.js"></script>
+  <script src="../../shared/analytics.js"></script>
+  <script src="../../shared/poki.js"></script>
+  <script src="js/constants.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/sounds.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/particles.js"></script>
+  <script src="js/trail.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
