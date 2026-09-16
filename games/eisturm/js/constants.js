@@ -74,6 +74,12 @@
     // das Handy überhaupt zurückkippen kann. Während des Überschusses
     // bremst Gegenlenken deshalb nur sanft.
     BOOST_COUNTER_BRAKE: 0.1,
+    // Zum Antesten: wie hart ein Druck auf die Gegenseite den Dash
+    // abbremst (nur Tippen-Steuerung). Stufe 1 = lässt den Schwung fast
+    // laufen, Stufe 10 = dreht praktisch sofort um. Der gewählte Index
+    // steht in settings.js.
+    DASH_BRAKE_LEVELS: [0.10, 0.18, 0.28, 0.40, 0.55, 0.75, 1.0, 1.4, 2.0, 99],
+    DASH_BRAKE_DEFAULT: 4, // Stufe 5 (0-basiert), grober Mittelweg
     // Zeitfenster nach einem Wandabprall, in dem ein Sprung als Combo zählt.
     WALL_BOOST_MS: 1500,
 

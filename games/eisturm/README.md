@@ -26,9 +26,15 @@ Im Menü umschaltbar (lokal gespeichert, siehe `js/settings.js`):
 - Die Figur **springt durchgehend von selbst**
 - **Linke/rechte Bildschirmhälfte drücken** – in die Richtung laufen,
   loslassen – ausrollen. Die Neigung ist in diesem Modus ohne Wirkung.
-- Ein Druck hebt den Schwung aus dem Wandabprall **sofort** auf und gibt
-  volle Kontrolle zum Justieren. Beim Neigen bleibt der Schwung dagegen
-  erhalten, weil man das Handy gar nicht so schnell zurückkippen könnte.
+- Ein Druck auf die Gegenseite **bremst** den Schwung aus dem Wandabprall
+  aus, statt ihn schlagartig umzudrehen. Wie hart, stellt die Leiste
+  "Dash-Bremse" im Menü und in der Pause ein (Stufe 1–10, siehe
+  `DASH_BRAKE_LEVELS`): Stufe 1 lässt den Dash fast auslaufen (~0,9 s bis
+  zur Gegenrichtung), Stufe 10 dreht praktisch sofort um (~0,09 s).
+  Beim Neigen bleibt der Schwung dagegen erhalten, weil man das Handy gar
+  nicht so schnell zurückkippen könnte.
+- Mehrere Finger werden mitgeführt: es zählt der zuletzt aufgesetzte,
+  und wird der gehoben, übernimmt wieder der noch liegende.
 
 Tastatur am PC zum Testen: Pfeiltasten/A+D halten = laufen,
 Leertaste/Pfeil-hoch halten = springen (Höhe ebenfalls über die

@@ -49,31 +49,59 @@
     // TILT-Modus: Antippen/Halten = springen.
     // TOUCH-Modus: gedrückte Bildschirmhälfte = Laufrichtung.
 
-    var pointerActive = false;
+    // Mehrere Finger werden mitgeführt: es zählt immer der zuletzt
+    // aufgesetzte. Hebt man den, übernimmt wieder der noch liegende –
+    // sonst bliebe die Figur stehen, obwohl ein Finger auf dem Feld ist.
+    var activePointers = []; // {id, side}, letzter Eintrag gewinnt
 
     function sideFactorForClientX(clientX) {
       var rect = stageEl.getBoundingClientRect();
       return clientX < rect.left + rect.width / 2 ? -1 : 1;
     }
 
+    function applyTopPointer() {
+      if (!activePointers.length) ET.game.setSteer(0);
+      else ET.game.setSteer(activePointers[activePointers.length - 1].side);
+    }
+
+    function removePointer(id) {
+      for (var i = activePointers.length - 1; i >= 0; i--) {
+        if (activePointers[i].id === id) { activePointers.splice(i, 1); return true; }
+      }
+      return false;
+    }
+
     stageEl.addEventListener('pointerdown', function (e) {
-      pointerActive = true;
-      if (touchMode()) ET.game.setSteer(sideFactorForClientX(e.clientX));
-      else ET.game.jumpStart();
+      if (touchMode()) {
+        removePointer(e.pointerId);
+        activePointers.push({ id: e.pointerId, side: sideFactorForClientX(e.clientX) });
+        applyTopPointer();
+      } else {
+        activePointers.push({ id: e.pointerId, side: 0 });
+        ET.game.jumpStart();
+      }
       e.preventDefault();
     });
 
     stageEl.addEventListener('pointermove', function (e) {
-      if (!pointerActive || !touchMode()) return;
-      ET.game.setSteer(sideFactorForClientX(e.clientX)); // Wechsel der Hälfte mitnehmen
+      if (!touchMode()) return;
+      for (var i = 0; i < activePointers.length; i++) {
+        if (activePointers[i].id === e.pointerId) {
+          activePointers[i].side = sideFactorForClientX(e.clientX); // Wechsel der Hälfte mitnehmen
+          applyTopPointer();
+          return;
+        }
+      }
     });
 
     function release(e) {
-      if (!pointerActive) return;
-      pointerActive = false;
-      if (touchMode()) ET.game.setSteer(0);
-      else ET.game.jumpRelease(); // Loslassen kappt den Sprung -> Höhe über Haltedauer
-      if (e) e.preventDefault();
+      if (!removePointer(e.pointerId)) return;
+      if (touchMode()) {
+        applyTopPointer();
+      } else if (!activePointers.length) {
+        ET.game.jumpRelease(); // Loslassen kappt den Sprung -> Höhe über Haltedauer
+      }
+      e.preventDefault();
     }
 
     stageEl.addEventListener('pointerup', release);
@@ -123,7 +151,7 @@
     });
 
     global.addEventListener('blur', function () {
-      pointerActive = false;
+      activePointers.length = 0;
       keyLeft = false;
       keyRight = false;
       ET.game.setSteer(0);

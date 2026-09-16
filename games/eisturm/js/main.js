@@ -97,6 +97,34 @@
     ET.game.setSkin(currentSkin);
     renderSkinPicker();
 
+    // Bremsstufen zum Antesten: im Menü und in der Pause umschaltbar,
+    // damit man Stufen direkt hintereinander vergleichen kann.
+    var brakePickers = [document.getElementById('brake-picker'), document.getElementById('brake-picker-pause')];
+    var brakeIndex = ET.settings.getDashBrake(C.DASH_BRAKE_LEVELS, C.DASH_BRAKE_DEFAULT);
+
+    function renderBrakePickers() {
+      brakePickers.forEach(function (host) {
+        host.innerHTML = '';
+        C.DASH_BRAKE_LEVELS.forEach(function (_, i) {
+          var btn = document.createElement('button');
+          btn.className = 'brake-btn' + (i === brakeIndex ? ' active' : '');
+          btn.textContent = String(i + 1);
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            brakeIndex = i;
+            ET.settings.setDashBrake(i);
+            ET.game.setDashBrake(i);
+            renderBrakePickers();
+          });
+          btn.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+          host.appendChild(btn);
+        });
+      });
+    }
+
+    ET.game.setDashBrake(brakeIndex);
+    renderBrakePickers();
+
     var CONTROL_HINTS = {};
     CONTROL_HINTS[ET.settings.MODES.TILT] = 'Handy neigen zum Laufen &middot; Antippen zum Springen<br />Länger halten springt höher, Finger liegen lassen springt durchgehend';
     CONTROL_HINTS[ET.settings.MODES.TOUCH] = 'Springt von selbst &middot; linke/rechte Bildschirmhälfte drücken zum Laufen';

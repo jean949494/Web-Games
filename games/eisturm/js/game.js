@@ -49,6 +49,7 @@
   // Neigen wäre das unfair, weil man das Handy nicht so schnell
   // zurückkippen kann – da bremst Gegenlenken nur sanft.
   var directSteering = false;
+  var dashBrake = C.DASH_BRAKE_LEVELS[C.DASH_BRAKE_DEFAULT];
 
   function emitChange(extra) {
     var payload = Object.assign({ state: state, score: currentScore(), best: best || 0 }, extra || {});
@@ -97,6 +98,7 @@
       wallLockMs: 0,
       wallBoostMs: 0, // läuft nach einem Wandabprall ab
       wallJump: false, // zählt der laufende Sprung als Wand-Sprung (= Combo möglich)?
+      dashBraking: false, // bremst gerade einen Dash aus, siehe updateSteering
       maxFloor: 0,
     };
     camera = { y: 0, scrolling: false, ageMs: 0 };
@@ -303,11 +305,25 @@
     // Vorrang vor der Steuerung: sonst würde die weiter gehaltene Richtung
     // ihn per Snap sofort vernichten. Bewusstes Gegenlenken bremst ihn
     // trotzdem ab – nur eben allmählich statt schlagartig.
+    // Gegenlenken gegen einen Dash bremst ihn aus, statt ihn schlagartig
+    // umzudrehen – wie hart, bestimmt die eingestellte Stufe. Die Bremse
+    // läuft auch unter Lauftempo weiter, sonst würde der Richtungs-Snap
+    // weiter unten sie wieder aushebeln.
+    if (chr.dashBraking) {
+      var bdir = chr.vx > 0 ? 1 : -1;
+      if (wantDir === bdir || wantDir === 0) {
+        chr.dashBraking = false; // wieder mitgelenkt oder losgelassen
+      } else {
+        chr.vx -= bdir * dashBrake;
+        if (chr.vx * bdir <= 0) { chr.vx = 0; chr.dashBraking = false; }
+        return;
+      }
+    }
+
     if (Math.abs(chr.vx) > C.MAX_RUN_SPEED) {
       var gegen = wantDir !== 0 && moveDir !== 0 && wantDir !== moveDir;
       if (gegen && directSteering) {
-        // Druck auf die Gegenseite hebt den Dash sofort auf
-        chr.vx = wantDir * Math.min(Math.abs(targetVx), C.MAX_RUN_SPEED * C.TURN_SNAP_FACTOR);
+        chr.dashBraking = true;
         return;
       }
       chr.vx -= (chr.vx > 0 ? 1 : -1) * (gegen ? C.BOOST_COUNTER_BRAKE : C.OVERSPEED_FRICTION);
@@ -691,6 +707,11 @@
     // true = Eingabe wirkt sofort (Tippen/Tasten), false = Neigung.
     setDirectSteering: function (on) {
       directSteering = !!on;
+    },
+
+    // Bremsstärke gegen einen laufenden Dash (Index in DASH_BRAKE_LEVELS)
+    setDashBrake: function (index) {
+      dashBrake = C.DASH_BRAKE_LEVELS[index] || C.DASH_BRAKE_LEVELS[C.DASH_BRAKE_DEFAULT];
     },
 
     // Dauerspringen an/aus (Touch-Steuerung). Greift ab der nächsten
