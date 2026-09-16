@@ -58,7 +58,10 @@
 
     SG.analytics.setGame(BO.GAME_ID);
     BO.game.init(canvas);
-    BO.input.attach(stage);
+    // Die Steuerung hängt am ganzen Bildschirm, nicht an der Spielfläche:
+    // Die ist mittig eingepasst und lässt auf breiten Handys links und
+    // rechts schwarze Balken - genau da, wo die Daumen liegen.
+    BO.input.attach(document.body);
 
     setSoundIcon(btnSoundMenu, SG.audio.isEnabled());
     setSoundIcon(btnSoundPause, SG.audio.isEnabled());

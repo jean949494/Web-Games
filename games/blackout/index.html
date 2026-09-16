@@ -62,11 +62,15 @@
       <button id="btn-restart" class="btn-primary" aria-label="Neustart">↻</button>
     </div>
 
-    <div id="touch-guide" class="touch-guide" hidden>
-      <div class="tg-zone tg-left">←</div>
-      <div class="tg-zone tg-right">→</div>
-      <div class="tg-zone tg-jump">SPRUNG</div>
-    </div>
+  </div>
+
+  <!-- Bewusst AUSSERHALB der Bühne: Die Steuerzonen gehen über den ganzen
+       Bildschirm, nicht nur über die mittig eingepasste Spielfläche. Lägen
+       sie in der Bühne, zeigte die Hilfe die Zonen an der falschen Stelle. -->
+  <div id="touch-guide" class="touch-guide" hidden>
+    <div class="tg-zone tg-left">←</div>
+    <div class="tg-zone tg-right">→</div>
+    <div class="tg-zone tg-jump">SPRUNG</div>
   </div>
 
   <div id="rotate-hint" class="rotate-hint" hidden>

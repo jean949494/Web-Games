@@ -23,10 +23,29 @@
   // gutgeschrieben. Wer vorher stirbt, verliert es.
   var TIME_START = 45 * 60; // Frames
   var TIME_PER_ROOM = 10 * 60;
+  var TIME_PER_ROOM_MIN = 6 * 60;
   var TIME_PER_GOLD = 2 * 60; // exakt wie im Original
   var TIME_DEATH_PENALTY = 3 * 60;
   var TIME_MAX = 99 * 60;
   var RESPAWN_FRAMES = 36;
+
+  /**
+   * Zeitgutschrift pro geschafftem Raum - sie schrumpft mit der Raumnummer.
+   *
+   * Grund, nachgemessen mit `scratchpad/run_sim.js`: Die Strahlensuche spielt
+   * jeden Raum durch (Hinweg zum Schalter, Rückweg zur Tür) und braucht im
+   * Median 6,8 s, in 90 % der Fälle unter 14 s. Bei festen 10 s Gutschrift
+   * heißt das für jemanden, der kaum stirbt: Die Uhr läuft dauerhaft am
+   * Deckel von 99 s an, und der Lauf endet nie. Ein Endlosspiel ohne Ende
+   * ist aber keins - es ist nur ein Spiel ohne Pointe.
+   *
+   * Ab Raum 25 sind es 6 s, also knapp unter dem Median. Von da an kostet
+   * jeder Raum netto Zeit, und der Lauf läuft aus. Bis Raum 5 bleibt es bei
+   * den vollen 10 s, damit Anfänger nichts davon merken.
+   */
+  function timeForRoom(index) {
+    return Math.max(TIME_PER_ROOM_MIN, TIME_PER_ROOM - Math.floor(index / 5) * 60);
+  }
 
   var canvas, ctx;
   var state = STATES.MENU;
@@ -35,6 +54,7 @@
   var room, ninja, roomIndex, timeLeft, score, best, seed;
   var switchOn, particles, flash, shake, doorPulse, thinkCursor;
   var pendingGold, deaths, respawnTimer, ragdoll;
+  var timeGain, timeGainValue; // Restframes und Wert der Einblendung "+Ns"
   var accMs, lastTs, rafId, simFrame;
   var settings = { impactOriginal: false, scheme: 'halves' };
 
@@ -94,6 +114,8 @@
     pendingGold = 0;
     deaths = 0;
     respawnTimer = 0;
+    timeGain = 0;
+    timeGainValue = 0;
     loadRoom(0);
     state = STATES.PLAYING;
     accMs = 0;
@@ -119,7 +141,10 @@
     roomIndex++;
     score = roomIndex;
     // Jetzt erst wird das gesammelte Gold gutgeschrieben.
-    timeLeft = Math.min(TIME_MAX, timeLeft + TIME_PER_ROOM + pendingGold * TIME_PER_GOLD);
+    var gain = timeForRoom(roomIndex) + pendingGold * TIME_PER_GOLD;
+    timeGainValue = Math.round(gain / 60);
+    timeGain = 110;
+    timeLeft = Math.min(TIME_MAX, timeLeft + gain);
     pendingGold = 0;
     flash = 12;
     if (BO.sounds) BO.sounds.playDoor();
@@ -133,6 +158,7 @@
     simFrame++;
     if (shake > 0) shake--;
     if (flash > 0) flash--;
+    if (timeGain > 0) timeGain--;
     doorPulse += 0.08;
 
     // Die Uhr ist der einzige echte Gegner: Sie läuft immer weiter, auch
@@ -492,12 +518,26 @@
     ctx.font = 'bold 20px system-ui, sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText(secs + 's', 14, 28);
+    // Breite noch mit der GROSSEN Schrift messen. Vorher stand das
+    // measureText hinter dem Font-Wechsel und maß die kleine - der Zusatz
+    // klebte dadurch an der Uhr.
+    var clockW = ctx.measureText(secs + 's').width;
     // Ungebanktes Gold getrennt anzeigen - es zählt erst, wenn man die Tür
     // erreicht. Genau das macht den Rückweg spannend.
     if (pendingGold > 0) {
       ctx.fillStyle = '#ffd45c';
       ctx.font = 'bold 13px system-ui, sans-serif';
-      ctx.fillText('+' + (pendingGold * 2) + 's', 16 + ctx.measureText(secs + 's').width + 26, 27);
+      ctx.fillText('+' + (pendingGold * 2) + 's', 16 + clockW + 26, 27);
+    }
+    // Kurz nach der Tür: wie viel Zeit der Raum gebracht hat. Die Gutschrift
+    // schrumpft mit der Raumnummer - ohne Anzeige würde niemand merken, dass
+    // die Luft dünner wird.
+    if (timeGain > 0) {
+      ctx.globalAlpha = Math.min(1, timeGain / 30);
+      ctx.fillStyle = '#5ee1a3';
+      ctx.font = 'bold 15px system-ui, sans-serif';
+      ctx.fillText('+' + timeGainValue + 's', 16 + clockW + 26, 44);
+      ctx.globalAlpha = 1;
     }
     ctx.textAlign = 'right';
     ctx.fillStyle = '#eef3ff';

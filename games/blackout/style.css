@@ -134,10 +134,14 @@ canvas#game {
   right: max(8px, env(safe-area-inset-right));
 }
 
-/* Kurz eingeblendete Zonen-Hilfe beim ersten Spielzug */
+/* Kurz eingeblendete Zonen-Hilfe beim ersten Spielzug.
+   fixed statt absolute, weil die Steuerzonen am Bildschirm hängen und nicht
+   an der eingepassten Spielfläche - auf breiten Handys sind das zwei ganz
+   verschiedene Rechtecke. */
 .touch-guide {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 40;
   display: flex;
   pointer-events: none;
   opacity: 0.5;

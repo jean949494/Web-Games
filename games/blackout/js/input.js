@@ -22,7 +22,6 @@
   var BO = global.BO = global.BO || {};
 
   var scheme = 'halves';
-  var stageEl = null;
 
   var keys = { left: false, right: false, jump: false };
   var pointers = {}; // pointerId -> {role, x, y, originX}
@@ -30,13 +29,22 @@
 
   var DEAD_ZONE = 12; // px, bevor der Stick als Richtung zählt
 
+  /**
+   * Zonen werden am BILDSCHIRM gemessen, nicht an der Spielfläche.
+   *
+   * Das Spiel läuft in 640x360 und wird mittig eingepasst. Auf einem heutigen
+   * Handy (quer oft 19,5:9) bleiben dadurch links und rechts schwarze Balken -
+   * und genau dort liegen die Daumen. Hingen die Zonen an der Spielfläche,
+   * wäre der äußerste Zentimeter auf beiden Seiten tot, also ausgerechnet der
+   * Bereich, auf dem man das Gerät hält.
+   */
   function rectPos(e) {
-    var r = stageEl.getBoundingClientRect();
+    var w = global.innerWidth || 1;
     return {
-      x: (e.clientX - r.left) / r.width, // 0..1
-      y: (e.clientY - r.top) / r.height,
-      px: e.clientX - r.left,
-      rw: r.width,
+      x: e.clientX / w, // 0..1 über die volle Bildschirmbreite
+      y: e.clientY / (global.innerHeight || 1),
+      px: e.clientX,
+      rw: w,
     };
   }
 
@@ -55,10 +63,7 @@
   }
 
   function attach(el) {
-    stageEl = el;
-
     el.addEventListener('pointerdown', function (e) {
-      el.setPointerCapture && el.setPointerCapture(e.pointerId);
       assign(e);
       e.preventDefault();
     });
@@ -80,9 +85,14 @@
       if (stick && stick.id === e.pointerId) stick = null;
       delete pointers[e.pointerId];
     }
-    el.addEventListener('pointerup', release);
-    el.addEventListener('pointercancel', release);
-    el.addEventListener('pointerleave', release);
+    // Loslassen wird am FENSTER abgefangen, nicht am Element: Wandert der
+    // Daumen beim Loslassen über den Rand hinaus, käme das pointerup sonst
+    // nie an - und die Figur liefe weiter, obwohl niemand mehr drückt.
+    // Aus demselben Grund gibt es hier kein 'pointerleave': Das feuert schon,
+    // wenn der Sprungdaumen kurz über die Kante rutscht, und würde mitten im
+    // Sprung die Taste loslassen - bei variabler Sprunghöhe sofort spürbar.
+    global.addEventListener('pointerup', release);
+    global.addEventListener('pointercancel', release);
     el.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
     global.addEventListener('keydown', function (e) {

@@ -84,10 +84,18 @@ Gefahren auf einen Blick und plant die Route, bevor man losläuft.
 Bei dieser Physik wäre ein unschaffbarer Raum das sofortige Ende eines Laufs.
 Deshalb wird nicht frei gewürfelt:
 
-1. Vier Archetypen werden konstruktiv gebaut und reihum durchgewechselt:
-   **Plattformen** (Sprungpräzision), **Schacht** (Wandsprung-Ketten),
-   **Säulen** (Deckung gegen Geschütze) und **Rampen** (eine lange
-   Abfahrt als Beschleuniger, eine lange Auffahrt als Schanze).
+1. Sieben Archetypen werden konstruktiv gebaut und reihum durchgewechselt:
+
+   | # | Raumtyp | wofür er da ist |
+   |---|---|---|
+   | 0 | Plattformen | Sprungpräzision |
+   | 1 | Schacht | eine lange Wandsprung-Kette |
+   | 2 | Säulen | Deckung gegen Geschütze |
+   | 3 | Rampen | lange Abfahrt als Beschleuniger, Gegenrampe als Schanze |
+   | 4 | Wellental | Rutsche runter, mit dem Schwung die andere Flanke hoch |
+   | 5 | Kamin-Kette | mehrere Aufstiege nebeneinander, man wählt den Weg |
+   | 6 | Terrassen | Treppe mit Brüstungen – Deckung Stufe für Stufe |
+
    Die Auswahl ist bewusst deterministisch: Beim Würfeln mit Neuversuch
    verschwanden ganze Typen aus der Rotation – Säulenräume kamen nur noch
    in 1 % der Fälle vor, und gerade die liefern die Deckung, ohne die man
@@ -100,7 +108,9 @@ Deshalb wird nicht frei gewürfelt:
 Nachgewiesen mit `scratchpad/solver_test.js` bzw. `solver_mines.js`: eine
 Strahlensuche, die den Raum mit der **echten Physik** durchspielt (Minen
 als tödliche Hindernisse eingerechnet). Findet sie einen Weg, ist der Raum
-bewiesen lösbar. Stand: 80 von 80 geprüften Räumen der Nummern 10–17.
+bewiesen lösbar. Stand: **216 von 216** geprüften Räumen – je 108 aus den
+Nummern 0–8 und 12–20, über zwölf Seeds, also alle sieben Archetypen
+mehrfach.
 
 Diese Prüfung hat drei echte Fehler aufgedeckt, die im Spiel jeweils einen
 Lauf beendet hätten:
@@ -118,6 +128,24 @@ Lauf beendet hätten:
    Lücke zum Schalter. Minen liegen jetzt nur noch auf Flächen von
    mindestens fünf Kacheln Breite und nie am Rand oder in einem Schacht.
 
+### Und einen vierten, den erst das Nachmessen zeigte
+
+Das Erreichbarkeitsmodell war an einer Stelle **zu streng**, und das war
+schlimmer als zu großzügig: Es forderte für einen Kletterschacht, dass auch
+die oberste Zeile beidseitig eingefasst ist. Das ist die Zeile, in der man
+oben aussteigt – dort *muss* es offen sein. Folge: Kein Kamin galt je als
+erreichbar. Nachgemessen über 900 Räume lag der Schalter in Schacht-Räumen
+nie höher als 7 Kacheln, obwohl das Podest oben im Schacht auf 10 bis 12
+sitzt. Die Wandsprung-Kette, für die es diesen Raumtyp überhaupt gibt, kam
+also in keinem einzigen Raum vor. Dasselbe bei den Säulen: Die Höhen waren
+frei gewürfelt, keine Spitze war erreichbar, und der Schalter landete in
+60 % der Fälle unten auf dem Boden.
+
+| Raumtyp | Schalterhöhe vorher | jetzt | auf dem Boden |
+|---|---|---|---|
+| Schacht | Ø 6,1 (max 7) | Ø 8,1 (max 12) | 5 % → 0 % |
+| Säulen | Ø 1,5 (max 8) | Ø 6,4 (max 10) | 60 % → 3 % |
+
 ## Steuerung
 
 Zwei Varianten, im Menü und in der Pause umschaltbar – bitte beide auf dem
@@ -130,6 +158,22 @@ Handy antesten, die schlechtere fliegt danach raus:
 - **Joystick**: Daumen-Stick erscheint links, wo man aufsetzt; Sprung rechts.
 
 Am Rechner: Pfeiltasten/A+D laufen, Leertaste/Pfeil hoch springen, Esc pausiert.
+
+**Die Zonen hängen am Bildschirm, nicht an der Spielfläche.** Das Spiel läuft
+in 640×360 und wird mittig eingepasst; ein heutiges Handy im Querformat ist
+eher 19,5:9, also bleiben links und rechts schwarze Balken – und genau dort
+liegen beim Halten die Daumen. Vorher waren die Zonen an der Spielfläche
+festgemacht, damit war der äußerste Zentimeter auf beiden Seiten tot.
+Nachgewiesen mit `scratchpad/pwtest/touch_bars.js`: ein 900×360 breites
+Fenster (130 px Balken je Seite), Berührungen mitten im Balken müssen laufen
+und springen auslösen – auch beide gleichzeitig.
+
+Zwei weitere Fallen, beide behoben: „Loslassen" wird jetzt am **Fenster**
+abgefangen statt am Element (wandert der Daumen beim Loslassen über den
+Rand, kam das Ereignis sonst nie an und die Figur lief weiter), und
+`pointerleave` ist raus – das feuerte schon, wenn der Sprungdaumen kurz über
+die Kante rutschte, und ließ mitten im Sprung die Taste los. Bei variabler
+Sprunghöhe ist das sofort spürbar.
 
 ## Schwierigkeit
 
@@ -165,7 +209,28 @@ Zwei Regeln aus dem Original, die die ganze Spannung tragen:
 **Ein durchlaufender Countdown statt Rundenuhr.** In N sind die 90 Sekunden
 nicht pro Level, sondern die *Lebensspanne* des Ninjas über eine ganze
 Episode. Hier läuft genauso eine einzige Uhr durch den kompletten Lauf:
-Start 45 s, pro geschafftem Raum +10 s, Deckel bei 99 s.
+Start 45 s, Deckel bei 99 s.
+
+**Die Gutschrift pro Raum schrumpft** – von 10 s auf 6 s ab Raum 25, eine
+Sekunde weniger alle fünf Räume. Das ist keine Willkür, sondern nachgemessen
+(`scratchpad/run_sim.js`): Die Strahlensuche spielt jeden Raum vollständig
+durch, Hinweg zum Schalter und Rückweg zur Tür, und braucht
+
+| | Sekunden |
+|---|---|
+| im Median | 6,8 |
+| in 90 % der Fälle unter | 14,0 |
+| schnellster / langsamster Raum | 2,2 / 25,5 |
+
+Bei festen 10 s hieß das für jemanden, der kaum stirbt: Die Uhr klebt
+dauerhaft am Deckel. Sechs simulierte Läufe über zwölf Räume endeten alle
+mit 46 bis 93 s Rest – der Lauf wäre nie zu Ende gegangen. Ein Endlosspiel
+ohne Ende ist aber keins, sondern nur ein Spiel ohne Pointe. Ab Raum 25
+liegt die Gutschrift knapp unter dem Median, von da an kostet jeder Raum
+netto Zeit und der Lauf läuft aus. Bis Raum 5 bleibt es bei den vollen
+10 s, damit Anfänger nichts davon merken. Nach jeder Tür steht kurz
+sichtbar, wie viel es war (`+8s`) – sonst würde niemand merken, dass die
+Luft dünner wird.
 
 **Gold zählt erst an der Tür.** Jedes Stück bringt +2 s (exakt wie im
 Original), aber gutgeschrieben wird es erst beim Durchschreiten der Tür.
@@ -182,9 +247,16 @@ zu entschärfen.
 
 ## Bewusst noch offen
 
-- **Schrägen** sind eingebaut (Rampen ab Raum 2), aber noch sparsam
-  eingesetzt. Im Original prägen sie ganze Levelabschnitte – hier wäre mehr
-  drin, etwa durchgehende Rutschen über den halben Raum.
-- **Raumvielfalt**: vier Archetypen sind ein Anfang, keine Endlösung.
-- Die Zahlen für Zeit, Gegnerdichte und Geschütz-Timing sind ein erster
-  Wurf und noch nicht über viele Runden gegengespielt.
+- **Die Steuerung muss aufs echte Gerät.** Beide Varianten sind eingebaut
+  und im Menü umschaltbar; welche bleibt, entscheidet der Daumen, nicht die
+  Theorie. Die schlechtere fliegt danach raus, damit das Menü kleiner wird.
+- **Gegnerdichte und Geschütz-Timing** sind weiterhin ein erster Wurf. Die
+  Zeit ist inzwischen gegengerechnet, diese beiden nicht – dafür bräuchte es
+  echte Runden, keine Suche.
+- **Die Strahlensuche ist kein Mensch.** Sie stirbt nicht an Geschützen, sie
+  verwirft nur die Äste, in denen sie stirbt. Für Geometrie und Zeit ist sie
+  ein guter Maßstab, für Nervenkitzel nicht.
+- In 5 von 72 simulierten Räumen fand sie den **Rückweg zur Tür** nicht
+  (Hinweg zum Schalter dagegen in 216 von 216). Vermutlich reicht die
+  Suchtiefe nicht; falls nicht, wäre es ein echter Befund – der Rückweg von
+  einem hohen Schalter ist die Stelle, an der ein Raum noch kippen könnte.
