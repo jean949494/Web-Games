@@ -42,13 +42,39 @@ Warum sich das so anfühlt, wie es sich anfühlt:
 - **Mine** – steht still, tötet bei Berührung. Verengt Wege.
 - **Drohne** – patrouilliert auf dem Kachelraster und biegt an Wänden ab
   (Rasterlogik aus `EntityDroneBase`). Vorhersehbar, zwingt zum Timen.
-- **Geschütz** – der Grund für dieses Spiel. Es sieht dich nur bei freier
-  Sichtlinie, dreht sich mit **begrenzter** Geschwindigkeit auf dich zu,
-  lädt sichtbar 0,63 s auf und feuert dann tödlich. Daraus entsteht das
-  Anpirschen: in Deckung warten, den Moment abpassen, schnell durchhuschen.
-  Wer quer und schnell genug läuft, wird gar nicht erst erfasst.
-  (Das Original-N++ hat stattdessen rotierende Laser; das zielende Geschütz
-  stammt aus N von 2004 und ist hier eigenständig umgesetzt.)
+- **Gauss-Geschütz** – der Grund für dieses Spiel, und ebenfalls ein Port:
+  Die Logik stammt aus dem dekompilierten Originalcode von N v1.4
+  (`TurretObject`), von 40 auf 60 Bilder/s umgerechnet.
+
+  Das Entscheidende ist unintuitiv: **Das Geschütz zielt nicht auf dich.**
+  Es hat ein eigenes Fadenkreuz, das dir exponentiell *hinterherkriecht*.
+  Der Schuss-Countdown richtet sich danach, wie nah das **Fadenkreuz** dir
+  schon ist – nicht danach, wie nah der Turm ist:
+
+  | Abstand Fadenkreuz ↔ Spieler | bis zum Schuss |
+  |---|---|
+  | über 4 Kacheln | **nie** – der Countdown steht still |
+  | 1,75–4 Kacheln | 3,0 s |
+  | 1–1,75 Kacheln | 1,0 s |
+  | unter 1 Kachel | 0,43 s |
+
+  Daraus fällt das ganze Spielgefühl von selbst heraus: Wer in Bewegung
+  bleibt, hält das Fadenkreuz in der äußeren Zone und wird **nie** getroffen.
+  Wer zögert, lässt es einrasten und stirbt. Dazu:
+
+  - **Sichtlinie brechen setzt alles zurück** – Fadenkreuz springt zum Turm,
+    Countdown auf Anfang. Deshalb kann man sich etappenweise von Deckung zu
+    Deckung heranarbeiten.
+  - **0,25 s Vorwarnung** mit eingefrorenem Fadenkreuz, danach wird die Sicht
+    *nochmal* geprüft: Wer sich in diesem Fenster in Deckung wirft, bleibt heil.
+  - **Versetzte Wahrnehmung**: Wie im Original prüft nur *ein* Fernkampfgegner
+    alle 0,1 s seine Sichtlinie, reihum. Mit drei Geschützen sieht dich jedes
+    nur alle 0,3 s – in der Zeit legst du 2,5 Kacheln zurück. Deshalb kann man
+    durch eine Schusslinie huschen.
+
+  Nachgemessen (`scratchpad/turret_test2.js`): Stillstehen → tot nach 2,2 s.
+  Volles Tempo durchlaufen → überlebt, obwohl fünf Schüsse fallen; sie gehen
+  alle dorthin, wo man *war*.
 
 ## Räume: endlos, aber garantiert lösbar
 

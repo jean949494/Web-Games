@@ -127,88 +127,178 @@
 
   // ------------------------------------------------------------ Geschütz ---
 
+  /**
+   * Werte aus dem dekompilierten Originalcode von N v1.4 (TurretObject),
+   * von 40 auf 60 Bilder/s umgerechnet.
+   *
+   * Der Kern der Mechanik: Das Fadenkreuz ist ein eigenes Objekt, das dem
+   * Spieler exponentiell HINTERHERKRIECHT. Der Schuss-Countdown tickt nach
+   * dem Abstand ZWISCHEN FADENKREUZ UND SPIELER - nicht nach dem Abstand
+   * zum Turm. Wer in Bewegung bleibt, hält das Fadenkreuz in der äußeren
+   * Zone, und dort tickt der Countdown gar nicht: Das Geschütz schießt dann
+   * NIE. Wer stehenbleibt, lässt es einrasten und ist in gut 0,4 s tot.
+   */
   var TURRET = {
-    SIGHT_RANGE: 300,
-    TURN_SPEED: 0.045, // rad/Frame - langsam genug, dass schnelles Queren es abhängt
-    AIM_TOLERANCE: 0.14, // ab hier gilt "im Visier" und das Aufladen beginnt
-    CHARGE_FRAMES: 38, // ca. 0.63 s Vorwarnung
-    FIRE_FRAMES: 10, // so lange ist der Strahl tödlich
-    COOLDOWN_FRAMES: 34,
-    BEAM_HALF: 3.2, // halbe Trefferbreite des Strahls
+    // Zonengrenzen nach Fadenkreuz-Abstand (Originalwerte in Pixeln)
+    ZONE_OUTER: 96, // > 4 Kacheln: Countdown steht still
+    ZONE_MID: 42, // 1,75-4 Kacheln: 3,0 s bis zum Schuss
+    ZONE_INNER: 24, // 1-1,75 Kacheln: 1,0 s
+    // darunter: ca. 0,43 s
+
+    // Wie schnell das Fadenkreuz nachzieht (Anteil pro FRAME, von 40 auf
+    // 60 Bilder/s umgerechnet: k60 = 1 - (1-k40)^(2/3))
+    AIM_OUTER: 0.0201,
+    AIM_MID: 0.0235,
+    AIM_INNER: 0.03,
+    AIM_NEAR: 0.04,
+
+    // Countdown-Schritte pro Frame (Originalwerte x 2/3 für 60 Bilder/s).
+    // Ergibt die dokumentierten Zeiten: 3,0 s / 1,0 s / 0,43 s bis zum Schuss.
+    TICK_MID: 0.5 * 2 / 3,
+    TICK_INNER: 2 / 3, // Basis, dazu kommt Variation
+    TICK_NEAR: 2 * 2 / 3,
+
+    SHOT_TIMER_START: 60,
+    PREFIRE_FRAMES: 15, // 0,25 s mit eingefrorenem Fadenkreuz
+    POSTFIRE_FRAMES: 15,
+    BEAM_HALF: 2.5,
+
+    // Fernkampfgegner denken im Original reihum, nicht jeder jeden Frame:
+    // genau EIN Gegner alle 0,1 s. Mit drei Geschützen prüft jedes seine
+    // Sichtlinie also nur alle 0,3 s - das ist der Grund, warum man durch
+    // eine Schusslinie huschen kann.
+    THINK_INTERVAL: 6,
   };
 
-  function Turret(world, x, y, baseAngle) {
+  function Turret(world, x, y) {
     this.kind = 'turret';
     this.world = world;
     this.x = x;
     this.y = y;
     this.r = 7;
-    this.angle = baseAngle == null ? 0 : baseAngle;
-    this.phase = 'idle'; // idle -> tracking -> charging -> firing -> cooldown
+    this.aimX = x; // Fadenkreuz startet auf dem Turm
+    this.aimY = y;
+    this.shotTimer = TURRET.SHOT_TIMER_START;
+    this.phase = 'waiting'; // waiting -> targeting -> prefire -> firing -> postfire
     this.timer = 0;
     this.beamLen = 0;
     this.fireAngle = 0;
+    this.visible = false; // hat der Turm gerade Sicht?
   }
 
   Turret.prototype.seesNinja = function (ninja) {
-    var dx = ninja.xpos - this.x;
-    var dy = ninja.ypos - this.y;
-    if (dx * dx + dy * dy > TURRET.SIGHT_RANGE * TURRET.SIGHT_RANGE) return false;
+    // Im Original ist die Sichtlinie unbegrenzt weit und hat keinen
+    // Blickkegel - nur Geometrie blockt. Deckung ist die einzige Rettung.
     return this.world.hasLineOfSight(this.x, this.y, ninja.xpos, ninja.ypos);
   };
 
-  function angleDiff(a, b) {
-    var d = (a - b) % (Math.PI * 2);
-    if (d > Math.PI) d -= Math.PI * 2;
-    if (d < -Math.PI) d += Math.PI * 2;
-    return d;
-  }
+  Turret.prototype.reset = function () {
+    this.aimX = this.x;
+    this.aimY = this.y;
+    this.shotTimer = TURRET.SHOT_TIMER_START;
+    this.phase = 'waiting';
+    this.visible = false;
+  };
 
-  Turret.prototype.update = function (ninja) {
-    var sees = ninja && !ninja.dead && this.seesNinja(ninja);
+  /**
+   * NUR die Sichtprüfung ist versetzt (reihum, alle 0,1 s ein Geschütz).
+   * Genau das erlaubt es, durch eine Schusslinie zu huschen, bevor das
+   * Geschütz überhaupt merkt, dass jemand da war.
+   */
+  Turret.prototype.think = function (ninja) {
+    if (this.phase === 'prefire' || this.phase === 'firing' || this.phase === 'postfire') return;
 
-    if (this.phase === 'cooldown') {
-      if (--this.timer <= 0) this.phase = 'idle';
+    if (!ninja || ninja.dead || !this.seesNinja(ninja)) {
+      // Sicht verloren -> vollständiger Reset: Fadenkreuz springt zum Turm
+      // zurück, Countdown auf Anfang. Das macht das etappenweise
+      // Heranarbeiten von Deckung zu Deckung möglich.
+      this.reset();
       return;
     }
 
+    if (this.phase === 'waiting') {
+      this.aimX = this.x;
+      this.aimY = this.y;
+      this.shotTimer = TURRET.SHOT_TIMER_START;
+    }
+    this.visible = true;
+    this.phase = 'targeting';
+  };
+
+  /** Nachführung, Countdown und Feuerzustände - jeden Frame. */
+  Turret.prototype.update = function (ninja, frame) {
+    frame = frame || 0; // ohne Frame-Zähler würde der Countdown NaN werden
+    if (this.phase === 'targeting' && ninja && !ninja.dead) {
+      // Vorhalten: Position plus eine Frame-Geschwindigkeit
+      var predX = ninja.xpos + ninja.xspeed;
+      var predY = ninja.ypos + ninja.yspeed;
+      var dx = predX - this.aimX;
+      var dy = predY - this.aimY;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+
+      var aimSpeed, tick;
+      if (dist > TURRET.ZONE_OUTER) {
+        aimSpeed = TURRET.AIM_OUTER;
+        tick = 0; // Fadenkreuz hinkt zu weit hinterher -> es fällt kein Schuss
+      } else if (dist > TURRET.ZONE_MID) {
+        aimSpeed = TURRET.AIM_MID;
+        tick = TURRET.TICK_MID;
+      } else if (dist > TURRET.ZONE_INNER) {
+        aimSpeed = TURRET.AIM_INNER;
+        // Variation über den Frame-Zähler statt Zufall: bleibt reproduzierbar
+        tick = TURRET.TICK_INNER * (1 + (frame % 2));
+      } else {
+        aimSpeed = TURRET.AIM_NEAR;
+        tick = TURRET.TICK_NEAR * (1 + (frame % 4) / 3);
+      }
+
+      this.aimX += aimSpeed * dx;
+      this.aimY += aimSpeed * dy;
+      this.aimDist = dist;
+
+      this.shotTimer -= tick;
+      if (this.shotTimer <= 0) {
+        this.phase = 'prefire';
+        this.timer = TURRET.PREFIRE_FRAMES;
+        if (this.onCharge) this.onCharge();
+      }
+      return;
+    }
+
+    if (this.phase === 'prefire') {
+      // Fadenkreuz friert ein. Am Ende wird die Sicht NOCHMAL geprüft:
+      // Wer sich in dieser Vierteilsekunde in Deckung wirft, bleibt heil.
+      if (--this.timer <= 0) {
+        if (ninja && !ninja.dead && this.seesNinja(ninja)) {
+          this.fireAngle = Math.atan2(this.aimY - this.y, this.aimX - this.x);
+          this.beamLen = this.rayLength(this.fireAngle);
+          this.phase = 'firing';
+          this.timer = 2;
+          if (this.onFire) this.onFire();
+        } else {
+          this.reset();
+        }
+      }
+      return;
+    }
     if (this.phase === 'firing') {
       if (--this.timer <= 0) {
-        this.phase = 'cooldown';
-        this.timer = TURRET.COOLDOWN_FRAMES;
+        this.phase = 'postfire';
+        this.timer = TURRET.POSTFIRE_FRAMES;
       }
       return;
     }
-
-    if (!sees) {
-      // Sichtkontakt verloren -> Aufladen bricht ab. Das ist der Grund,
-      // warum Deckung suchen funktioniert.
-      this.phase = 'idle';
-      this.timer = 0;
-      return;
-    }
-
-    var target = Math.atan2(ninja.ypos - this.y, ninja.xpos - this.x);
-    var diff = angleDiff(target, this.angle);
-    var step = Math.max(-TURRET.TURN_SPEED, Math.min(TURRET.TURN_SPEED, diff));
-    this.angle += step;
-
-    if (Math.abs(diff) <= TURRET.AIM_TOLERANCE) {
-      if (this.phase !== 'charging') {
-        this.phase = 'charging';
-        this.timer = TURRET.CHARGE_FRAMES;
-        if (this.onCharge) this.onCharge();
-      } else if (--this.timer <= 0) {
-        this.phase = 'firing';
-        this.timer = TURRET.FIRE_FRAMES;
-        this.fireAngle = this.angle;
-        this.beamLen = this.rayLength(this.angle);
-        if (this.onFire) this.onFire();
+    if (this.phase === 'postfire') {
+      if (--this.timer <= 0) {
+        // Bei erhaltener Sicht bleibt das Fadenkreuz stehen (nur der Timer
+        // wird zurückgesetzt) - Stehenbleiben wird also bestraft.
+        if (ninja && !ninja.dead && this.seesNinja(ninja)) {
+          this.shotTimer = TURRET.SHOT_TIMER_START;
+          this.phase = 'targeting';
+        } else {
+          this.reset();
+        }
       }
-    } else {
-      // Ziel wieder aus dem Visier gelaufen -> Aufladen zurücksetzen
-      this.phase = 'tracking';
-      this.timer = 0;
     }
   };
 

@@ -27,7 +27,7 @@
   var changeListeners = [];
 
   var room, ninja, roomIndex, timeLeft, score, best, seed;
-  var switchOn, particles, flash, shake, doorPulse;
+  var switchOn, particles, flash, shake, doorPulse, thinkCursor;
   var accMs, lastTs, rafId, simFrame;
   var settings = { impactOriginal: false, scheme: 'halves' };
 
@@ -57,6 +57,9 @@
     };
     switchOn = false;
     doorPulse = 0;
+    thinkCursor = 0;
+    // Geschütze getrennt führen, damit sie reihum denken können
+    room.turrets = room.hazards.filter(function (h) { return h.kind === 'turret'; });
   }
 
   function startRun() {
@@ -119,10 +122,19 @@
     ninja.tick();
     if (ninja.dead) { updateParticles(); return; }
 
+    // Fernkampfgegner denken reihum, nicht alle gleichzeitig: alle 0,1 s
+    // ist genau EIN Geschütz dran. Mit mehreren Geschützen prüft jedes
+    // seine Sichtlinie dadurch nur alle paar Zehntelsekunden - das ist der
+    // Grund, warum man durch eine Schusslinie huschen kann.
+    if (room.turrets.length && simFrame % BO.TURRET_CFG.THINK_INTERVAL === 0) {
+      thinkCursor = (thinkCursor + 1) % room.turrets.length;
+      room.turrets[thinkCursor].think(ninja, simFrame);
+    }
+
     // Gefahren bewegen und prüfen
     for (var i = 0; i < room.hazards.length; i++) {
       var h = room.hazards[i];
-      if (h.kind === 'turret') h.update(ninja);
+      if (h.kind === 'turret') h.update(ninja, simFrame);
       else h.update();
       if (h.hits(ninja)) {
         ninja.kill(h.kind);
@@ -329,21 +341,14 @@
   }
 
   function drawTurret(t) {
+    var aiming = t.phase === 'targeting' || t.phase === 'prefire';
     var col = '#7f8aa8';
-    if (t.phase === 'charging') col = '#ffb15c';
-    if (t.phase === 'firing') col = '#ff4a4a';
+    if (t.phase === 'prefire') col = '#ff4a4a';
+    else if (t.phase === 'targeting') col = '#ffb15c';
 
-    // Zielstrahl: dünn beim Anvisieren, hell und dick beim Schuss.
-    if (t.phase === 'charging') {
-      var len = t.rayLength(t.angle);
-      var chargeProgress = 1 - t.timer / BO.TURRET_CFG.CHARGE_FRAMES;
-      ctx.strokeStyle = 'rgba(255,177,92,' + (0.25 + chargeProgress * 0.5) + ')';
-      ctx.lineWidth = 1 + chargeProgress * 1.5;
-      ctx.beginPath();
-      ctx.moveTo(t.x, t.y);
-      ctx.lineTo(t.x + Math.cos(t.angle) * len, t.y + Math.sin(t.angle) * len);
-      ctx.stroke();
-    } else if (t.phase === 'firing') {
+    var angle = Math.atan2(t.aimY - t.y, t.aimX - t.x);
+
+    if (t.phase === 'firing') {
       ctx.strokeStyle = 'rgba(255,74,74,0.35)';
       ctx.lineWidth = 9;
       ctx.beginPath();
@@ -356,12 +361,34 @@
       ctx.moveTo(t.x, t.y);
       ctx.lineTo(t.x + Math.cos(t.fireAngle) * t.beamLen, t.y + Math.sin(t.fireAngle) * t.beamLen);
       ctx.stroke();
-    } else if (t.phase === 'tracking') {
-      ctx.strokeStyle = 'rgba(127,138,168,0.3)';
+    } else if (aiming) {
+      // Dünne Peillinie zum Fadenkreuz
+      ctx.strokeStyle = t.phase === 'prefire' ? 'rgba(255,74,74,0.55)' : 'rgba(255,177,92,0.28)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(t.x, t.y);
-      ctx.lineTo(t.x + Math.cos(t.angle) * 26, t.y + Math.sin(t.angle) * 26);
+      ctx.lineTo(t.aimX, t.aimY);
+      ctx.stroke();
+
+      // DAS FADENKREUZ. Es ist die eigentliche Information des Spiels:
+      // Solange es hinterherhinkt, passiert nichts. Rastet es ein, wird
+      // geschossen. Deshalb wird es so deutlich gezeichnet.
+      var danger = t.phase === 'prefire';
+      ctx.strokeStyle = danger ? '#ff4a4a' : '#ffb15c';
+      ctx.lineWidth = danger ? 2 : 1.4;
+      var s = danger ? 8 : 6;
+      ctx.beginPath();
+      ctx.arc(t.aimX, t.aimY, s, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(t.aimX - s - 3, t.aimY);
+      ctx.lineTo(t.aimX - s + 2, t.aimY);
+      ctx.moveTo(t.aimX + s - 2, t.aimY);
+      ctx.lineTo(t.aimX + s + 3, t.aimY);
+      ctx.moveTo(t.aimX, t.aimY - s - 3);
+      ctx.lineTo(t.aimX, t.aimY - s + 2);
+      ctx.moveTo(t.aimX, t.aimY + s - 2);
+      ctx.lineTo(t.aimX, t.aimY + s + 3);
       ctx.stroke();
     }
 
@@ -373,12 +400,11 @@
     ctx.beginPath();
     ctx.arc(t.x, t.y, t.r * 0.62, 0, Math.PI * 2);
     ctx.fill();
-    // Lauf
     ctx.strokeStyle = col;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(t.x, t.y);
-    ctx.lineTo(t.x + Math.cos(t.angle) * (t.r + 4), t.y + Math.sin(t.angle) * (t.r + 4));
+    ctx.lineTo(t.x + Math.cos(angle) * (t.r + 4), t.y + Math.sin(angle) * (t.r + 4));
     ctx.stroke();
   }
 
@@ -557,6 +583,9 @@
           airborn: ninja.airborn, walled: ninja.walled,
         } : null,
         hazards: room ? room.hazards.length : 0,
+        turrets: room && room.turrets ? room.turrets.map(function (t) {
+          return { phase: t.phase, timer: Math.round(t.shotTimer), aimDist: t.aimDist == null ? null : Math.round(t.aimDist) };
+        }) : [],
       };
     },
   };
