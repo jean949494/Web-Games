@@ -84,7 +84,14 @@ Gefahren auf einen Blick und plant die Route, bevor man losläuft.
 Bei dieser Physik wäre ein unschaffbarer Raum das sofortige Ende eines Laufs.
 Deshalb wird nicht frei gewürfelt:
 
-1. Drei Archetypen (Plattformen, Schacht, Säulen) werden konstruktiv gebaut.
+1. Vier Archetypen werden konstruktiv gebaut und reihum durchgewechselt:
+   **Plattformen** (Sprungpräzision), **Schacht** (Wandsprung-Ketten),
+   **Säulen** (Deckung gegen Geschütze) und **Rampen** (eine lange
+   Abfahrt als Beschleuniger, eine lange Auffahrt als Schanze).
+   Die Auswahl ist bewusst deterministisch: Beim Würfeln mit Neuversuch
+   verschwanden ganze Typen aus der Rotation – Säulenräume kamen nur noch
+   in 1 % der Fälle vor, und gerade die liefern die Deckung, ohne die man
+   sich an keinem Geschütz vorbeischleichen kann.
 2. Danach wird eine **Treppe zum Schalter garantiert eingezogen** – Stufen
    von höchstens 2 Kacheln Höhe und 4 Breite, also mit großem Abstand zu
    dem, was die Physik hergibt (3.09 hoch, über 15 weit).
@@ -146,6 +153,6 @@ zu entschärfen.
   eingesetzt. Im Original prägen sie ganze Levelabschnitte – hier wäre mehr
   drin, etwa durchgehende Rutschen über den halben Raum.
 - **Ragdoll-Tod**: aktuell ein Partikel-Burst statt des Original-Ragdolls.
-- **Raumvielfalt**: drei Archetypen sind ein Anfang, keine Endlösung.
+- **Raumvielfalt**: vier Archetypen sind ein Anfang, keine Endlösung.
 - Die Zahlen für Zeit, Gegnerdichte und Geschütz-Timing sind ein erster
   Wurf und noch nicht über viele Runden gegengespielt.

@@ -186,6 +186,40 @@
     return { shaftX: sx, shaftTop: top };
   }
 
+  /**
+   * Rampen-Raum: eine lange Abwärtsschräge als Beschleuniger, unten eine
+   * Aufwärtsrampe als Schanze.
+   *
+   * Grund: Auf einer 45-Grad-Abwärtsschräge beschleunigt die Schwerkraft
+   * entlang des Hangs weiter, während die Laufbeschleunigung gedeckelt ist -
+   * man wird dort also SCHNELLER als auf flachem Boden. Kurze Rampen
+   * schaffen das nicht, es braucht Länge. Danach wirkt die Gegenrampe als
+   * Absprung, weil der Sprung der Hangnormalen folgt.
+   */
+  function buildRampRoom(grid, rnd) {
+    var dir = rnd() < 0.5 ? 1 : -1;
+    var len = 8 + Math.floor(rnd() * 4); // lang genug, um über das Lauftempo zu kommen
+    var topY = 3 + Math.floor(rnd() * 2);
+    var startX = dir > 0 ? 3 : C.ROOM_W - 4;
+
+    // Abwärtsschräge: pro Schritt eine Kachel tiefer, darunter massiv
+    for (var i = 0; i < len; i++) {
+      var x = startX + dir * i;
+      var y = topY + i;
+      if (x < 2 || x > C.ROOM_W - 3 || y > FLOOR_Y) break;
+      grid[y][x] = dir > 0 ? C.T_SLOPE_BL : C.T_SLOPE_BR;
+      for (var yy = y + 1; yy <= FLOOR_Y; yy++) grid[yy][x] = C.T_SOLID;
+    }
+
+    // Gegenrampe als Schanze am anderen Ende
+    var rampX = dir > 0 ? Math.min(C.ROOM_W - 4, startX + len + 3) : Math.max(3, startX - len - 3);
+    addRamp(grid, rampX, 4 + Math.floor(rnd() * 3), -dir);
+
+    // Podest oben auf der Startseite, damit der Schalter dort liegen kann
+    var px1 = dir > 0 ? 2 : C.ROOM_W - 5;
+    fillRect(grid, Math.min(px1, px1 + 2), topY - 1, Math.max(px1, px1 + 2), topY - 1, C.T_SOLID);
+  }
+
   function buildPillarRoom(grid, rnd) {
     // Offener Raum mit Säulen: gut für Geschütze, weil es echte Deckung gibt.
     var pillars = 2 + Math.floor(rnd() * 3);
@@ -287,12 +321,12 @@
     }
   }
 
-  function attempt(index, rnd) {
+  function attempt(index, rnd, archetype) {
     var grid = emptyGrid();
-    var archetype = index < 2 ? 0 : Math.floor(rnd() * 3);
     if (archetype === 0) buildPlatformRoom(grid, rnd);
     else if (archetype === 1) buildShaftRoom(grid, rnd);
-    else buildPillarRoom(grid, rnd);
+    else if (archetype === 2) buildPillarRoom(grid, rnd);
+    else buildRampRoom(grid, rnd);
     // Rampen vor der Treppen-Garantie einziehen, damit die Treppe sie
     // berücksichtigt statt mit ihnen zu kollidieren.
     if (index >= 1) addRamps(grid, rnd);
@@ -458,9 +492,18 @@
   /** Erzeugt Raum Nummer `index` (0-basiert) als fertiges Spielobjekt. */
   function generate(index, seed) {
     var rnd = rngFactory((seed == null ? Math.floor(Math.random() * 1e9) : seed) + index * 7919);
+    // Archetyp reihum statt gewürfelt: Beim Würfeln mit Neuversuch
+    // verschwanden ganze Typen aus der Rotation (Säulenräume kamen nur noch
+    // in 1 % der Fälle vor), und gerade die liefern die Deckung, ohne die
+    // sich niemand an einem Geschütz vorbeischleichen kann.
+    var archetype = index < 2 ? 0 : ((index + (seed || 0)) % 4);
     var room = null;
-    for (var tries = 0; tries < 30 && !room; tries++) {
-      room = attempt(index, rnd);
+    for (var tries = 0; tries < 20 && !room; tries++) {
+      room = attempt(index, rnd, archetype);
+    }
+    // Klappt dieser Typ partout nicht, die anderen durchprobieren
+    for (var alt = 0; alt < 4 && !room; alt++) {
+      for (var t2 = 0; t2 < 10 && !room; t2++) room = attempt(index, rnd, alt);
     }
     if (!room) room = fallbackRoom();
 
