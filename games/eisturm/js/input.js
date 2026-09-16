@@ -14,6 +14,10 @@
  *   - Linke/rechte Bildschirmhälfte drücken -> in die Richtung laufen,
  *     loslassen -> ausrollen. Die Neigung ist hier ohne Wirkung.
  *
+ * Beides gilt für den ganzen Bildschirm, nicht nur für das Spielfeld:
+ * auf hohen Handys bleibt über und unter der Bühne ein breiter Rand, und
+ * ein Druck dorthin muss genauso zählen.
+ *
  * Tastatur läuft als PC-Test-Fallback immer mit: Pfeiltasten/A-D halten
  * = laufen, Leertaste/Pfeil-hoch halten = springen (Höhe wie beim
  * Antippen über die Haltedauer), ESC = Pause.
@@ -54,9 +58,16 @@
     // sonst bliebe die Figur stehen, obwohl ein Finger auf dem Feld ist.
     var activePointers = []; // {id, side}, letzter Eintrag gewinnt
 
+    // Gehört wird der GANZE Bildschirm, nicht nur die Bühne: die ist auf
+    // hohen Handys deutlich kleiner als das Display, oben und unten bleibt
+    // je ein breiter Rand. Lägen die Listener nur auf der Bühne, käme ein
+    // Druck auf diesen Rand nirgends an ("ich drücke und nichts passiert").
+    // Gezielt ausgenommen sind nur die Overlay-Knöpfe (siehe main.js:
+    // die stoppen ihr pointerdown selbst).
+    var listenEl = global.document;
+
     function sideFactorForClientX(clientX) {
-      var rect = stageEl.getBoundingClientRect();
-      return clientX < rect.left + rect.width / 2 ? -1 : 1;
+      return clientX < global.innerWidth / 2 ? -1 : 1;
     }
 
     function applyTopPointer() {
@@ -71,7 +82,7 @@
       return false;
     }
 
-    stageEl.addEventListener('pointerdown', function (e) {
+    listenEl.addEventListener('pointerdown', function (e) {
       if (touchMode()) {
         removePointer(e.pointerId);
         activePointers.push({ id: e.pointerId, side: sideFactorForClientX(e.clientX) });
@@ -83,7 +94,7 @@
       e.preventDefault();
     });
 
-    stageEl.addEventListener('pointermove', function (e) {
+    listenEl.addEventListener('pointermove', function (e) {
       if (!touchMode()) return;
       for (var i = 0; i < activePointers.length; i++) {
         if (activePointers[i].id === e.pointerId) {
@@ -104,10 +115,15 @@
       e.preventDefault();
     }
 
-    stageEl.addEventListener('pointerup', release);
-    stageEl.addEventListener('pointercancel', release);
-    stageEl.addEventListener('pointerleave', release);
-    stageEl.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    listenEl.addEventListener('pointerup', release);
+    listenEl.addEventListener('pointercancel', release);
+    // Verlässt der Zeiger das Fenster ganz (Maus rausgezogen, Systemgeste),
+    // zählt das ebenfalls als Loslassen – sonst bliebe die Richtung hängen
+    // und die Figur liefe von selbst weiter.
+    global.addEventListener('pointerout', function (e) {
+      if (!e.relatedTarget && e.pointerType === 'mouse') release(e);
+    });
+    listenEl.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
     // ---------- Tastatur (Desktop-Test) ----------
 

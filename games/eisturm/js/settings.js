@@ -15,7 +15,6 @@
 
   var KEY = 'et_control_mode';
   var KEY_SKIN = 'et_skin';
-  var KEY_GRACE = 'et_dash_grace';
   var MODES = { TILT: 'tilt', TOUCH: 'touch' };
   var DEFAULT_MODE = MODES.TILT;
   var current = null;
@@ -56,14 +55,5 @@
       safeSet(KEY_SKIN, id);
     },
 
-    // Index in DASH_GRACE_LEVELS
-    getDashGrace: function (levels, fallback) {
-      var v = parseInt(safeGet(KEY_GRACE), 10);
-      return (v >= 0 && v < levels.length) ? v : fallback;
-    },
-
-    setDashGrace: function (index) {
-      safeSet(KEY_GRACE, String(index));
-    },
   };
 })(window);
