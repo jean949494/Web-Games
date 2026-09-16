@@ -42,6 +42,8 @@
     var btnSoundMenu = document.getElementById('btn-sound-menu');
     var btnSoundPause = document.getElementById('btn-sound-pause');
     var btnTilt = document.getElementById('btn-tilt');
+    var hintControls = document.getElementById('hint-controls');
+    var modeButtons = [document.getElementById('btn-mode-tilt'), document.getElementById('btn-mode-touch')];
 
     var bestScoreEl = document.getElementById('best-score');
     var goScoreEl = document.getElementById('go-score');
@@ -55,6 +57,28 @@
     setSoundIcon(btnSoundMenu, SG.audio.isEnabled());
     setSoundIcon(btnSoundPause, SG.audio.isEnabled());
     bestScoreEl.textContent = 'Rekord: ' + SG.storage.getBest(ET.GAME_ID);
+
+    var CONTROL_HINTS = {};
+    CONTROL_HINTS[ET.settings.MODES.TILT] = 'Handy neigen zum Laufen &middot; Antippen zum Springen<br />Länger halten springt höher, Finger liegen lassen springt durchgehend';
+    CONTROL_HINTS[ET.settings.MODES.TOUCH] = 'Springt von selbst &middot; linke/rechte Bildschirmhälfte drücken zum Laufen';
+
+    function applyControlMode() {
+      var mode = ET.settings.getControlMode();
+      hintControls.innerHTML = CONTROL_HINTS[mode];
+      modeButtons.forEach(function (btn) {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+      });
+      ET.game.setAutoJump(mode === ET.settings.MODES.TOUCH);
+    }
+
+    modeButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        ET.settings.setControlMode(btn.dataset.mode);
+        applyControlMode();
+      });
+    });
+
+    applyControlMode();
 
     // Nur auf Geräten (v.a. iOS 13+) zeigen, die für Neigungssensoren
     // eine explizite Erlaubnis per Nutzer-Tap verlangen. Ohne diesen Tap
@@ -128,7 +152,8 @@
     });
 
     // Diese Overlay-Buttons dürfen nicht gleichzeitig einen Sprung auslösen.
-    [btnStart, btnResume, btnRestart, btnRestartPause, btnPause, btnSoundMenu, btnSoundPause, btnTilt]
+    [btnStart, btnResume, btnRestart, btnRestartPause, btnPause, btnSoundMenu, btnSoundPause, btnTilt,
+      modeButtons[0], modeButtons[1]]
       .forEach(function (btn) {
         btn.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
       });

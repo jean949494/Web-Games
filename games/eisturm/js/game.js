@@ -40,6 +40,9 @@
   // Liegt der Finger (bzw. die Taste) gerade auf? Dann wird bei jeder
   // Landung sofort wieder abgesprungen, ohne neu antippen zu müssen.
   var jumpInputDown = false;
+  // Dauerspringen ohne jede Eingabe (Touch-Steuerung, siehe settings.js):
+  // die Figur hüpft von selbst, gelenkt wird nur links/rechts.
+  var autoJump = false;
 
   function emitChange(extra) {
     var payload = Object.assign({ state: state, score: currentScore(), best: best || 0 }, extra || {});
@@ -199,8 +202,8 @@
       SG.analytics.track('combo', { floors: skipped, serie: combo.floors, mult: mult });
     }
 
-    // Finger liegt noch auf -> direkt weiterspringen, ohne neu zu tippen.
-    if (jumpInputDown) jumpStart();
+    // Finger liegt noch auf (oder Dauerspringen an) -> direkt weiter.
+    if (jumpInputDown || autoJump) jumpStart();
   }
 
   // dir: -1 = linke Wand, +1 = rechte Wand. Der Abprall gibt mehr Tempo
@@ -520,6 +523,7 @@
       SG.poki.gameplayStart();
       SG.analytics.track('game_start', {});
       emitChange();
+      if (autoJump) jumpStart(); // sonst stünde die Figur bis zur ersten Landung still
     },
 
     restart: function () {
@@ -554,6 +558,13 @@
 
     jumpStart: jumpStart,
     jumpRelease: jumpRelease,
+
+    // Dauerspringen an/aus (Touch-Steuerung). Greift ab der nächsten
+    // Landung bzw. sofort, wenn die Figur gerade steht.
+    setAutoJump: function (on) {
+      autoJump = !!on;
+      if (autoJump && state === STATES.PLAYING && chr && chr.grounded) jumpStart();
+    },
 
     toggleSound: function () {
       var on = SG.audio.toggle();

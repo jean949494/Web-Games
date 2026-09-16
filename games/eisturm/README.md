@@ -9,6 +9,10 @@ wird immer schneller – wer stehen bleibt oder aus dem Bild fällt, ist raus.
 
 ## Steuerung
 
+Im Menü umschaltbar (lokal gespeichert, siehe `js/settings.js`):
+
+**Neigen** (Standard)
+
 - **Handy links/rechts neigen** – laufen, stufenlos: je stärker geneigt,
   desto schneller
 - **Antippen** (egal wo) – springen; **länger gedrückt halten springt
@@ -16,6 +20,12 @@ wird immer schneller – wer stehen bleibt oder aus dem Bild fällt, ist raus.
 - **Finger liegen lassen** – die Figur springt bei jeder Landung sofort
   weiter. Damit lässt sich die Runde komplett über die Neigung spielen,
   ohne nachzutippen.
+
+**Tippen** (zum Testen ohne Gyroskop)
+
+- Die Figur **springt durchgehend von selbst**
+- **Linke/rechte Bildschirmhälfte drücken** – in die Richtung laufen,
+  loslassen – ausrollen. Die Neigung ist in diesem Modus ohne Wirkung.
 
 Tastatur am PC zum Testen: Pfeiltasten/A+D halten = laufen,
 Leertaste/Pfeil-hoch halten = springen (Höhe ebenfalls über die
@@ -50,6 +60,7 @@ Handy nachzujustieren.
 - `index.html` – Markup + Overlay-Screens (Menü, Pause, Game Over)
 - `style.css` – Layout, responsive Skalierung auf 340×480-Referenz
 - `js/constants.js` – Physik, Etagen, Kamera/Scroll, Combo, Neigung
+- `js/settings.js` – gewählte Steuerung (Neigen/Tippen), lokal gespeichert
 - `js/game.js` – Zustandsmaschine, Physik-Loop (fix 60Hz), Rendering,
   Etagen-Kollision, Wandabprall, Combo-Wertung, Auto-Scroll-Kamera
 - `js/input.js` – Neigung (Lenken), Antippen/Halten (Sprunghöhe), Tastatur

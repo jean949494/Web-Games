@@ -1,11 +1,18 @@
 /**
- * Steuerung:
+ * Steuerung – zwei umschaltbare Varianten (siehe settings.js):
  *
+ *   TILT (Standard):
  *   - Handy links/rechts neigen (Gamma-Achse) -> laufen, stufenlos, je
  *     stärker geneigt desto schneller (bis TILT_STEER_MAX_DEG).
  *   - Antippen (egal wo auf dem Feld) -> springen. Je länger gedrückt
  *     gehalten wird, desto höher der Sprung: das Loslassen kappt einen
- *     noch steigenden Sprung (siehe game.js jumpRelease).
+ *     noch steigenden Sprung (siehe game.js jumpRelease). Finger liegen
+ *     lassen heißt: bei jeder Landung sofort weiterspringen.
+ *
+ *   TOUCH (zum Testen ohne Gyroskop):
+ *   - Die Figur springt durchgehend von selbst (game.js setAutoJump).
+ *   - Linke/rechte Bildschirmhälfte drücken -> in die Richtung laufen,
+ *     loslassen -> ausrollen. Die Neigung ist hier ohne Wirkung.
  *
  * Tastatur läuft als PC-Test-Fallback immer mit: Pfeiltasten/A-D halten
  * = laufen, Leertaste/Pfeil-hoch halten = springen (Höhe wie beim
@@ -21,6 +28,11 @@
 
   var ET = global.ET = global.ET || {};
   var C = ET.constants;
+  var MODES = ET.settings.MODES;
+
+  function touchMode() {
+    return ET.settings.getControlMode() === MODES.TOUCH;
+  }
 
   var debugMode = /[?&]debug\b/.test(global.location.search);
 
@@ -33,20 +45,34 @@
       stageEl.appendChild(debugEl);
     }
 
-    // ---------- Touch/Maus: Antippen = springen ----------
+    // ---------- Touch/Maus ----------
+    // TILT-Modus: Antippen/Halten = springen.
+    // TOUCH-Modus: gedrückte Bildschirmhälfte = Laufrichtung.
 
     var pointerActive = false;
 
+    function sideFactorForClientX(clientX) {
+      var rect = stageEl.getBoundingClientRect();
+      return clientX < rect.left + rect.width / 2 ? -1 : 1;
+    }
+
     stageEl.addEventListener('pointerdown', function (e) {
       pointerActive = true;
-      ET.game.jumpStart();
+      if (touchMode()) ET.game.setSteer(sideFactorForClientX(e.clientX));
+      else ET.game.jumpStart();
       e.preventDefault();
+    });
+
+    stageEl.addEventListener('pointermove', function (e) {
+      if (!pointerActive || !touchMode()) return;
+      ET.game.setSteer(sideFactorForClientX(e.clientX)); // Wechsel der Hälfte mitnehmen
     });
 
     function release(e) {
       if (!pointerActive) return;
       pointerActive = false;
-      ET.game.jumpRelease(); // Loslassen kappt den Sprung -> Höhe über Haltedauer
+      if (touchMode()) ET.game.setSteer(0);
+      else ET.game.jumpRelease(); // Loslassen kappt den Sprung -> Höhe über Haltedauer
       if (e) e.preventDefault();
     }
 
@@ -119,7 +145,7 @@
     }
 
     function onOrientation(e) {
-      if (e.gamma == null) return;
+      if (e.gamma == null || touchMode()) return;
       if (needsCalibration) {
         baseGamma = e.gamma;
         smoothGamma = 0;
