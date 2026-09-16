@@ -18,8 +18,9 @@
 (function (global) {
   'use strict';
 
-  var NW = global.NW = global.NW || {};
-  var C = NW.constants;
+  var AA = global.AA = global.AA || {};
+  var SG = global.SG;
+  var C = AA.constants;
 
   var STEP_MS = 1000 / 60;
   var MAX_STEPS_PER_FRAME = 8;
@@ -106,7 +107,7 @@
     score = 0;
     flashes = [];
     simMs = 0;
-    NW.particles.reset();
+    AA.particles.reset();
     initBackground();
     ensureObstaclesAhead();
   }
@@ -194,7 +195,7 @@
     if (!astro.onWall || astro.charging) return;
     astro.charging = true;
     astro.chargingMs = 0;
-    NW.audio.unlock();
+    SG.audio.unlock();
   }
 
   function releaseCharge() {
@@ -207,8 +208,8 @@
     astro.vx = C.jumpVXForTier(tier) * dir;
     astro.vy = C.TIER_JY[tier];
     astro.gm = C.TIER_GM[tier];
-    NW.audio.playJump(tier);
-    NW.analytics.track('jump', { tier: tier });
+    AA.sounds.playJump(tier);
+    SG.analytics.track('jump', { tier: tier });
   }
 
   function killAstro(reason) {
@@ -216,11 +217,11 @@
     state = STATES.GAMEOVER;
     var finalScore = currentScore();
     score = finalScore;
-    var isNewBest = NW.storage.setBest(finalScore);
-    best = NW.storage.getBest();
-    NW.audio.playGameOver();
-    NW.poki.gameplayStop();
-    NW.analytics.track('game_over', { reason: reason, score: finalScore, best: best, newBest: isNewBest });
+    var isNewBest = SG.storage.setBest(AA.GAME_ID, finalScore);
+    best = SG.storage.getBest(AA.GAME_ID);
+    SG.audio.playGameOver();
+    SG.poki.gameplayStop();
+    SG.analytics.track('game_over', { reason: reason, score: finalScore, best: best, newBest: isNewBest });
     emitChange({ reason: reason, newBest: isNewBest });
   }
 
@@ -253,7 +254,7 @@
 
       // Trieb-Partikel während des Flugs
       if (Math.random() < 0.7) {
-        NW.particles.spawnThrust(astro.x, astro.y + C.NINJA_R * 0.6, astro.side === 'left' ? -1 : 1);
+        AA.particles.spawnThrust(astro.x, astro.y + C.NINJA_R * 0.6, astro.side === 'left' ? -1 : 1);
       }
 
       var targetSide = astro.side === 'left' ? 'right' : 'left';
@@ -268,9 +269,9 @@
         astro.gm = 1;
         astro.squash = C.SQUASH_INITIAL;
         var dustDir = targetSide === 'left' ? 1 : -1;
-        NW.particles.spawnDust(astro.x, astro.y, dustDir);
-        NW.audio.playLand();
-        NW.analytics.track('land', { side: targetSide });
+        AA.particles.spawnDust(astro.x, astro.y, dustDir);
+        AA.sounds.playLand();
+        SG.analytics.track('land', { side: targetSide });
       }
     }
 
@@ -279,7 +280,7 @@
       else astro.squash = Math.min(0, astro.squash + C.SQUASH_DECAY);
     }
 
-    NW.particles.update();
+    AA.particles.update();
     updateObstacles();
 
     if (astro.y - camera.y > C.CANVAS_H + C.FALL_MARGIN) {
@@ -317,8 +318,8 @@
           o.checked = true;
           if (o.minDist < C.KNAPP_DISTANCE_PX) {
             flashes.push({ x: tip.x, y: o.y, life: 1, text: 'Knapp!' });
-            NW.audio.playKnapp();
-            NW.analytics.track('close_call', { type: 'rock' });
+            AA.sounds.playKnapp();
+            SG.analytics.track('close_call', { type: 'rock' });
           }
         }
         continue;
@@ -338,8 +339,8 @@
         o.passed = true;
         if (phase === 'warning') {
           flashes.push({ x: astro.x, y: o.y, life: 1, text: 'Getimt!' });
-          NW.audio.playKnapp();
-          NW.analytics.track('close_call', { type: 'laser' });
+          AA.sounds.playKnapp();
+          SG.analytics.track('close_call', { type: 'laser' });
         }
       }
     }
@@ -373,7 +374,7 @@
     }
 
     drawObstacles();
-    NW.particles.draw(ctx, camera.y);
+    AA.particles.draw(ctx, camera.y);
     drawAstronaut();
     drawChargeRings();
     drawFlashes();
@@ -617,7 +618,7 @@
     init: function (canvasEl) {
       canvas = canvasEl;
       ctx = canvas.getContext('2d');
-      best = NW.storage.getBest();
+      best = SG.storage.getBest(AA.GAME_ID);
       resetWorld();
       draw();
       rafId = global.requestAnimationFrame(tick);
@@ -636,9 +637,9 @@
       state = STATES.PLAYING;
       accMs = 0;
       lastTs = null;
-      NW.audio.unlock();
-      NW.poki.gameplayStart();
-      NW.analytics.track('game_start', {});
+      SG.audio.unlock();
+      SG.poki.gameplayStart();
+      SG.analytics.track('game_start', {});
       emitChange();
     },
 
@@ -649,7 +650,7 @@
     pause: function () {
       if (state !== STATES.PLAYING) return;
       state = STATES.PAUSED;
-      NW.analytics.track('pause', {});
+      SG.analytics.track('pause', {});
       emitChange();
     },
 
@@ -657,7 +658,7 @@
       if (state !== STATES.PAUSED) return;
       state = STATES.PLAYING;
       lastTs = null;
-      NW.analytics.track('resume', {});
+      SG.analytics.track('resume', {});
       emitChange();
     },
 
@@ -670,8 +671,8 @@
     chargeRelease: releaseCharge,
 
     toggleSound: function () {
-      var on = NW.audio.toggle();
-      NW.analytics.track('sound_toggle', { enabled: on });
+      var on = SG.audio.toggle();
+      SG.analytics.track('sound_toggle', { enabled: on });
       return on;
     },
 
@@ -688,5 +689,5 @@
     },
   };
 
-  NW.game = game;
+  AA.game = game;
 })(window);

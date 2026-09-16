@@ -8,9 +8,20 @@ HTML/CSS/JavaScript.
 
 - [`games/ninja-wandsprung`](games/ninja-wandsprung/) – Endless-Climber:
   Ladesprung von Wand zu Wand, Stacheln ausweichen
-- [`games/astro-ascent`](games/astro-ascent/) – dieselbe Grundmechanik,
-  aber schwerelosere Physik und Laser-Geschütze zum Timen/Anschleichen
-  statt nur Ausweichen (Details in der eigenen README)
+- [`games/kurve-solo`](games/kurve-solo/) – Endlos-Climber: Linie hinter
+  sich herziehen, Hindernissen ausweichen, Feld wird mit der Höhe
+  schmaler und verzwickter
+- [`games/team-duell`](games/team-duell/) – 3 gegen 3 mit Schutzmauer:
+  Wasserkanone (blockierbar) vs. Superwurf (über die Mauer), Teammates
+  per Kommando steuern
+- [`games/eisturm`](games/eisturm/) – Icy-Tower-Etagen erklimmen:
+  Handy neigen zum Laufen (je stärker, desto schneller), antippen zum
+  Springen. Schnellerer Anlauf = höherer Sprung, mehrere Etagen auf
+  einmal geben Combo-Bonus
+- [`games/astro-ascent`](games/astro-ascent/) – dieselbe Grundmechanik
+  wie Ninja Wandsprung, aber schwerelosere Physik und Laser-Geschütze
+  zum Timen/Anschleichen statt nur Ausweichen (Details in der eigenen
+  README)
 
 ## Loslegen
 
@@ -23,15 +34,17 @@ Ausführlich erklärt in [`DEV.md`](DEV.md).
 
 ## Gemeinsames Grundgerüst
 
-Diese Bausteine sind bewusst spielunabhängig geschrieben und in jedem
-Spielordner als eigene Kopie vorhanden (`storage.js`/`audio.js` nutzen pro
-Spiel eigene, klar benannte localStorage-Keys, damit sich Highscores
-nicht überschreiben). Bei einem dritten Spiel lohnt sich die
-Zusammenlegung in einen gemeinsamen `shared/`-Ordner – aktuell bei zwei
-Spielen ist der Kopieraufwand noch gering:
+Diese Bausteine sind bewusst spielunabhängig geschrieben und liegen in
+[`shared/`](shared/), seit mit Kurve Solo das zweite Spiel dazugekommen
+ist. Jedes Spiel bindet sie per `<script>`-Tag ein und meldet sich beim
+Start mit seiner eigenen `GAME_ID` an (Highscore-Namespace,
+Analytics-Tag):
 
-- `storage.js` – Highscore und Einstellungen lokal speichern
-- `audio.js` – Sounds ohne Asset-Dateien, an/aus, wird gemerkt
+- `storage.js` – Highscore (pro Spiel) und Einstellungen (global, z.B.
+  Sound an/aus) lokal speichern
+- `audio.js` – Ton-Synthesizer ohne Asset-Dateien, an/aus, wird gemerkt;
+  spielspezifische Ton-Sequenzen liegen als kleine `sounds.js` je Spiel
+  obendrauf (siehe `games/*/js/sounds.js`)
 - `analytics.js` – Event-Hook, später an ein echtes Analytics andockbar
 - `poki.js` – Poki-SDK-Wrapper, tut nichts wenn kein SDK geladen ist
 

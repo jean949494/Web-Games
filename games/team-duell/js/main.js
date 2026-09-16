@@ -1,14 +1,17 @@
 /**
- * Bootstrap: verdrahtet DOM-Overlays mit game.js, skaliert die Bühne
- * responsiv (feste Referenzauflösung 340x480, wie in der Spec) und
- * initialisiert das (austauschbare) Poki-SDK-Modul.
+ * Bootstrap: verdrahtet DOM-Overlays + die Steuerungsleiste mit game.js,
+ * skaliert die Bühne responsiv (feste Referenzauflösung 340x480, wie in
+ * der Spec) und initialisiert das (austauschbare) Poki-SDK-Modul.
+ *
+ * Die Sticks/Kommando-Buttons in #controls skalieren bewusst NICHT mit
+ * der Bühne mit (siehe style.css) – sie werden nur ein-/ausgeblendet.
  */
 (function (global, document) {
   'use strict';
 
-  var AA = global.AA;
+  var TD = global.TD;
   var SG = global.SG;
-  var C = AA.constants;
+  var C = TD.constants;
 
   function fitStage() {
     var stage = document.getElementById('stage');
@@ -28,91 +31,90 @@
   function init() {
     var canvas = document.getElementById('game');
     var stage = document.getElementById('stage');
+    var controls = document.getElementById('controls');
 
     var screenMenu = document.getElementById('screen-menu');
     var screenPause = document.getElementById('screen-pause');
     var screenGameOver = document.getElementById('screen-gameover');
-    var hudScore = document.getElementById('hud-score');
     var btnPause = document.getElementById('btn-pause');
 
     var btnStart = document.getElementById('btn-start');
     var btnResume = document.getElementById('btn-resume');
-    var btnRestart = document.getElementById('btn-restart');
     var btnRestartPause = document.getElementById('btn-restart-pause');
+    var btnRestart = document.getElementById('btn-restart');
     var btnSoundMenu = document.getElementById('btn-sound-menu');
     var btnSoundPause = document.getElementById('btn-sound-pause');
 
     var bestScoreEl = document.getElementById('best-score');
+    var goTitleEl = document.getElementById('go-title');
     var goScoreEl = document.getElementById('go-score');
     var goBestEl = document.getElementById('go-best');
 
-    SG.analytics.setGame(AA.GAME_ID);
-    AA.game.init(canvas);
-    AA.input.attach(stage);
+    SG.analytics.setGame(TD.GAME_ID);
+    TD.game.init(canvas);
+    TD.input.attach();
 
     setSoundIcon(btnSoundMenu, SG.audio.isEnabled());
     setSoundIcon(btnSoundPause, SG.audio.isEnabled());
-    bestScoreEl.textContent = 'Rekord: ' + SG.storage.getBest(AA.GAME_ID);
+    bestScoreEl.textContent = 'Bester Sieg-Vorsprung: ' + SG.storage.getBest(TD.GAME_ID) + ' HP';
 
     function show(el) { el.hidden = false; }
     function hide(el) { el.hidden = true; }
 
-    AA.game.onChange(function (payload) {
+    TD.game.onChange(function (payload) {
       hide(screenMenu);
       hide(screenPause);
       hide(screenGameOver);
       hide(btnPause);
-      hide(hudScore);
+      hide(controls);
 
       switch (payload.state) {
-        case AA.game.STATES.MENU:
+        case TD.game.STATES.MENU:
           show(screenMenu);
-          bestScoreEl.textContent = 'Rekord: ' + payload.best;
+          bestScoreEl.textContent = 'Bester Sieg-Vorsprung: ' + payload.best + ' HP';
           break;
-        case AA.game.STATES.PLAYING:
+        case TD.game.STATES.PLAYING:
           show(btnPause);
-          show(hudScore);
+          show(controls);
+          if (TD.input._refreshCommandButtons) TD.input._refreshCommandButtons();
           break;
-        case AA.game.STATES.PAUSED:
+        case TD.game.STATES.PAUSED:
           show(btnPause);
-          show(hudScore);
           show(screenPause);
           break;
-        case AA.game.STATES.GAMEOVER:
-          goScoreEl.textContent = payload.score;
-          goBestEl.textContent = payload.newBest ? 'Neuer Rekord!' : ('Rekord: ' + payload.best);
+        case TD.game.STATES.GAMEOVER:
+          if (payload.result === 'win') {
+            goTitleEl.textContent = '🎉 Sieg!';
+            goScoreEl.textContent = payload.score + ' HP übrig';
+            goBestEl.textContent = payload.newBest ? 'Neuer Rekord!' : ('Rekord: ' + payload.best + ' HP');
+          } else {
+            goTitleEl.textContent = 'Niederlage';
+            goScoreEl.textContent = '';
+            goBestEl.textContent = 'Rekord: ' + payload.best + ' HP';
+          }
           show(screenGameOver);
           break;
       }
     });
 
-    // laufenden Score anzeigen
-    (function updateScoreLoop() {
-      if (AA.game.getState() === AA.game.STATES.PLAYING) {
-        hudScore.textContent = AA.game.getDebugState().score;
-      }
-      global.requestAnimationFrame(updateScoreLoop);
-    })();
-
-    btnStart.addEventListener('click', function () { AA.game.start(); });
-    btnRestart.addEventListener('click', function () {
-      SG.poki.commercialBreak(function () { AA.game.restart(); });
-    });
-    btnRestartPause.addEventListener('click', function () { AA.game.restart(); });
-    btnResume.addEventListener('click', function () { AA.game.resume(); });
-    btnPause.addEventListener('click', function () { AA.game.togglePause(); });
+    btnStart.addEventListener('click', function () { TD.game.start(); });
+    btnRestart.addEventListener('click', function () { TD.game.restart(); });
+    btnRestartPause.addEventListener('click', function () { TD.game.restart(); });
+    btnResume.addEventListener('click', function () { TD.game.resume(); });
+    btnPause.addEventListener('click', function () { TD.game.togglePause(); });
 
     [btnSoundMenu, btnSoundPause].forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
-        var on = AA.game.toggleSound();
+        var on = TD.game.toggleSound();
         setSoundIcon(btnSoundMenu, on);
         setSoundIcon(btnSoundPause, on);
       });
     });
 
-    // Diese Overlay-Buttons dürfen nicht gleichzeitig einen Ladesprung auslösen
-    [btnStart, btnResume, btnRestart, btnRestartPause, btnPause, btnSoundMenu, btnSoundPause]
+    // Overlay-Buttons dürfen keine Klicks an dahinterliegende Elemente
+    // durchreichen.
+    [btnStart, btnResume, btnRestartPause, btnRestart, btnPause, btnSoundMenu, btnSoundPause]
       .forEach(function (btn) {
         btn.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
       });

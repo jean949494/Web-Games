@@ -6,9 +6,9 @@
 (function (global, document) {
   'use strict';
 
-  var AA = global.AA;
+  var KS = global.KS;
   var SG = global.SG;
-  var C = AA.constants;
+  var C = KS.constants;
 
   function fitStage() {
     var stage = document.getElementById('stage');
@@ -37,7 +37,6 @@
 
     var btnStart = document.getElementById('btn-start');
     var btnResume = document.getElementById('btn-resume');
-    var btnRestart = document.getElementById('btn-restart');
     var btnRestartPause = document.getElementById('btn-restart-pause');
     var btnSoundMenu = document.getElementById('btn-sound-menu');
     var btnSoundPause = document.getElementById('btn-sound-pause');
@@ -46,18 +45,18 @@
     var goScoreEl = document.getElementById('go-score');
     var goBestEl = document.getElementById('go-best');
 
-    SG.analytics.setGame(AA.GAME_ID);
-    AA.game.init(canvas);
-    AA.input.attach(stage);
+    SG.analytics.setGame(KS.GAME_ID);
+    KS.game.init(canvas);
+    KS.input.attach(stage);
 
     setSoundIcon(btnSoundMenu, SG.audio.isEnabled());
     setSoundIcon(btnSoundPause, SG.audio.isEnabled());
-    bestScoreEl.textContent = 'Rekord: ' + SG.storage.getBest(AA.GAME_ID);
+    bestScoreEl.textContent = 'Rekord: ' + SG.storage.getBest(KS.GAME_ID);
 
     function show(el) { el.hidden = false; }
     function hide(el) { el.hidden = true; }
 
-    AA.game.onChange(function (payload) {
+    KS.game.onChange(function (payload) {
       hide(screenMenu);
       hide(screenPause);
       hide(screenGameOver);
@@ -65,20 +64,20 @@
       hide(hudScore);
 
       switch (payload.state) {
-        case AA.game.STATES.MENU:
+        case KS.game.STATES.MENU:
           show(screenMenu);
           bestScoreEl.textContent = 'Rekord: ' + payload.best;
           break;
-        case AA.game.STATES.PLAYING:
+        case KS.game.STATES.PLAYING:
           show(btnPause);
           show(hudScore);
           break;
-        case AA.game.STATES.PAUSED:
+        case KS.game.STATES.PAUSED:
           show(btnPause);
           show(hudScore);
           show(screenPause);
           break;
-        case AA.game.STATES.GAMEOVER:
+        case KS.game.STATES.GAMEOVER:
           goScoreEl.textContent = payload.score;
           goBestEl.textContent = payload.newBest ? 'Neuer Rekord!' : ('Rekord: ' + payload.best);
           show(screenGameOver);
@@ -88,31 +87,31 @@
 
     // laufenden Score anzeigen
     (function updateScoreLoop() {
-      if (AA.game.getState() === AA.game.STATES.PLAYING) {
-        hudScore.textContent = AA.game.getDebugState().score;
+      if (KS.game.getState() === KS.game.STATES.PLAYING) {
+        hudScore.textContent = KS.game.getDebugState().score;
       }
       global.requestAnimationFrame(updateScoreLoop);
     })();
 
-    btnStart.addEventListener('click', function () { AA.game.start(); });
-    btnRestart.addEventListener('click', function () {
-      SG.poki.commercialBreak(function () { AA.game.restart(); });
-    });
-    btnRestartPause.addEventListener('click', function () { AA.game.restart(); });
-    btnResume.addEventListener('click', function () { AA.game.resume(); });
-    btnPause.addEventListener('click', function () { AA.game.togglePause(); });
+    btnStart.addEventListener('click', function () { KS.game.start(); });
+    btnRestartPause.addEventListener('click', function () { KS.game.restart(); });
+    btnResume.addEventListener('click', function () { KS.game.resume(); });
+    btnPause.addEventListener('click', function () { KS.game.togglePause(); });
 
     [btnSoundMenu, btnSoundPause].forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
-        var on = AA.game.toggleSound();
+        var on = KS.game.toggleSound();
         setSoundIcon(btnSoundMenu, on);
         setSoundIcon(btnSoundPause, on);
       });
     });
 
-    // Diese Overlay-Buttons dürfen nicht gleichzeitig einen Ladesprung auslösen
-    [btnStart, btnResume, btnRestart, btnRestartPause, btnPause, btnSoundMenu, btnSoundPause]
+    // Diese Overlay-Buttons dürfen keinen Lenk-Input auf #stage auslösen.
+    // Das Game-Over-Overlay hat bewusst KEINEN eigenen Restart-Button –
+    // ein Tap irgendwo darauf muss laut Spec gleichzeitig neu starten UND
+    // lenken (siehe input.js), also NICHT stoppen.
+    [btnStart, btnResume, btnRestartPause, btnPause, btnSoundMenu, btnSoundPause]
       .forEach(function (btn) {
         btn.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
       });

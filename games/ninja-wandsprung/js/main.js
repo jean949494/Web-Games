@@ -7,6 +7,7 @@
   'use strict';
 
   var NW = global.NW;
+  var SG = global.SG;
   var C = NW.constants;
 
   function fitStage() {
@@ -45,12 +46,13 @@
     var goScoreEl = document.getElementById('go-score');
     var goBestEl = document.getElementById('go-best');
 
+    SG.analytics.setGame(NW.GAME_ID);
     NW.game.init(canvas);
     NW.input.attach(stage);
 
-    setSoundIcon(btnSoundMenu, NW.audio.isEnabled());
-    setSoundIcon(btnSoundPause, NW.audio.isEnabled());
-    bestScoreEl.textContent = 'Rekord: ' + NW.storage.getBest();
+    setSoundIcon(btnSoundMenu, SG.audio.isEnabled());
+    setSoundIcon(btnSoundPause, SG.audio.isEnabled());
+    bestScoreEl.textContent = 'Rekord: ' + SG.storage.getBest(NW.GAME_ID);
 
     function show(el) { el.hidden = false; }
     function hide(el) { el.hidden = true; }
@@ -94,7 +96,7 @@
 
     btnStart.addEventListener('click', function () { NW.game.start(); });
     btnRestart.addEventListener('click', function () {
-      NW.poki.commercialBreak(function () { NW.game.restart(); });
+      SG.poki.commercialBreak(function () { NW.game.restart(); });
     });
     btnRestartPause.addEventListener('click', function () { NW.game.restart(); });
     btnResume.addEventListener('click', function () { NW.game.resume(); });
@@ -119,8 +121,8 @@
     global.addEventListener('resize', fitStage);
     global.addEventListener('orientationchange', fitStage);
 
-    NW.poki.init().then(function () {
-      NW.poki.gameLoadingFinished();
+    SG.poki.init().then(function () {
+      SG.poki.gameLoadingFinished();
     });
   }
 

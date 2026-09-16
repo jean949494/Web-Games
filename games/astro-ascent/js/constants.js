@@ -16,7 +16,12 @@
 (function (global) {
   'use strict';
 
-  var NW = global.NW = global.NW || {};
+  var AA = global.AA = global.AA || {};
+
+  // Namespace für den geteilten Highscore-Storage (shared/storage.js) –
+  // hält den Astro-Ascent-Highscore getrennt von anderen Spielen im
+  // selben Storage.
+  AA.GAME_ID = 'astro-ascent';
 
   var constants = {
     // Feld
@@ -92,5 +97,5 @@
     return constants.JUMP_VX_BASE * (0.85 + tier * 0.1);
   };
 
-  NW.constants = constants;
+  AA.constants = constants;
 })(window);

@@ -5,8 +5,8 @@
 (function (global) {
   'use strict';
 
-  var NW = global.NW = global.NW || {};
-  var C = NW.constants;
+  var AA = global.AA = global.AA || {};
+  var C = AA.constants;
 
   var list = [];
 
@@ -76,5 +76,5 @@
     },
   };
 
-  NW.particles = particles;
+  AA.particles = particles;
 })(window);

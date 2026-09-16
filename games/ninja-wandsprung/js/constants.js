@@ -10,6 +10,10 @@
 
   var NW = global.NW = global.NW || {};
 
+  // Namespace für den geteilten Highscore-Storage (shared/storage.js) –
+  // hält den Ninja-Highscore getrennt von anderen Spielen im selben Storage.
+  NW.GAME_ID = 'ninja-wandsprung';
+
   var constants = {
     // Feld
     CANVAS_W: 340,

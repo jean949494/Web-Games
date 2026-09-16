@@ -3,22 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#0a0e1c" />
-  <title>Astro Ascent</title>
+  <meta name="theme-color" content="#10141f" />
+  <title>Team-Duell</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div id="stage">
     <canvas id="game" width="340" height="480"></canvas>
 
-    <div id="hud-score" class="hud-score" hidden>0</div>
-
     <button id="btn-pause" class="icon-btn corner-btn" aria-label="Pause" hidden>⏸</button>
 
     <div id="screen-menu" class="screen">
-      <div class="title">🧑‍🚀 Astro Ascent</div>
+      <div class="title">💦 Team-Duell</div>
       <button id="btn-start" class="btn-primary" aria-label="Start">▶</button>
-      <div class="hint">Halten &amp; loslassen</div>
+      <div class="hint">3 gegen 3 – Sticks bewegen &amp; schießen/werfen,<br />Kommandos steuern die Teammates</div>
       <div id="best-score" class="best-score"></div>
       <button id="btn-sound-menu" class="icon-btn sound-corner" aria-label="Sound an/aus">🔊</button>
     </div>
@@ -33,10 +31,31 @@
     </div>
 
     <div id="screen-gameover" class="screen" hidden>
-      <div class="title small">Game Over</div>
+      <div id="go-title" class="title small">Sieg!</div>
       <div id="go-score" class="go-score">0</div>
       <div id="go-best" class="go-best"></div>
-      <button id="btn-restart" class="btn-primary" aria-label="Neustart">↻</button>
+      <button id="btn-restart" class="btn-primary" aria-label="Nochmal">↻</button>
+    </div>
+  </div>
+
+  <div id="controls" hidden>
+    <div class="command-row">
+      <button class="cmd-btn" data-command="retreat" aria-label="Rückzug">⟲ Rückzug</button>
+      <button class="cmd-btn" data-command="cover" aria-label="Deckung">🛡 Deckung</button>
+      <button class="cmd-btn" data-command="attack" aria-label="Angriff">⚔ Angriff</button>
+    </div>
+    <div class="stick-row">
+      <div id="stick-move" class="stick stick-move" aria-label="Bewegung">
+        <div id="stick-move-knob" class="stick-knob"></div>
+      </div>
+      <div class="stick-cluster">
+        <div id="stick-shoot" class="stick stick-shoot" aria-label="Wasserkanone">
+          <div id="stick-shoot-knob" class="stick-knob"></div>
+        </div>
+        <div id="stick-throw" class="stick stick-throw" aria-label="Superwurf">
+          <div id="stick-throw-knob" class="stick-knob"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -47,6 +66,9 @@
   <script src="js/constants.js"></script>
   <script src="js/sounds.js"></script>
   <script src="js/particles.js"></script>
+  <script src="js/wall.js"></script>
+  <script src="js/projectiles.js"></script>
+  <script src="js/ai.js"></script>
   <script src="js/game.js"></script>
   <script src="js/input.js"></script>
   <script src="js/main.js"></script>

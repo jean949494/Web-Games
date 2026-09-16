@@ -1,15 +1,20 @@
 /**
- * Minimaler Sound-Synthesizer (WebAudio, keine Asset-Dateien nötig).
- * Kindgerecht: kurze, freundliche Blip-Sounds statt harter Effekte.
- * Sterben klingt wie ein Game-Over-Jingle, nicht wie eine Verletzung.
+ * Minimaler Sound-Synthesizer (WebAudio, keine Asset-Dateien nötig),
+ * geteilt von allen Spielen in diesem Repo. Kindgerecht: kurze,
+ * freundliche Blip-Sounds statt harter Effekte.
+ *
+ * Enthält nur den Kern (Ton-Engine, an/aus, ein paar generische Sounds).
+ * Spielspezifische Ton-Sequenzen (z.B. "Sprung", "Landung") gehören in
+ * eine kleine sounds.js im jeweiligen Spielordner, die auf `tone()`
+ * aufbaut – siehe games/ninja-wandsprung/js/sounds.js als Beispiel.
  */
 (function (global) {
   'use strict';
 
-  var NW = global.NW = global.NW || {};
+  var SG = global.SG = global.SG || {};
 
   var ctx = null;
-  var enabled = NW.storage ? NW.storage.getSoundEnabled() : true;
+  var enabled = SG.storage ? SG.storage.getSoundEnabled() : true;
 
   function ensureCtx() {
     if (ctx) return ctx;
@@ -53,6 +58,7 @@
 
   var audio = {
     unlock: unlock,
+    tone: tone,
 
     isEnabled: function () {
       return enabled;
@@ -60,7 +66,7 @@
 
     setEnabled: function (v) {
       enabled = !!v;
-      if (NW.storage) NW.storage.setSoundEnabled(enabled);
+      if (SG.storage) SG.storage.setSoundEnabled(enabled);
     },
 
     toggle: function () {
@@ -68,21 +74,7 @@
       return enabled;
     },
 
-    // Höhere Ladestufe -> höherer, längerer Ton (spürbares Feedback).
-    playJump: function (tier) {
-      var base = 340 + tier * 70;
-      tone(base, 90 + tier * 18, { type: 'triangle', slideTo: base * 1.4, gain: 0.14 });
-    },
-
-    playLand: function () {
-      tone(180, 70, { type: 'sine', slideTo: 120, gain: 0.1 });
-    },
-
-    playKnapp: function () {
-      tone(880, 90, { type: 'square', gain: 0.07 });
-    },
-
-    // Freundlich statt hart – kein "Verletzungs"-Sound.
+    // Freundlicher Abschluss-Jingle, generisch genug für jedes Spiel.
     playGameOver: function () {
       if (!enabled) return;
       var c = ensureCtx();
@@ -95,10 +87,11 @@
       });
     },
 
+    // Generischer UI-Blip (Menü/Button).
     playUI: function () {
       tone(500, 50, { type: 'triangle', gain: 0.06 });
     },
   };
 
-  NW.audio = audio;
+  SG.audio = audio;
 })(window);

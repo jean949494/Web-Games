@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#101a2b" />
+  <title>Eisturm – Bild-Studio</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #101a2b;
+      color: #f4f1ea;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 20px 16px max(28px, env(safe-area-inset-bottom));
+    }
+    .wrap { max-width: 560px; margin: 0 auto; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .sub { font-size: 13px; opacity: 0.6; margin: 0 0 22px; }
+    h2 { font-size: 14px; margin: 26px 0 10px; opacity: 0.8; font-weight: 600; }
+    .card {
+      background: linear-gradient(180deg, #1c2f45, #101a2b);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 14px;
+      overflow-x: auto;
+    }
+    canvas { display: block; image-rendering: pixelated; }
+    .labels {
+      display: flex;
+      gap: 0;
+      font-size: 11px;
+      opacity: 0.6;
+      margin-top: 6px;
+    }
+    .labels span { text-align: center; }
+    .note { font-size: 12px; opacity: 0.55; line-height: 1.5; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🧊 Eisturm – Bild-Studio</h1>
+    <p class="sub">Alle Grafiken in 4×-Vergrößerung, wie sie im Spiel gezeichnet werden.</p>
+
+    <h2>Skins</h2>
+    <div class="card">
+      <canvas id="gallery" width="540" height="200"></canvas>
+      <div class="note">Die vier auswählbaren Figuren, wie sie im Menü zur Wahl stehen.</div>
+    </div>
+
+    <h2>Posen (aktuelle Figur)</h2>
+    <div class="card">
+      <canvas id="chars" width="640" height="200"></canvas>
+      <div class="labels" id="char-labels"></div>
+    </div>
+
+    <h2>Regenbogen-Schweif (nach Tempo)</h2>
+    <div class="card">
+      <canvas id="trail" width="640" height="150"></canvas>
+      <div class="note">Erscheint ab 45 % Höchsttempo und wird zum Vollgas hin breiter und bunter. Während einer Combo-Serie bleibt er dauerhaft an.</div>
+    </div>
+
+    <h2>Welten (alle 100 Etagen die nächste)</h2>
+    <div class="card">
+      <canvas id="themes" width="540" height="580"></canvas>
+      <div class="note">Jede Welt hat eine eigene Deko, nicht nur einen anderen Farbton. Links normal, rechts die hervorgehobene Zehner-Etage.</div>
+    </div>
+
+    <h2>Etagenbreiten</h2>
+    <div class="card">
+      <canvas id="floors" width="640" height="360"></canvas>
+      <div class="note">Breite schrumpft mit der Höhe von 150 px auf 66 px. Unten der Startboden.</div>
+    </div>
+
+    <h2>Combo-Stufen</h2>
+    <div class="card">
+      <canvas id="combos" width="640" height="460"></canvas>
+      <div class="note">Zehn Stufen, je nach übersprungenen Etagen in einem Sprung. Im Spiel ploppen sie mit Überschwinger auf, wackeln kurz nach und schweben aus.</div>
+    </div>
+
+    <h2>Szene</h2>
+    <div class="card">
+      <canvas id="scene" width="640" height="500"></canvas>
+      <div class="note">Ausschnitt in Originalgröße (2×), so wie es im Spiel zusammenwirkt.</div>
+    </div>
+  </div>
+
+  <script src="js/constants.js"></script>
+  <script src="js/sprites.js"></script>
+  <script>
+  (function (global, document) {
+    'use strict';
+    var C = global.ET.constants;
+    var S = global.ET.sprites;
+
+    var POSES = [
+      { name: 'Stehen', pose: { vx: 0, vy: 0, grounded: true, facing: 1, squash: 0, runPhase: 0, speedFactor: 0 } },
+      { name: 'Laufen', pose: { vx: 2.4, vy: 0, grounded: true, facing: 1, squash: 0, runPhase: 1.6, speedFactor: 0.63 } },
+      { name: 'Vollgas', pose: { vx: 3.8, vy: 0, grounded: true, facing: 1, squash: 0, runPhase: 0.4, speedFactor: 1 } },
+      { name: 'Sprung', pose: { vx: 2.5, vy: -9, grounded: false, facing: 1, squash: 0, runPhase: 0, speedFactor: 0.66 } },
+      { name: 'Fallen', pose: { vx: 1.2, vy: 5, grounded: false, facing: 1, squash: 0, runPhase: 0, speedFactor: 0.3 } },
+      { name: 'Landung', pose: { vx: 0.4, vy: 0, grounded: true, facing: 1, squash: C.SQUASH_LAND, runPhase: 0, speedFactor: 0.1 } },
+      { name: 'Wandstoß', pose: { vx: -3, vy: 2, grounded: false, facing: -1, squash: C.SQUASH_WALL, runPhase: 0, speedFactor: 0.8 } },
+    ];
+
+    function bg(ctx, w, h) {
+      var g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, '#1c2f45');
+      g.addColorStop(1, '#101a2b');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // --- Galerie der auswählbaren Skins ---
+    (function () {
+      var cv = document.getElementById('gallery');
+      var ctx = cv.getContext('2d');
+      bg(ctx, cv.width, cv.height);
+      var list = S.CHARACTERS;
+      var cellW = cv.width / list.length;
+      list.forEach(function (ch, i) {
+        var cx = cellW * i + cellW / 2;
+        ctx.save();
+        ctx.translate(cx, 120);
+        ctx.scale(3.4, 3.4);
+        S.drawChar(ctx, 0, 0, { vx: 1.6, vy: 0, grounded: true, facing: 1, squash: 0, runPhase: 1.2, speedFactor: 0.4 }, ch.id);
+        ctx.restore();
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(ch.name, cx, 168);
+      });
+    })();
+
+    // --- Welten ---
+    (function () {
+      var cv = document.getElementById('themes');
+      var ctx = cv.getContext('2d');
+      bg(ctx, cv.width, cv.height);
+      ctx.scale(2, 2);
+      C.PLANK_THEMES.forEach(function (t, i) {
+        var y = 26 + i * 28;
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('ab ' + (i * 100), 8, y + 3);
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(t.name, 34, y + 3.5);
+
+        S.drawFloor(ctx, { plankX: 112, plankWidth: 96 }, y, false, t);
+        S.drawFloor(ctx, { plankX: 218, plankWidth: 48 }, y, true, t);
+      });
+    })();
+
+    // --- Combo-Stufen ---
+    (function () {
+      var cv = document.getElementById('combos');
+      var ctx = cv.getContext('2d');
+      bg(ctx, cv.width, cv.height);
+      ctx.textAlign = 'center';
+      C.COMBO_LABELS.forEach(function (l, i) {
+        var y = 40 + i * 43;
+        ctx.font = 'bold ' + l.size + 'px sans-serif';
+        if (l.rainbow) {
+          var grad = ctx.createLinearGradient(cv.width / 2 - 90, 0, cv.width / 2 + 90, 0);
+          for (var g = 0; g <= 5; g++) grad.addColorStop(g / 5, 'hsl(' + (g * 62) + ', 100%, 62%)');
+          ctx.fillStyle = grad;
+        } else {
+          ctx.fillStyle = l.color;
+        }
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'rgba(12,18,30,0.85)';
+        ctx.strokeText(l.text, cv.width / 2, y);
+        ctx.fillText(l.text, cv.width / 2, y);
+        ctx.font = '11px sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.textAlign = 'left';
+        ctx.fillText('ab ' + l.floors + ' Etagen', 18, y);
+        ctx.textAlign = 'center';
+      });
+    })();
+
+    // --- Figuren in allen Zuständen ---
+    (function () {
+      var cv = document.getElementById('chars');
+      var ctx = cv.getContext('2d');
+      bg(ctx, cv.width, cv.height);
+      var cell = cv.width / POSES.length;
+      var labels = document.getElementById('char-labels');
+      POSES.forEach(function (p, i) {
+        ctx.save();
+        ctx.translate(cell * i + cell / 2, cv.height / 2 + 24);
+        ctx.scale(4, 4);
+        S.drawChar(ctx, 0, 0, p.pose);
+        ctx.restore();
+        var span = document.createElement('span');
+        span.style.width = cell + 'px';
+        span.textContent = p.name;
+        labels.appendChild(span);
+      });
+    })();
+
+    // --- Trail-Intensitäten ---
+    (function () {
+      var cv = document.getElementById('trail');
+      var ctx = cv.getContext('2d');
+      bg(ctx, cv.width, cv.height);
+      var rows = [0.25, 0.6, 1];
+      rows.forEach(function (intensity, r) {
+        var y = 32 + r * 42;
+        var hue = 0;
+        for (var i = 0; i < 40; i++) {
+          var life = 1 - i / 40;
+          hue = (hue + C.TRAIL_HUE_STEP) % 360;
+          var rad = C.CHAR_R * (0.35 + 0.5 * intensity) * life * 2.2;
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = life * life * 0.55 * intensity;
+          ctx.fillStyle = 'hsl(' + hue + ', 100%, 60%)';
+          ctx.beginPath();
+          ctx.arc(cv.width - 90 - i * 11, y, rad, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+        ctx.save();
+        ctx.translate(cv.width - 60, y - 10);
+        ctx.scale(2.2, 2.2);
+        S.drawChar(ctx, 0, 0, { vx: 3.8 * intensity, vy: 0, grounded: true, facing: 1, squash: 0, runPhase: 0.4, speedFactor: intensity });
+        ctx.restore();
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.font = '11px sans-serif';
+        ctx.fillText(Math.round(intensity * 100) + ' % Tempo', 10, y + 4);
+      });
+    })();
+
+    // --- Etagen ---
+    (function () {
+      var cv = document.getElementById('floors');
+      var ctx = cv.getContext('2d');
+      bg(ctx, cv.width, cv.height);
+      ctx.scale(2, 2);
+      var w = cv.width / 2;
+
+      var t0 = C.PLANK_THEMES[0];
+      S.drawFloor(ctx, { plankX: 20, plankWidth: C.PLANK_WIDTH_START }, 26, false, t0);
+      S.drawFloor(ctx, { plankX: 20, plankWidth: 108 }, 56, false, t0);
+      S.drawFloor(ctx, { plankX: 20, plankWidth: C.PLANK_WIDTH_TARGET }, 86, false, t0);
+      S.drawFloor(ctx, { plankX: 20, plankWidth: 120 }, 116, true, t0);
+      S.drawGround(ctx, 150, w);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.font = '9px sans-serif';
+      ctx.fillText('Start (150 px)', 20 + C.PLANK_WIDTH_START + 8, 29);
+      ctx.fillText('mittel (108 px)', 20 + 108 + 8, 59);
+      ctx.fillText('eng (66 px)', 20 + C.PLANK_WIDTH_TARGET + 8, 89);
+      ctx.fillText('jede 10. Etage', 20 + 120 + 8, 119);
+      ctx.fillText('Startboden', 20, 144);
+    })();
+
+    // --- Szene ---
+    (function () {
+      var cv = document.getElementById('scene');
+      var ctx = cv.getContext('2d');
+      bg(ctx, cv.width, cv.height);
+      ctx.save();
+      ctx.scale(2, 2);
+      var w = cv.width / 2;
+
+      // Wände
+      ctx.fillStyle = 'rgba(94, 230, 255, 0.30)';
+      ctx.fillRect(0, 0, C.EDGE_MARGIN, 250);
+      ctx.fillRect(w - C.EDGE_MARGIN, 0, C.EDGE_MARGIN, 250);
+      ctx.fillStyle = 'rgba(94, 230, 255, 0.75)';
+      ctx.fillRect(C.EDGE_MARGIN - 1, 0, 1, 250);
+      ctx.fillRect(w - C.EDGE_MARGIN, 0, 1, 250);
+
+      var demo = [
+        { seq: 12, x: 40, w: 120, y: 40, marked: false },
+        { seq: 11, x: 150, w: 130, y: 105, marked: false },
+        { seq: 10, x: 30, w: 140, y: 170, marked: true },
+      ];
+      ctx.textAlign = 'left';
+      demo.forEach(function (d) {
+        S.drawFloor(ctx, { plankX: d.x, plankWidth: d.w }, d.y, d.marked, C.PLANK_THEMES[0]);
+        ctx.fillStyle = d.marked ? 'rgba(255, 209, 92, 0.9)' : 'rgba(191, 233, 255, 0.35)';
+        ctx.font = (d.marked ? 'bold 11px' : '10px') + ' sans-serif';
+        ctx.fillText(d.seq, C.EDGE_MARGIN + 3, d.y - 5);
+      });
+
+      // Trail + Figur im Sprung
+      var hue = 0;
+      for (var i = 0; i < 34; i++) {
+        var life = 1 - i / 34;
+        hue = (hue + C.TRAIL_HUE_STEP) % 360;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = life * life * 0.55;
+        ctx.fillStyle = 'hsl(' + hue + ', 100%, 60%)';
+        ctx.beginPath();
+        ctx.arc(120 - i * 2.6, 150 + i * 1.4, C.CHAR_R * 0.85 * life, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      S.drawChar(ctx, 124, 138, { vx: 3.6, vy: -11, grounded: false, facing: 1, squash: 0, runPhase: 0, speedFactor: 0.95 });
+
+      // Combo-Meldung
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffd15c';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.fillText('Excellent!', w / 2, 210);
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('6 Etagen  ×2', w / 2, 226);
+      ctx.restore();
+    })();
+  })(window, document);
+  </script>
+</body>
+</html>
