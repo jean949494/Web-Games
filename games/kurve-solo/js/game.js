@@ -31,7 +31,7 @@
   var changeListeners = [];
 
   var player, camera, obstacles, powerups, enemies;
-  var nextObstacleY, lastGapX, score, best, shakeFrames, controlHintFrames, accMs, lastTs, rafId;
+  var nextObstacleY, lastGapX, score, best, shakeFrames, controlHintFrames, elapsedFrames, accMs, lastTs, rafId;
 
   function emitChange(extra) {
     var payload = Object.assign({ state: state, score: Math.floor(score || 0), best: best || 0 }, extra || {});
@@ -65,6 +65,7 @@
     score = 0;
     shakeFrames = 0;
     controlHintFrames = C.CONTROL_HINT_FRAMES;
+    elapsedFrames = 0;
     KS.particles.reset();
     ensureObstaclesAhead();
   }
@@ -120,7 +121,8 @@
         var eHalfW = C.fieldHalfWidthAt(player.startY - ey);
         var reach = Math.max(0, eHalfW - C.ENEMY_RADIUS - 10);
         var ex = cx + (Math.random() * 2 - 1) * reach;
-        enemies.push({ x: ex, y: ey, r: C.ENEMY_RADIUS });
+        var moving = h > C.ENEMY_MOVE_START_HEIGHT;
+        enemies.push({ x: ex, baseX: ex, y: ey, r: C.ENEMY_RADIUS, moving: moving, phase: Math.random() * Math.PI * 2 });
       }
 
       nextObstacleY -= spacing;
@@ -224,6 +226,17 @@
     if (cut > 0) trail.splice(0, cut);
   }
 
+  // Ab ENEMY_MOVE_START_HEIGHT gespawnte Gegner pendeln langsam um ihre
+  // Basis-Position seitlich hin und her ("bewegen sich irgendwann auch").
+  function updateEnemies() {
+    for (var i = 0; i < enemies.length; i++) {
+      var e = enemies[i];
+      if (e.moving) {
+        e.x = e.baseX + Math.sin(elapsedFrames * C.ENEMY_MOVE_SPEED + e.phase) * C.ENEMY_MOVE_AMPLITUDE;
+      }
+    }
+  }
+
   function updatePhysics() {
     player.angle += player.turnInput * C.TURN;
 
@@ -237,6 +250,8 @@
 
     if (player.invincibleFrames > 0) player.invincibleFrames--;
     if (controlHintFrames > 0) controlHintFrames--;
+    elapsedFrames++;
+    updateEnemies();
 
     // Kamera folgt nur nach oben (nie zurück nach unten)
     var targetCamY = player.y - C.CANVAS_H * C.CAMERA_FOLLOW_RATIO;
@@ -370,13 +385,26 @@
   }
 
   function drawHead() {
-    // Während der Unschlagbarkeit blinkt der Kopf (kurze, klare Animation).
-    if (player.invincibleFrames > 0 && Math.floor(player.invincibleFrames / C.POWERUP_BLINK_FRAMES) % 2 === 0) {
+    var sy = player.y - camera.y;
+    var invincible = player.invincibleFrames > 0;
+    var endingSoon = invincible && player.invincibleFrames <= C.POWERUP_WARNING_FRAMES;
+
+    // Solange der Boost aktiv ist: steady Power-Up-Farbring als klares
+    // "gerade unschlagbar"-Signal. Erst kurz bevor er endet, blinkt der
+    // Kopf selbst – gezielte "gleich vorbei"-Vorwarnung statt Dauerblinken.
+    if (invincible) {
+      ctx.strokeStyle = C.POWERUP_COLOR;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(player.x, sy, C.THICK * 1.6 + 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    if (endingSoon && Math.floor(player.invincibleFrames / C.POWERUP_BLINK_FRAMES) % 2 === 0) {
       ctx.fillStyle = '#ffffff';
     } else {
       ctx.fillStyle = C.PLAYER_COLOR;
     }
-    var sy = player.y - camera.y;
     ctx.beginPath();
     ctx.arc(player.x, sy, C.THICK * 1.6, 0, Math.PI * 2);
     ctx.fill();

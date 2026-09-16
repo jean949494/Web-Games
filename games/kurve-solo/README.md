@@ -53,19 +53,36 @@ sind das jetzt drei Umbauten in Folge:
      gezeichneten Punkten, sonst crasht man sofort in sich selbst).
    - **Gegner** (`js/game.js`, `checkEnemyCollision`): ab Höhe
      `ENEMY_START_HEIGHT` (Platzhalter: 3500) tauchen zusätzlich zu den
-     Hindernis-Balken einzelne statische Gegner-Punkte im offenen
-     Korridor auf, die umschlängelt werden müssen – eine zusätzliche
-     Schicht für Fortgeschrittene, kommt bewusst erst "später".
+     Hindernis-Balken einzelne Gegner-Punkte im offenen Korridor auf,
+     die umschlängelt werden müssen – eine zusätzliche Schicht für
+     Fortgeschrittene, kommt bewusst erst "später". Ab der noch
+     späteren Höhe `ENEMY_MOVE_START_HEIGHT` (Platzhalter: 7000) fangen
+     neu gespawnte Gegner zusätzlich an, langsam seitlich zu pendeln
+     (`updateEnemies()`) statt starr zu stehen.
    - **Power-Up**: kurzer Geschwindigkeits-Boost + Unverwundbarkeit
-     (`player.invincibleFrames`), kurze blinkende Kopf-Animation als
-     Feedback. Wird absichtlich mit Abstand zur sicheren Hindernis-
-     Lücke platziert (`POWERUP_MIN_OFFSET_FROM_GAP`) – man muss extra
-     dafür abweichen und danach scharf zurück zur Lücke lenken, echtes
-     Risiko für den Bonus.
-   - **Steuerungs-Hinweis**: am Rundenstart für ~2,5s eine
-     halbtransparente Einblendung, die beide Bildschirmhälften mit
-     Pfeilen (◀ / ▶) markiert – ganz ohne Text, verschwindet von
-     selbst.
+     (`player.invincibleFrames`). Wird absichtlich mit Abstand zur
+     sicheren Hindernis-Lücke platziert (`POWERUP_MIN_OFFSET_FROM_GAP`)
+     – man muss extra dafür abweichen und danach scharf zurück zur
+     Lücke lenken, echtes Risiko für den Bonus.
+   - **Steuerungs-Hinweis**: am Rundenstart kurz eine halbtransparente
+     Einblendung, die beide Bildschirmhälften mit Pfeilen (◀ / ▶)
+     markiert – ganz ohne Text, verschwindet von selbst.
+3. **Zweite Tuning-Runde**, nach weiterem Feedback ("immer noch zu
+   leicht", "zu viele Perks" → dann wieder zurückgenommen, "Perk-Ende
+   ohne Vorwarnung", "Erklärung zu lang"):
+   - Rampen deutlich beschleunigt (kleinere `HALF_LIFE`-Werte) und
+     `OBSTACLE_GAP_START`/`OBSTACLE_GAP_TARGET` gesenkt – die
+     Hindernis-Lücke ist von Anfang an und über die ganze Runde
+     spürbar enger.
+   - Power-Up-Häufigkeit wurde testweise gesenkt, auf Wunsch aber
+     wieder auf den ursprünglichen Wert zurückgesetzt
+     (`POWERUP_CHANCE_PER_OBSTACLE`).
+   - Der Kopf blinkt während des Power-Ups nicht mehr durchgehend,
+     sondern nur noch in den letzten `POWERUP_WARNING_FRAMES` (~0,75s)
+     davor, dass es endet – klares "gleich vorbei"-Signal statt
+     Dauerblinken. Währenddessen zeigt ein steady Farbring in der
+     Power-Up-Farbe durchgehend an, dass man gerade unschlagbar ist.
+   - Steuerungs-Hinweis-Dauer deutlich verkürzt (`CONTROL_HINT_FRAMES`).
 
 Kernmechanik (konstante Geschwindigkeit, Lenken nur links/rechts,
 Kollision mit Wand/eigener Linie) bleibt unverändert 1:1 aus der
@@ -139,10 +156,10 @@ Repo-Root, Abschnitt "Gemeinsames Grundgerüst".
   ca. 13–20s statt vorher 30–40s) – für echtes menschliches
   Spielgefühl mit `npm run dev` gegenspielen und die HALF_LIFE-Werte
   anpassen (kleiner = schneller schwerer).
-- **Gegner bewegen sich nicht** – aktuell statische Hindernis-Punkte.
-  Eine spätere Ausbaustufe könnte ihnen eine eigene kleine Bewegung
-  geben; bewusst nicht vorgezogen, um den ohnehin großen Umbau
-  überschaubar zu halten.
+- **Gegner-Bewegung ist ein simples Sinus-Pendeln** (feste Amplitude/
+  Geschwindigkeit, kein Ausweich- oder Verfolgungsverhalten). Reicht
+  für "umschlängeln müssen", eine raffiniertere KI wäre eine mögliche
+  spätere Ausbaustufe.
 - **Build-Skript für Portal-Export** – aktuell reicht der Ordner als
   statische Seite; ein Poki-spezifisches Zip/Export-Skript kommt erst,
   wenn die Einreichung ansteht.

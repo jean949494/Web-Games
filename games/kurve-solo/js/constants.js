@@ -64,35 +64,40 @@
     // Spielfeld wird schmaler.
     FIELD_WIDTH_START: 328, // volle Breite (= CANVAS_W - 2*6) am Anfang
     FIELD_WIDTH_TARGET: 100, // brutal eng, aber > 2x Mindest-Wenderadius (2*SPEED/TURN = 68px)
-    WIDTH_HALF_LIFE: 1400,
+    WIDTH_HALF_LIFE: 1000, // schneller eng als zuvor (war 1400) – Feedback: "immer noch zu leicht"
 
     // Hindernisse: waagerechte Balken mit einer Lücke, quer zur
     // Bewegungsrichtung. Lücke wird enger, Abstand knapper, Position
     // springt stärker hin und her ("verzwickter") – alles ohne Cap.
     OBSTACLE_THICK: 10,
     OBSTACLE_FIRST_CLEARANCE: 320, // grosszügiger Abstand bis zum ersten Hindernis
-    OBSTACLE_GAP_START: 130,
-    OBSTACLE_GAP_TARGET: 30, // knapp über dem theoretischen Minimum (~2x Kollisionsradius)
-    GAP_HALF_LIFE: 1200,
+    OBSTACLE_GAP_START: 105, // war 130 – Feedback: "Lücken deutlich enger"
+    OBSTACLE_GAP_TARGET: 22, // war 30, knapp über dem theoretischen Minimum (~2x Kollisionsradius)
+    GAP_HALF_LIFE: 750, // war 1200 – zieht deutlich schneller auf den Zielwert zu
     OBSTACLE_SPACING_START: 175,
     OBSTACLE_SPACING_TARGET: 85,
-    SPACING_HALF_LIFE: 1500,
+    SPACING_HALF_LIFE: 1100, // war 1500
     OBSTACLE_JITTER_START: 35, // max. Sprung der Lücken-Mitte zur vorigen (px)
     OBSTACLE_JITTER_TARGET: 160, // wächst (nicht sinkt) – wird durchs Feld sowieso geclamped
-    JITTER_HALF_LIFE: 1600,
+    JITTER_HALF_LIFE: 1100, // war 1600
 
-    // --- Gegner: statische Hindernis-Punkte, die man umschlängeln muss.
-    // Tauchen erst ab einer gewissen Höhe auf ("später"), on top der
-    // Hindernis-Balken – zusätzliche Schicht für Fortgeschrittene.
+    // --- Gegner: Hindernis-Punkte, die man umschlängeln muss. Tauchen
+    // erst ab einer gewissen Höhe auf ("später"), on top der Hindernis-
+    // Balken – zusätzliche Schicht für Fortgeschrittene. Ab einer noch
+    // späteren Höhe fangen sie zusätzlich an, langsam hin und her zu
+    // pendeln ("Gegner bewegen sich irgendwann auch noch").
     ENEMY_START_HEIGHT: 3500,
     ENEMY_CHANCE_PER_GAP: 0.5,
     ENEMY_RADIUS: 9,
     ENEMY_COLOR: '#ff6b81',
+    ENEMY_MOVE_START_HEIGHT: 7000, // ab hier pendeln neu gespawnte Gegner
+    ENEMY_MOVE_AMPLITUDE: 26, // px Ausschlag zur Seite
+    ENEMY_MOVE_SPEED: 0.02, // rad/frame – gemächliches Pendeln, kein Zappeln
 
     // --- Power-Up: kurzer Tempo-Boost + Unverwundbarkeit. Wird absichtlich
     // weit von der sicheren Lücke entfernt platziert, damit das Abholen
     // ein bewusstes Risiko ist (siehe ensureObstaclesAhead in game.js).
-    POWERUP_CHANCE_PER_OBSTACLE: 0.4,
+    POWERUP_CHANCE_PER_OBSTACLE: 0.4, // erst auf 0.12 reduziert, dann per Feedback wieder hoch ("bockt voll")
     POWERUP_Y_LEAD: 60, // Spawn-Punkt so viel "vor" dem Balken (Richtung Spieler)
     POWERUP_MIN_OFFSET_FROM_GAP: 75,
     POWERUP_OFFSET_SPREAD: 30,
@@ -100,13 +105,17 @@
     POWERUP_PICKUP_RADIUS: 15,
     POWERUP_DURATION_FRAMES: 150, // 2.5s bei 60Hz
     POWERUP_SPEED_MULT: 1.9,
-    POWERUP_BLINK_FRAMES: 6, // Blink-Rhythmus des Spielers während der Unschlagbarkeit
+    // Der Kopf blinkt NICHT die ganze Dauer, sondern nur noch in den
+    // letzten WARNING_FRAMES davon – klares "gleich vorbei"-Signal statt
+    // durchgehendem Blinken (Feedback: "muss kurz blinken bevor's endet").
+    POWERUP_WARNING_FRAMES: 45, // 0.75s Vorwarnung
+    POWERUP_BLINK_FRAMES: 6, // Blink-Rhythmus während der Vorwarnung
     POWERUP_COLOR: '#ffe066',
 
     // Steuerungs-Hinweis: am Rundenstart kurz halbtransparent zeigen,
     // welche Bildschirmhälfte welche Richtung lenkt (kein Text nötig).
-    CONTROL_HINT_FRAMES: 150, // 2.5s bei 60Hz
-    CONTROL_HINT_FADE_FRAMES: 30,
+    CONTROL_HINT_FRAMES: 70, // war 150 (2.5s) – Feedback: "Erklärung kürzer"
+    CONTROL_HINT_FADE_FRAMES: 18,
     CONTROL_HINT_MAX_ALPHA: 0.3,
 
     PLAYER_COLOR: '#5ee6ff',
