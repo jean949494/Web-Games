@@ -19,6 +19,10 @@ HTML/CSS/JavaScript.
 - [`games/astro-ascent`](games/astro-ascent/) – Endlos-Climber im
   Weltall: schwereloser Ladesprung von Wand zu Wand, Asteroiden
   ausweichen, Laser-Geschütze im Rhythmus timen
+- [`games/blackout`](games/blackout/) – Endlos-Platformer nach dem Vorbild
+  von *N – The Way of the Ninja*. Die Bewegungsphysik ist ein exakter Port
+  der N++-Physik (Konstanten aus dem reverse-engineerten Original, gegen
+  die dokumentierten Werte nachgemessen). Querformat.
 
 ## Loslegen
 
