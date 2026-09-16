@@ -6,18 +6,20 @@ in einem Sprung übersteigen bringt einen Combo-Bonus. Ziel: möglichst
 hoch kommen.
 
 Steuerung ist bewusst neu gegenüber dem Original (kein Tastatur-Timing),
-angelehnt an Doodle Jump:
+angelehnt an Doodle Jump. Über das ⚙️-Einstellungen-Icon im Menü lässt
+sich zwischen zwei Modi wählen (lokal gespeichert, nur einer ist
+gleichzeitig aktiv, damit sich Neigung und Halten/Tippen nicht in die
+Quere kommen – siehe `js/settings.js`):
 
-- **Handy links/rechts neigen** – Lauftempo/-richtung, stufenlos, je
-  stärker geneigt desto schneller
-- **Kurz antippen** – Sprung
-- **Alternative zum Testen**: linke/rechte Bildschirmhälfte **halten**
-  lässt in die Richtung laufen (wie bei Kurve Solo), Handy **Richtung
-  Gesicht kippen** löst zusätzlich einen Sprung aus. Beide Systeme laufen
-  parallel und stören sich nicht (siehe `js/input.js` für die Tap-vs-
-  Halten-Unterscheidung)
-- Tastatur am PC zum Testen: Pfeiltasten/A+D halten = laufen,
-  Leertaste/Pfeil-hoch = springen, ESC = Pause
+- **Neigung** (Standard): Handy links/rechts neigen lenkt, stufenlos,
+  je stärker geneigt desto schneller. Kurz antippen löst den Sprung aus.
+- **Halten**: linke/rechte Bildschirmhälfte **halten** lässt in die
+  Richtung laufen (wie bei Kurve Solo). Handy **Richtung Gesicht
+  kippen** löst den Sprung aus.
+
+Tastatur am PC läuft unabhängig vom gewählten Modus immer mit:
+Pfeiltasten/A+D halten = laufen, Leertaste/Pfeil-hoch = springen,
+ESC = Pause.
 
 ## Starten
 
@@ -49,9 +51,12 @@ nachzujustieren.
 - `index.html` – Markup + Overlay-Screens (Menü, Pause, Game Over)
 - `style.css` – Layout, responsive Skalierung auf 340×480-Referenz
 - `js/constants.js` – Physik-, Etagen- und Neigungs-Konstanten
+- `js/settings.js` – gewählter Steuerungsmodus (Neigung/Halten), lokal
+  gespeichert
 - `js/game.js` – Zustandsmaschine, Physik-Loop (fix 60Hz), Rendering,
   Etagen-Kollision (Landung/Anstoßen/Durchqueren), Combo-Wertung
-- `js/input.js` – Neigung, Antippen/Halten, Tastatur – alles parallel
+- `js/input.js` – Neigung, Antippen/Halten, Tastatur, je nach Modus aus
+  `settings.js` geschaltet
 - `js/particles.js` – Landestaub, Anstoß-Funken
 - `js/sounds.js` – spielspezifische Ton-Sequenzen (aufbauend auf
   `shared/audio.js`)
