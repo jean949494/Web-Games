@@ -3,8 +3,8 @@
  * Neigung und Halten/Tippen nicht gegenseitig stören:
  *
  *   TILT-Modus: Neigen links/rechts (Gamma-Achse) lenkt, stufenlos, je
- *   stärker geneigt desto schneller. Kurzes Antippen irgendwo auf dem
- *   Feld löst den Sprung aus.
+ *   stärker geneigt desto schneller. Antippen (egal wo auf dem Feld,
+ *   ohne Zeit-/Bewegungs-Schwellwert) löst sofort den Sprung aus.
  *
  *   HOLD-Modus: linke/rechte Bildschirmhälfte HALTEN lenkt (wie bei
  *   Kurve Solo). Handy Richtung Gesicht kippen (Beta-Achse) löst den
@@ -39,16 +39,16 @@
 
     // ---------- Touch/Maus ----------
     //
-    // HOLD-Modus: Bildschirmhälfte halten lenkt sofort (kein Sprung über
-    // Antippen, der kommt hier über Neigung Richtung Gesicht).
-    // TILT-Modus: nur ein kurzes, kaum bewegtes Antippen (< TAP_MAX_MS)
-    // löst den Sprung aus, die Laufrichtung kommt ausschließlich über
-    // Neigung. Pointer-Events steuern hier also je nach Modus entweder
-    // NUR die Laufrichtung oder NUR den Sprung, nie beides gleichzeitig.
+    // Die beiden Modi nutzen Pointer-Events für komplett unterschiedliche,
+    // sich nie überschneidende Dinge:
+    //   HOLD-Modus: Bildschirmhälfte halten lenkt sofort (Sprung kommt
+    //   hier über Neigung Richtung Gesicht, nicht über Antippen).
+    //   TILT-Modus: JEDES Antippen löst sofort einen Sprung aus, egal wo
+    //   und wie – die Laufrichtung kommt hier ausschließlich über
+    //   Neigung, es gibt also nichts, womit sich ein Tap in die Quere
+    //   kommen könnte (kein Zeit-/Bewegungs-Schwellwert nötig).
 
     var pointerActive = false;
-    var downTime = 0;
-    var downX = 0, downY = 0;
 
     function sideFactorForClientX(clientX) {
       var rect = stageEl.getBoundingClientRect();
@@ -58,11 +58,10 @@
 
     stageEl.addEventListener('pointerdown', function (e) {
       pointerActive = true;
-      downTime = Date.now();
-      downX = e.clientX;
-      downY = e.clientY;
       if (ET.settings.getControlMode() === MODES.HOLD) {
         ET.game.setSteer(sideFactorForClientX(e.clientX));
+      } else {
+        ET.game.jump();
       }
       e.preventDefault();
     });
@@ -74,24 +73,18 @@
       }
     });
 
-    function release(e, allowTap) {
+    function release(e) {
       if (!pointerActive) return;
       pointerActive = false;
-      var mode = ET.settings.getControlMode();
-      if (mode === MODES.HOLD) {
+      if (ET.settings.getControlMode() === MODES.HOLD) {
         ET.game.setSteer(0);
-      } else if (mode === MODES.TILT && allowTap) {
-        var dx = e ? e.clientX - downX : 0;
-        var dy = e ? e.clientY - downY : 0;
-        var moved = Math.sqrt(dx * dx + dy * dy) > C.TAP_MOVE_THRESHOLD_PX;
-        if (!moved && Date.now() - downTime < C.TAP_MAX_MS) ET.game.jump();
       }
       if (e) e.preventDefault();
     }
 
-    stageEl.addEventListener('pointerup', function (e) { release(e, true); });
-    stageEl.addEventListener('pointercancel', function (e) { release(e, false); });
-    stageEl.addEventListener('pointerleave', function (e) { release(e, false); });
+    stageEl.addEventListener('pointerup', release);
+    stageEl.addEventListener('pointercancel', release);
+    stageEl.addEventListener('pointerleave', release);
     stageEl.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
     // ---------- Tastatur (Desktop-Test) ----------

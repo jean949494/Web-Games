@@ -19,10 +19,6 @@
       SG.audio.tone(200, 60, { type: 'sine', slideTo: 140, gain: 0.09 });
     },
 
-    playBonk: function () {
-      SG.audio.tone(140, 90, { type: 'square', slideTo: 90, gain: 0.1 });
-    },
-
     // Combo-Fanfare: mehr Töne bei höherer Combo.
     playCombo: function (comboCount) {
       var notes = [660, 880, 1100, 1320];

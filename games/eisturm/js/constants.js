@@ -1,17 +1,15 @@
 /**
  * Eisturm – Konstanten
  *
- * Icy-Tower-Mechanik (Etagen mit Lücke, Anlauftempo bestimmt Sprunghöhe/
- * -weite, "Combo" fürs Überspringen mehrerer Etagen in einem Sprung),
- * aber mit neuer Steuerung statt Tastatur:
+ * Icy-Tower-Mechanik (schmale Etagen erklimmen, Anlauftempo bestimmt
+ * Sprunghöhe/-weite, "Combo" fürs Überspringen mehrerer Etagen in einem
+ * Sprung), mit zwei wählbaren Steuerungsmodi (siehe settings.js):
  *
- *   - Handy links/rechts neigen  -> laufen (je stärker geneigt, desto
- *     schneller; siehe TILT_STEER_MAX_DEG)
- *   - Kurz antippen              -> springen
- *   - Alternative zum Testen: linke/rechte Bildschirmhälfte HALTEN
- *     lässt links/rechts laufen (wie bei Kurve Solo), Handy Richtung
- *     Gesicht kippen löst zusätzlich auch einen Sprung aus. Beide
- *     Systeme laufen gleichzeitig, ohne sich zu stören (siehe input.js).
+ *   - Neigung (Standard): links/rechts neigen -> laufen, je stärker
+ *     geneigt desto schneller (siehe TILT_STEER_MAX_DEG). Antippen (egal
+ *     wo, kein Zeit-/Bewegungs-Schwellwert) -> springen.
+ *   - Halten: Bildschirmhälfte halten -> laufen. Handy Richtung Gesicht
+ *     kippen -> springen.
  *
  * Die TILT_*-Werte sind Platzhalter, die ich ohne echtes Gerät nicht
  * kalibrieren konnte (kein Gyroskop im Testcontainer verfügbar) – mit
@@ -44,16 +42,17 @@
     JUMP_VY_BASE: -8.2, // Sprung im Stand (kein Schwung)
     JUMP_VY_BONUS: -5.4, // zusätzlich bei voller Laufgeschwindigkeit -> höher/weiter, wie im Original
 
-    // Etagen: waagerechte Linie mit einer Lücke. Nicht in der Lücke
-    // ausgerichtet beim Kreuzen = Landung (von oben) oder "Anstoßen"
-    // (von unten, Sprung endet abrupt) – siehe game.js handleFloorCrossing.
+    // Etagen: schmale Plattform (nicht die volle Breite), von unten immer
+    // durchspringbar (wie bei Doodle Jump). Steht man beim Fallen über
+    // ihr, landet man; sonst fällt man weiter zur nächsten Etage darunter
+    // – siehe game.js handleFloorCrossing/onPlank.
     FLOOR_SPACING: 82,
     FLOOR_SPACING_JITTER: 14,
     FLOOR_THICK: 6,
-    GAP_WIDTH_START: 150,
-    GAP_WIDTH_TARGET: 66, // > 2*CHAR_R + Puffer, sonst unmöglich zu treffen
-    GAP_RAMP_START_HEIGHT: 700,
-    GAP_RAMP_RANGE: 5500,
+    PLANK_WIDTH_START: 150,
+    PLANK_WIDTH_TARGET: 66, // > 2*CHAR_R + Puffer, sonst kaum noch zu treffen
+    PLANK_RAMP_START_HEIGHT: 700,
+    PLANK_RAMP_RANGE: 5500,
 
     // Kamera: folgt nur nach oben, wie bei Ninja Wandsprung / Kurve Solo.
     CAMERA_FOLLOW_RATIO: 0.6,
@@ -75,14 +74,9 @@
     TILT_JUMP_TRIGGER_DEG: 16,
     TILT_JUMP_REARM_DEG: 6,
 
-    // Steuerung: Tippen
-    TAP_MAX_MS: 220,
-    TAP_MOVE_THRESHOLD_PX: 12, // Client-Pixel, bevor aus "Tippen" ein "Halten/Ziehen" wird
-
     // Juice
     SQUASH_DECAY: 0.09,
     SQUASH_LAND: 0.8,
-    SQUASH_BONK: -0.6,
     DUST_PARTICLE_COUNT: 7,
   };
 
@@ -94,13 +88,13 @@
     return start + t * (target - start);
   };
 
-  constants.gapWidthAt = function (heightClimbed) {
+  constants.plankWidthAt = function (heightClimbed) {
     return constants.rampValue(
       heightClimbed,
-      constants.GAP_WIDTH_START,
-      constants.GAP_WIDTH_TARGET,
-      constants.GAP_RAMP_START_HEIGHT,
-      constants.GAP_RAMP_RANGE
+      constants.PLANK_WIDTH_START,
+      constants.PLANK_WIDTH_TARGET,
+      constants.PLANK_RAMP_START_HEIGHT,
+      constants.PLANK_RAMP_RANGE
     );
   };
 

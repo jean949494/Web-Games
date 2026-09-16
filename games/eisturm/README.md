@@ -12,7 +12,8 @@ gleichzeitig aktiv, damit sich Neigung und Halten/Tippen nicht in die
 Quere kommen – siehe `js/settings.js`):
 
 - **Neigung** (Standard): Handy links/rechts neigen lenkt, stufenlos,
-  je stärker geneigt desto schneller. Kurz antippen löst den Sprung aus.
+  je stärker geneigt desto schneller. Antippen (egal wo, ohne Zeit-
+  /Bewegungs-Schwellwert) löst sofort den Sprung aus.
 - **Halten**: linke/rechte Bildschirmhälfte **halten** lässt in die
   Richtung laufen (wie bei Kurve Solo). Handy **Richtung Gesicht
   kippen** löst den Sprung aus.
@@ -54,28 +55,33 @@ nachzujustieren.
 - `js/settings.js` – gewählter Steuerungsmodus (Neigung/Halten), lokal
   gespeichert
 - `js/game.js` – Zustandsmaschine, Physik-Loop (fix 60Hz), Rendering,
-  Etagen-Kollision (Landung/Anstoßen/Durchqueren), Combo-Wertung
+  Etagen-Kollision (Landung/Durchfallen), Combo-Wertung
 - `js/input.js` – Neigung, Antippen/Halten, Tastatur, je nach Modus aus
   `settings.js` geschaltet
-- `js/particles.js` – Landestaub, Anstoß-Funken
+- `js/particles.js` – Landestaub
 - `js/sounds.js` – spielspezifische Ton-Sequenzen (aufbauend auf
   `shared/audio.js`)
 
 ## Mechanik im Detail
 
-- Etagen sind waagerechte Linien mit einer Lücke. Beim **Steigen**
-  außerhalb der Lücke gekreuzt = Anstoßen, der Sprung endet sofort
-  (Strafe fürs Verfehlen, wie im Original). Beim **Fallen** außerhalb
-  der Lücke gekreuzt = Landung. Innerhalb der Lücke wird jede Etage
-  einfach durchquert.
+- Etagen sind schmale Plattformen (nicht die volle Feldbreite), von
+  unten immer durchspringbar – beim Steigen gibt es nie ein Hindernis,
+  ganz gleich wo man ist (wie bei Doodle Jump, nicht wie eine Zimmerdecke
+  mit Loch). Beim **Fallen** entscheidet die Position: steht man über
+  der Plattform, landet man; steht man daneben, fällt man einfach weiter
+  zur nächsten Etage darunter.
+- Verliert man macht man NICHT durchs Verfehlen einer Etage, sondern
+  dadurch, dass man zu weit unter die (nur nach oben mitlaufende) Kamera
+  fällt – die Sicht wandert mit dem höchsten je erreichten Punkt nach
+  oben, wer den Anschluss verliert, fällt aus dem Bild und verliert.
 - Sprunghöhe/-weite hängt vom aktuellen Lauftempo beim Absprung ab
   (`JUMP_VY_BASE` + `JUMP_VY_BONUS * Tempo-Anteil`) – schneller Anlauf
   vor dem Sprung erlaubt, mehrere Etagen in einem Rutsch zu überspringen.
-- Combo: jede Etage, die während eines einzelnen Sprungs im Steigflug
-  durch die Lücke passiert wird, zählt mit. Ab 2 Etagen gibt es einen
+- Combo: wie viele Etagen zwischen Absprung- und Lande-Etage
+  übersprungen wurden. Ab 2 übersprungenen Etagen gibt es einen
   Punktebonus und eine kurze Einblendung bei der Landung.
-- Schwierigkeit: die Lücken werden mit steigender Höhe schmaler
-  (`GAP_WIDTH_START` -> `GAP_WIDTH_TARGET` über `GAP_RAMP_RANGE` px).
+- Schwierigkeit: die Plattformen werden mit steigender Höhe schmaler
+  (`PLANK_WIDTH_START` -> `PLANK_WIDTH_TARGET` über `PLANK_RAMP_RANGE` px).
 
 ## Bewusst offen gelassen / noch zu tunen
 
@@ -85,7 +91,7 @@ nachzujustieren.
   Kalibrieren zur Verfügung. Mit `?debug` live nachjustieren (siehe
   oben), ggf. `TILT_JUMP_SIGN` auf `-1` drehen, falls der Sprung beim
   Kippen in die falsche Richtung reagiert.
-- **Schwierigkeitskurve über eine volle Runde** – `GAP_RAMP_RANGE` ist
+- **Schwierigkeitskurve über eine volle Runde** – `PLANK_RAMP_RANGE` ist
   ein erster Schätzwert, noch nicht über viele Runden gegengetestet.
 - **Bewegliche/kaputte Etagen, Power-Ups** – im Original später dazu,
-  hier erstmal nur die Kernmechanik (Etage + Lücke + Combo).
+  hier erstmal nur die Kernmechanik (Etage + Combo).

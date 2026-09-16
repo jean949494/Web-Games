@@ -1,5 +1,5 @@
 /**
- * Staubpartikel bei Landung und Funken beim "Anstoßen" (verfehlte Lücke).
+ * Staubpartikel bei Landung.
  */
 (function (global) {
   'use strict';
@@ -27,23 +27,6 @@
           decay: 0.04 + Math.random() * 0.03,
           size: 1.4 + Math.random() * 1.6,
           color: '#d8d2c4',
-        });
-      }
-    },
-
-    spawnBonkSpark: function (x, y) {
-      for (var i = 0; i < 6; i++) {
-        var angle = Math.random() * Math.PI * 2;
-        var speed = 1 + Math.random() * 1.6;
-        list.push({
-          x: x,
-          y: y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          life: 1,
-          decay: 0.06 + Math.random() * 0.03,
-          size: 1.6 + Math.random() * 1.4,
-          color: '#ffd15c',
         });
       }
     },
