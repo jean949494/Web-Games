@@ -6,8 +6,6 @@ HTML/CSS/JavaScript.
 
 ## Spiele
 
-- [`games/ninja-wandsprung`](games/ninja-wandsprung/) – Endless-Climber:
-  Ladesprung von Wand zu Wand, Stacheln ausweichen
 - [`games/kurve-solo`](games/kurve-solo/) – Endlos-Climber: Linie hinter
   sich herziehen, Hindernissen ausweichen, Feld wird mit der Höhe
   schmaler und verzwickter
@@ -18,10 +16,9 @@ HTML/CSS/JavaScript.
   Handy neigen zum Laufen (je stärker, desto schneller), antippen zum
   Springen. Schnellerer Anlauf = höherer Sprung, mehrere Etagen auf
   einmal geben Combo-Bonus
-- [`games/astro-ascent`](games/astro-ascent/) – dieselbe Grundmechanik
-  wie Ninja Wandsprung, aber schwerelosere Physik und Laser-Geschütze
-  zum Timen/Anschleichen statt nur Ausweichen (Details in der eigenen
-  README)
+- [`games/astro-ascent`](games/astro-ascent/) – Endlos-Climber im
+  Weltall: schwereloser Ladesprung von Wand zu Wand, Asteroiden
+  ausweichen, Laser-Geschütze im Rhythmus timen
 
 ## Loslegen
 

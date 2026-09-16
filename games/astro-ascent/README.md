@@ -1,28 +1,27 @@
 # Astro Ascent
 
-Endless-Climber, zweites Spiel im Repo. Gleiche Grundmechanik wie
-[Ninja Wandsprung](../ninja-wandsprung/) (Wandrutsch, Ladesprung), aber
-bewusst **kein reiner Reskin** – zwei eigene Unterschiede in Physik und
-Hindernis-Design (siehe unten), damit es sich anders spielt, nicht nur
-anders aussieht.
+Endless-Climber im Weltall. Astronaut hängt magnetisch an der Wand eines
+Schachts, rutscht langsam ab. Halten lädt den Sprung auf (bis 2s, 5
+Stufen), Loslassen springt zur gegenüberliegenden Wand. Endlos nach oben,
+vorbei an Planeten und Sternenfeldern, Asteroidenbrocken und
+Laser-Geschützen ausweichen.
 
-Astronaut hängt magnetisch an der Wand eines Weltraum-Schachts, rutscht
-langsam ab. Halten lädt den Sprung auf, Loslassen springt zur
-gegenüberliegenden Wand. Endlos nach oben, vorbei an Planeten und
-Sternenfeldern, Asteroidenbrocken und Laser-Geschützen ausweichen.
+> Historie: Das Spiel entstand als Weiterentwicklung eines früheren
+> Prototyps ("Ninja Wandsprung"), der dieselbe Grundmechanik hatte und
+> deshalb entfernt wurde. Die beiden folgenden Punkte sind das, was hier
+> gegenüber dem Prototyp dazukam.
 
-## Was sich vom Ninja unterscheidet
+## Eigenheiten
 
-1. **Schwerelosigkeit statt straffer Physik.** Niedrigere Basis-Schwerkraft,
-   niedrigerer Gravitations-Multiplikator pro Ladestufe, plus ein
+1. **Schwerelosigkeit statt straffer Physik.** Niedrige Basis-Schwerkraft,
+   niedriger Gravitations-Multiplikator pro Ladestufe, plus ein
    "Apex-Float": nahe des Scheitelpunkts eines Sprungs wirkt kurz
    zusätzlich weniger Schwerkraft. Bei hoher Ladestufe fühlt sich das wie
    ein kurzer freier Flug an, nicht nur wie ein höherer Sprung.
 2. **Laser-Geschütze als zweiter Hindernis-Typ** neben den
-   Asteroidenbrocken (die wie die Ninja-Stacheln funktionieren). Ein
-   Geschütz läuft in festem Rhythmus sicher → Warnung → Feuer. Man muss
-   sich anschleichen, den Rhythmus abwarten und im sicheren Fenster
-   durchqueren – Timing statt reinem Ausweichen.
+   Asteroidenbrocken. Ein Geschütz läuft in festem Rhythmus sicher →
+   Warnung → Feuer. Man muss sich anschleichen, den Rhythmus abwarten und
+   im sicheren Fenster durchqueren – Timing statt reinem Ausweichen.
 
 Alle anderen Bausteine (Menü, Pause, Game Over, Highscore, Sound,
 Touch/Tastatur, Analytics, Poki-Wrapper) kommen unverändert aus dem

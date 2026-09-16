@@ -6,7 +6,7 @@
  * Enthält nur den Kern (Ton-Engine, an/aus, ein paar generische Sounds).
  * Spielspezifische Ton-Sequenzen (z.B. "Sprung", "Landung") gehören in
  * eine kleine sounds.js im jeweiligen Spielordner, die auf `tone()`
- * aufbaut – siehe games/ninja-wandsprung/js/sounds.js als Beispiel.
+ * aufbaut – siehe games/astro-ascent/js/sounds.js als Beispiel.
  */
 (function (global) {
   'use strict';

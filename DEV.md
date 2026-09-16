@@ -28,7 +28,7 @@ https://jean949494.github.io/Web-Games/
 ```
 
 Einzelnes Spiel direkt:
-`https://jean949494.github.io/Web-Games/games/ninja-wandsprung/`
+`https://jean949494.github.io/Web-Games/games/astro-ascent/`
 
 **Aktualisieren nach einer Änderung:**
 

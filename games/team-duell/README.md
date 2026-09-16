@@ -154,7 +154,7 @@ vorweggenommen:
   `constants.js`/`wall.js` anpassen.
 - **Build-Skript für Portal-Export / Portal-Strategie** – reine
   Geschäfts-/Prozessentscheidung, keine Code-Änderung (siehe
-  `../ninja-wandsprung/README.md` für dieselbe Begründung).
+  `../astro-ascent/README.md` für dieselbe Begründung).
 
 ## Annahmen / Interpretationen (Spec war an diesen Stellen nicht exakt)
 
