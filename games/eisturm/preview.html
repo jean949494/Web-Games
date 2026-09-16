@@ -43,7 +43,13 @@
     <h1>🧊 Eisturm – Bild-Studio</h1>
     <p class="sub">Alle Grafiken in 4×-Vergrößerung, wie sie im Spiel gezeichnet werden.</p>
 
-    <h2>Figur</h2>
+    <h2>Skins – 5 Familien à 5 Varianten</h2>
+    <div class="card">
+      <canvas id="gallery" width="540" height="900"></canvas>
+      <div class="note">Jede Zeile eine Familie. Sag welche Variante rein soll – oder was an einer geändert werden muss.</div>
+    </div>
+
+    <h2>Posen (aktuelle Figur)</h2>
     <div class="card">
       <canvas id="chars" width="640" height="200"></canvas>
       <div class="labels" id="char-labels"></div>
@@ -55,10 +61,22 @@
       <div class="note">Erscheint ab 45 % Höchsttempo und wird zum Vollgas hin breiter und bunter. Während einer Combo-Serie bleibt er dauerhaft an.</div>
     </div>
 
-    <h2>Etagen</h2>
+    <h2>Welten (alle 100 Etagen die nächste)</h2>
+    <div class="card">
+      <canvas id="themes" width="640" height="440"></canvas>
+      <div class="note">Jede Welt hat eine eigene Deko, nicht nur einen anderen Farbton. Links normal, rechts die hervorgehobene Zehner-Etage.</div>
+    </div>
+
+    <h2>Etagenbreiten</h2>
     <div class="card">
       <canvas id="floors" width="640" height="360"></canvas>
-      <div class="note">Normale Eisplatte, jede zehnte Etage (gold) und der Startboden. Breite schrumpft mit der Höhe von 150 px auf 66 px.</div>
+      <div class="note">Breite schrumpft mit der Höhe von 150 px auf 66 px. Unten der Startboden.</div>
+    </div>
+
+    <h2>Combo-Stufen</h2>
+    <div class="card">
+      <canvas id="combos" width="640" height="460"></canvas>
+      <div class="note">Zehn Stufen, je nach übersprungenen Etagen in einem Sprung. Im Spiel ploppen sie mit Überschwinger auf, wackeln kurz nach und schweben aus.</div>
     </div>
 
     <h2>Szene</h2>
@@ -93,6 +111,83 @@
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, h);
     }
+
+    // --- Galerie: eine Zeile je Familie ---
+    (function () {
+      var cv = document.getElementById('gallery');
+      var ctx = cv.getContext('2d');
+      bg(ctx, cv.width, cv.height);
+      var rowH = 178;
+      S.FAMILIES.forEach(function (fam, r) {
+        var members = S.charactersOf(fam.id);
+        var top = r * rowH + 10;
+
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(fam.name, 14, top + 16);
+
+        var cellW = cv.width / members.length;
+        members.forEach(function (ch, i) {
+          var cx = cellW * i + cellW / 2;
+          var cy = top + 86;
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.scale(3.1, 3.1);
+          S.drawChar(ctx, 0, 0, { vx: 1.6, vy: 0, grounded: true, facing: 1, squash: 0, runPhase: 1.2, speedFactor: 0.4 }, ch.id);
+          ctx.restore();
+          ctx.fillStyle = 'rgba(255,255,255,0.65)';
+          ctx.font = '11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(ch.name, cx, cy + 56);
+        });
+      });
+    })();
+
+    // --- Welten ---
+    (function () {
+      var cv = document.getElementById('themes');
+      var ctx = cv.getContext('2d');
+      bg(ctx, cv.width, cv.height);
+      ctx.scale(2, 2);
+      C.PLANK_THEMES.forEach(function (t, i) {
+        var y = 24 + i * 26;
+        S.drawFloor(ctx, { plankX: 14, plankWidth: 112 }, y, false, t);
+        S.drawFloor(ctx, { plankX: 140, plankWidth: 72 }, y, true, t);
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText((i * 100) + '+  ' + t.name, 222, y + 3.5);
+      });
+    })();
+
+    // --- Combo-Stufen ---
+    (function () {
+      var cv = document.getElementById('combos');
+      var ctx = cv.getContext('2d');
+      bg(ctx, cv.width, cv.height);
+      ctx.textAlign = 'center';
+      C.COMBO_LABELS.forEach(function (l, i) {
+        var y = 40 + i * 43;
+        ctx.font = 'bold ' + l.size + 'px sans-serif';
+        if (l.rainbow) {
+          var grad = ctx.createLinearGradient(cv.width / 2 - 90, 0, cv.width / 2 + 90, 0);
+          for (var g = 0; g <= 5; g++) grad.addColorStop(g / 5, 'hsl(' + (g * 62) + ', 100%, 62%)');
+          ctx.fillStyle = grad;
+        } else {
+          ctx.fillStyle = l.color;
+        }
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'rgba(12,18,30,0.85)';
+        ctx.strokeText(l.text, cv.width / 2, y);
+        ctx.fillText(l.text, cv.width / 2, y);
+        ctx.font = '11px sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.textAlign = 'left';
+        ctx.fillText('ab ' + l.floors + ' Etagen', 18, y);
+        ctx.textAlign = 'center';
+      });
+    })();
 
     // --- Figuren in allen Zuständen ---
     (function () {
@@ -155,10 +250,11 @@
       ctx.scale(2, 2);
       var w = cv.width / 2;
 
-      S.drawFloor(ctx, { plankX: 20, plankWidth: C.PLANK_WIDTH_START }, 26, false);
-      S.drawFloor(ctx, { plankX: 20, plankWidth: 108 }, 56, false);
-      S.drawFloor(ctx, { plankX: 20, plankWidth: C.PLANK_WIDTH_TARGET }, 86, false);
-      S.drawFloor(ctx, { plankX: 20, plankWidth: 120 }, 116, true);
+      var t0 = C.PLANK_THEMES[0];
+      S.drawFloor(ctx, { plankX: 20, plankWidth: C.PLANK_WIDTH_START }, 26, false, t0);
+      S.drawFloor(ctx, { plankX: 20, plankWidth: 108 }, 56, false, t0);
+      S.drawFloor(ctx, { plankX: 20, plankWidth: C.PLANK_WIDTH_TARGET }, 86, false, t0);
+      S.drawFloor(ctx, { plankX: 20, plankWidth: 120 }, 116, true, t0);
       S.drawGround(ctx, 150, w);
 
       ctx.fillStyle = 'rgba(255,255,255,0.55)';
@@ -194,7 +290,7 @@
       ];
       ctx.textAlign = 'left';
       demo.forEach(function (d) {
-        S.drawFloor(ctx, { plankX: d.x, plankWidth: d.w }, d.y, d.marked);
+        S.drawFloor(ctx, { plankX: d.x, plankWidth: d.w }, d.y, d.marked, C.PLANK_THEMES[0]);
         ctx.fillStyle = d.marked ? 'rgba(255, 209, 92, 0.9)' : 'rgba(191, 233, 255, 0.35)';
         ctx.font = (d.marked ? 'bold 11px' : '10px') + ' sans-serif';
         ctx.fillText(d.seq, C.EDGE_MARGIN + 3, d.y - 5);
@@ -220,7 +316,7 @@
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffd15c';
       ctx.font = 'bold 24px sans-serif';
-      ctx.fillText('Wahnsinn!', w / 2, 210);
+      ctx.fillText('Excellent!', w / 2, 210);
       ctx.font = 'bold 12px sans-serif';
       ctx.fillText('6 Etagen  ×2', w / 2, 226);
       ctx.restore();

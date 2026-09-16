@@ -87,6 +87,7 @@
     PLANK_RAMP_START_FLOOR: 8,
     PLANK_RAMP_FLOORS: 70, // über so viele Etagen von START auf TARGET
     FLOOR_MARK_EVERY: 10, // jede zehnte Etage wird hervorgehoben (wie im Original)
+    FLOOR_THEME_EVERY: 100, // alle 100 Etagen wechselt die Optik der Plattformen
 
     // Kamera: folgt nach oben mit – UND wandert nach einer Schonfrist von
     // selbst weiter nach oben, immer schneller. Das ist der eigentliche
@@ -116,6 +117,7 @@
     COMBO_WINDOW_MS: 2800,
     COMBO_POINTS_PER_FLOOR: 10,
     COMBO_FLOORS_PER_MULT: 5, // je so viele Serien-Etagen +1 Multiplikator
+    FLASH_DURATION_MS: 1500, // Lebensdauer der Combo-Einblendung
 
     POINTS_PER_FLOOR: 10, // Grundpunkte je erreichter Etage
 
@@ -183,18 +185,41 @@
     );
   };
 
-  // Combo-Stufen wie im Original: je mehr Etagen in einem Sprung, desto
-  // dicker die Meldung.
+  // Plattform-Welten, die alle FLOOR_THEME_EVERY Etagen durchgewechselt
+  // werden. Jede hat neben den Farben eine eigene Deko (siehe sprites.js
+  // drawFloor), damit sie sich nicht nur im Farbton unterscheiden.
+  //   base = Körper, deep = Unterkante, top = Glanzkante,
+  //   mark/markDeep = jede zehnte Etage, deco = Zusatzgrafik.
+  constants.PLANK_THEMES = [
+    { name: 'Eisgipfel', base: '#bfe9ff', deep: '#6ba7cc', top: '#ffffff', mark: '#ffd15c', markDeep: '#c9962c', deco: 'icicles' },
+    { name: 'Pilzwald', base: '#8fd46a', deep: '#3f7a2e', top: '#d6f2b8', mark: '#ff8fa3', markDeep: '#c2415c', deco: 'leaves' },
+    { name: 'Magmaschlund', base: '#5a3330', deep: '#2b1715', top: '#ff9a52', mark: '#ffe66b', markDeep: '#c2a01f', deco: 'cracks' },
+    { name: 'Neonlabor', base: '#26304a', deep: '#141a2b', top: '#5ee6ff', mark: '#ff4fd8', markDeep: '#8a1f74', deco: 'circuit' },
+    { name: 'Zuckerturm', base: '#ffc2e0', deep: '#c26b99', top: '#fff2f8', mark: '#8ef0ff', markDeep: '#3f9ab8', deco: 'sprinkles' },
+    { name: 'Wüstenruine', base: '#e0b878', deep: '#96703c', top: '#f7e2b8', mark: '#7dd6c0', markDeep: '#2e8a78', deco: 'bricks' },
+    { name: 'Sternenmeer', base: '#3a2b6b', deep: '#1c1436', top: '#b8a8ff', mark: '#ffe66b', markDeep: '#b8891f', deco: 'stars' },
+    { name: 'Rostwerk', base: '#c47a4a', deep: '#6b3c22', top: '#e8b083', mark: '#9fd8ff', markDeep: '#4a7a96', deco: 'rivets' },
+  ];
+
+  constants.themeForFloor = function (seq) {
+    var i = Math.floor(Math.max(0, seq) / constants.FLOOR_THEME_EVERY);
+    return constants.PLANK_THEMES[i % constants.PLANK_THEMES.length];
+  };
+
+  // Combo-Stufen: englische Lob-Begriffe wie im Original, zehn Stufen
+  // vom knappen Doppelsprung bis zum Wahnsinnslauf. rainbow = die Meldung
+  // wird zusätzlich in Regenbogenfarben gefüllt.
   constants.COMBO_LABELS = [
-    { floors: 2, text: 'Gut!', color: '#bfe9ff', size: 16 },
-    { floors: 3, text: 'Stark!', color: '#8ee9ff', size: 18 },
-    { floors: 4, text: 'Super!', color: '#5ee6ff', size: 20 },
-    { floors: 5, text: 'Klasse!', color: '#7dffb5', size: 22 },
-    { floors: 6, text: 'Wahnsinn!', color: '#ffd15c', size: 24 },
-    { floors: 7, text: 'Hammer!', color: '#ffb03a', size: 26 },
-    { floors: 8, text: 'Irre!', color: '#ff8a4c', size: 28 },
-    { floors: 10, text: 'Extrem!', color: '#ff6b81', size: 30 },
-    { floors: 13, text: 'UNFASSBAR!', color: '#ff4fd8', size: 32 },
+    { floors: 2, text: 'Good!', color: '#bfe9ff', size: 17 },
+    { floors: 3, text: 'Great!', color: '#8ee9ff', size: 19 },
+    { floors: 4, text: 'Amazing!', color: '#5ee6ff', size: 21 },
+    { floors: 5, text: 'Fantastic!', color: '#7dffb5', size: 23 },
+    { floors: 6, text: 'Excellent!', color: '#ffe66b', size: 25 },
+    { floors: 7, text: 'Incredible!', color: '#ffd15c', size: 27 },
+    { floors: 8, text: 'Unbelievable!', color: '#ffb03a', size: 28 },
+    { floors: 10, text: 'Outstanding!', color: '#ff8a4c', size: 30 },
+    { floors: 12, text: 'Spectacular!', color: '#ff6b81', size: 32 },
+    { floors: 15, text: 'GODLIKE!', color: '#ff4fd8', size: 36, rainbow: true },
   ];
 
   constants.comboLabelFor = function (floorsInJump) {

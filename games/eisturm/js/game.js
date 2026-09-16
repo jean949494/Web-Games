@@ -192,11 +192,12 @@
       flashes.push({
         x: chr.x,
         y: floorTopY(floor),
-        life: 1,
+        ageMs: 0,
         text: label.text,
         sub: skipped + ' Etagen' + (mult > 1 ? '  ×' + mult : ''),
         color: label.color,
         size: label.size,
+        rainbow: !!label.rainbow,
       });
       ET.sounds.playCombo(skipped);
       SG.analytics.track('combo', { floors: skipped, serie: combo.floors, mult: mult });
@@ -352,9 +353,8 @@
     ET.trail.update();
 
     for (var f = flashes.length - 1; f >= 0; f--) {
-      flashes[f].life -= 0.015;
-      flashes[f].y -= 0.5;
-      if (flashes[f].life <= 0) flashes.splice(f, 1);
+      flashes[f].ageMs += STEP_MS;
+      if (flashes[f].ageMs >= C.FLASH_DURATION_MS) flashes.splice(f, 1);
     }
 
     // Verloren, sobald die Figur komplett unter dem sichtbaren Bild ist.
@@ -414,7 +414,8 @@
       }
 
       var marked = floor.seq % C.FLOOR_MARK_EVERY === 0;
-      ET.sprites.drawFloor(ctx, floor, screenY, marked);
+      var theme = C.themeForFloor(floor.seq);
+      ET.sprites.drawFloor(ctx, floor, screenY, marked, theme);
 
       ctx.fillStyle = marked ? 'rgba(255, 209, 92, 0.9)' : 'rgba(191, 233, 255, 0.35)';
       ctx.font = (marked ? 'bold 11px' : '10px') + ' sans-serif';
@@ -434,19 +435,54 @@
     });
   }
 
+  // Combo-Meldung: ploppt mit Überschwinger auf, wackelt kurz nach,
+  // schwebt hoch und blendet aus. Die höchste Stufe bekommt zusätzlich
+  // eine Regenbogenfüllung.
   function drawFlashes() {
     ctx.textAlign = 'center';
     for (var i = 0; i < flashes.length; i++) {
       var f = flashes[i];
-      var screenY = f.y - camera.y;
-      ctx.globalAlpha = Math.max(0, Math.min(1, f.life * 1.6));
-      ctx.fillStyle = f.color;
+      var t = f.ageMs / C.FLASH_DURATION_MS; // 0..1
+
+      var scale;
+      if (t < 0.16) scale = 0.35 + (t / 0.16) * 0.9;        // schnell aufziehen
+      else if (t < 0.3) scale = 1.25 - ((t - 0.16) / 0.14) * 0.25; // zurückfedern
+      else scale = 1;
+
+      var alpha = t < 0.7 ? 1 : Math.max(0, 1 - (t - 0.7) / 0.3);
+      var rise = t * 52;
+      var wobble = Math.sin(f.ageMs * 0.018) * (1 - t) * 0.07;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(C.CANVAS_W / 2, f.y - camera.y - 26 - rise);
+      ctx.rotate(wobble);
+      ctx.scale(scale, scale);
+
       ctx.font = 'bold ' + f.size + 'px sans-serif';
-      ctx.fillText(f.text, C.CANVAS_W / 2, screenY - 24);
+      if (f.rainbow) {
+        var grad = ctx.createLinearGradient(-70, 0, 70, 0);
+        var shift = (f.ageMs * 0.12) % 360;
+        for (var g = 0; g <= 5; g++) {
+          grad.addColorStop(g / 5, 'hsl(' + ((shift + g * 62) % 360) + ', 100%, 62%)');
+        }
+        ctx.fillStyle = grad;
+      } else {
+        ctx.fillStyle = f.color;
+      }
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = 'rgba(12, 18, 30, 0.85)';
+      ctx.strokeText(f.text, 0, 0);
+      ctx.fillText(f.text, 0, 0);
+
       ctx.font = 'bold 12px sans-serif';
-      ctx.fillText(f.sub, C.CANVAS_W / 2, screenY - 8);
-      ctx.globalAlpha = 1;
+      ctx.lineWidth = 3;
+      ctx.strokeText(f.sub, 0, 15);
+      ctx.fillStyle = '#f4f1ea';
+      ctx.fillText(f.sub, 0, 15);
+      ctx.restore();
     }
+    ctx.globalAlpha = 1;
   }
 
   // Laufende Combo-Serie mit Restzeit-Balken, direkt unter dem Score.
