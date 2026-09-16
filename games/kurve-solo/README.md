@@ -96,6 +96,16 @@ sind das jetzt drei Umbauten in Folge:
      Hindernis-Balken, nicht an der eigenen Linie, nicht direkt an
      einem Gegner). Gedeckelt über `POWERUP_MAX_GRACE_FRAMES` (1,5s),
      damit man sich damit nicht absichtlich dauerhaft unschlagbar hält.
+   - **Nachbesserung**: die erste Version dieses Fixes werte jede
+     Nähe zu einem Hindernis-Balken pauschal als "unsicher" – egal ob
+     man sauber in dessen Lücke war oder nicht. Da Hindernisse
+     inzwischen sehr dicht stehen (`OBSTACLE_SPACING_TARGET`), war man
+     dadurch im späteren Spiel fast durchgehend "unsicher" markiert,
+     die Kulanzzeit lief praktisch immer bis zum `MAX_GRACE_FRAMES`-
+     Deckel und beendete den Boost danach zwangsweise – der exakt
+     gleiche Crash wie vorher, nur zeitversetzt. Die Prüfung
+     berücksichtigt jetzt wie `checkObstacleCollision()` auch die
+     x-Position innerhalb der Lücke, nicht nur die Höhe.
    - Zusätzlich bremst das Tempo in der Vorwarnphase jetzt sanft von
      `SPEED*MULT` auf `SPEED` ab (`currentSpeed()`), statt hart zu
      schalten – synchron zum Blink-Countdown.

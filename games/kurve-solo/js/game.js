@@ -102,7 +102,16 @@
     var margin = Math.sqrt(C.HIT_FACTOR_SQ) * C.THICK;
     for (var i = 0; i < obstacles.length; i++) {
       var o = obstacles[i];
-      if (Math.abs(player.y - o.y) < C.OBSTACLE_THICK / 2 + margin) return false;
+      // Nur unsicher, wenn man in der Höhenbande des Balkens UND
+      // außerhalb der Lücke ist (exakt wie checkObstacleCollision) –
+      // sonst gilt jede sauber durchquerte Lücke fälschlich als
+      // "unsicher", weil Hindernisse inzwischen so dicht stehen, dass
+      // man fast immer in irgendeiner Balken-Höhenbande ist. Das ließ
+      // die Kulanzzeit fast immer bis zum Deckel volllaufen und den
+      // Boost dann zwangsweise (und potenziell unsicher) beenden.
+      if (Math.abs(player.y - o.y) < C.OBSTACLE_THICK / 2 + margin) {
+        if (player.x < o.gapX - o.gapHalf + margin || player.x > o.gapX + o.gapHalf - margin) return false;
+      }
     }
     for (var j = 0; j < enemies.length; j++) {
       var e = enemies[j];
@@ -602,6 +611,7 @@
         playerY: player ? player.y : null,
         angle: player ? player.angle : null,
         invincible: player ? player.invincibleFrames > 0 : false,
+        buffGraceFrames: player ? player.buffGraceFrames : 0,
         fieldHalfWidth: player ? C.fieldHalfWidthAt(heightClimbed()) : null,
         nextObstacle: nextObstacle,
         nearestPowerup: nearestPowerup,
