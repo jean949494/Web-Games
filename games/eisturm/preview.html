@@ -43,10 +43,10 @@
     <h1>🧊 Eisturm – Bild-Studio</h1>
     <p class="sub">Alle Grafiken in 4×-Vergrößerung, wie sie im Spiel gezeichnet werden.</p>
 
-    <h2>Skins – 5 Familien à 5 Varianten</h2>
+    <h2>Skins</h2>
     <div class="card">
-      <canvas id="gallery" width="540" height="900"></canvas>
-      <div class="note">Jede Zeile eine Familie. Sag welche Variante rein soll – oder was an einer geändert werden muss.</div>
+      <canvas id="gallery" width="540" height="200"></canvas>
+      <div class="note">Die vier auswählbaren Figuren, wie sie im Menü zur Wahl stehen.</div>
     </div>
 
     <h2>Posen (aktuelle Figur)</h2>
@@ -112,35 +112,24 @@
       ctx.fillRect(0, 0, w, h);
     }
 
-    // --- Galerie: eine Zeile je Familie ---
+    // --- Galerie der auswählbaren Skins ---
     (function () {
       var cv = document.getElementById('gallery');
       var ctx = cv.getContext('2d');
       bg(ctx, cv.width, cv.height);
-      var rowH = 178;
-      S.FAMILIES.forEach(function (fam, r) {
-        var members = S.charactersOf(fam.id);
-        var top = r * rowH + 10;
-
-        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      var list = S.CHARACTERS;
+      var cellW = cv.width / list.length;
+      list.forEach(function (ch, i) {
+        var cx = cellW * i + cellW / 2;
+        ctx.save();
+        ctx.translate(cx, 120);
+        ctx.scale(3.4, 3.4);
+        S.drawChar(ctx, 0, 0, { vx: 1.6, vy: 0, grounded: true, facing: 1, squash: 0, runPhase: 1.2, speedFactor: 0.4 }, ch.id);
+        ctx.restore();
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
         ctx.font = 'bold 13px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(fam.name, 14, top + 16);
-
-        var cellW = cv.width / members.length;
-        members.forEach(function (ch, i) {
-          var cx = cellW * i + cellW / 2;
-          var cy = top + 86;
-          ctx.save();
-          ctx.translate(cx, cy);
-          ctx.scale(3.1, 3.1);
-          S.drawChar(ctx, 0, 0, { vx: 1.6, vy: 0, grounded: true, facing: 1, squash: 0, runPhase: 1.2, speedFactor: 0.4 }, ch.id);
-          ctx.restore();
-          ctx.fillStyle = 'rgba(255,255,255,0.65)';
-          ctx.font = '11px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(ch.name, cx, cy + 56);
-        });
+        ctx.textAlign = 'center';
+        ctx.fillText(ch.name, cx, 168);
       });
     })();
 

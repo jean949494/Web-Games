@@ -43,6 +43,7 @@
     var btnSoundPause = document.getElementById('btn-sound-pause');
     var btnTilt = document.getElementById('btn-tilt');
     var hintControls = document.getElementById('hint-controls');
+    var skinPicker = document.getElementById('skin-picker');
     var modeButtons = [document.getElementById('btn-mode-tilt'), document.getElementById('btn-mode-touch')];
 
     var bestScoreEl = document.getElementById('best-score');
@@ -57,6 +58,44 @@
     setSoundIcon(btnSoundMenu, SG.audio.isEnabled());
     setSoundIcon(btnSoundPause, SG.audio.isEnabled());
     bestScoreEl.textContent = 'Rekord: ' + SG.storage.getBest(ET.GAME_ID);
+
+    // Skin-Auswahl: kleine Vorschau je Figur, Klick übernimmt sie sofort.
+    var skins = ET.sprites.CHARACTERS;
+    var currentSkin = ET.settings.getSkin(skins);
+
+    function renderSkinPicker() {
+      skinPicker.innerHTML = '';
+      skins.forEach(function (ch) {
+        var btn = document.createElement('button');
+        btn.className = 'skin-btn' + (ch.id === currentSkin ? ' active' : '');
+        var cv = document.createElement('canvas');
+        cv.width = 40;
+        cv.height = 46;
+        var cx = cv.getContext('2d');
+        cx.save();
+        cx.translate(cv.width / 2, cv.height - 8);
+        cx.scale(1.5, 1.5);
+        ET.sprites.drawChar(cx, 0, 0, {
+          vx: 0, vy: 0, grounded: true, facing: 1, squash: 0, runPhase: 0, speedFactor: 0,
+        }, ch.id);
+        cx.restore();
+        btn.appendChild(cv);
+        var label = document.createElement('span');
+        label.textContent = ch.name;
+        btn.appendChild(label);
+        btn.addEventListener('click', function () {
+          currentSkin = ch.id;
+          ET.settings.setSkin(ch.id);
+          ET.game.setSkin(ch.id);
+          renderSkinPicker();
+        });
+        btn.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+        skinPicker.appendChild(btn);
+      });
+    }
+
+    ET.game.setSkin(currentSkin);
+    renderSkinPicker();
 
     var CONTROL_HINTS = {};
     CONTROL_HINTS[ET.settings.MODES.TILT] = 'Handy neigen zum Laufen &middot; Antippen zum Springen<br />Länger halten springt höher, Finger liegen lassen springt durchgehend';

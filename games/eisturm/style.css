@@ -150,6 +150,35 @@ canvas#game {
   right: max(8px, env(safe-area-inset-right));
 }
 
+.skin-picker {
+  display: flex;
+  gap: 8px;
+}
+
+.skin-btn {
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 4px 4px 2px;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.skin-btn.active {
+  border-color: var(--accent);
+  background: rgba(94, 230, 255, 0.16);
+}
+
+.skin-btn canvas { display: block; }
+
+.skin-btn span {
+  display: block;
+  font-size: 9px;
+  line-height: 12px;
+  color: var(--text);
+  opacity: 0.75;
+}
+
 .mode-switch {
   display: flex;
   gap: 8px;

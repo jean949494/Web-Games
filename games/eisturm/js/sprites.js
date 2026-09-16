@@ -13,77 +13,25 @@
   var ET = global.ET = global.ET || {};
   var C = ET.constants;
 
-  // Drei Skin-Familien mit je fünf Varianten. Gleiche Silhouette, aber
-  // eigenes Kopfstück (`head`), Gesicht (`face`) und Farbsatz. `family`
-  // gruppiert sie für die Auswahl, `hair` zeichnet Haar hinter dem Kopf.
+  // Auswählbare Skins. Gleiche Silhouette, aber eigenes Kopfstück
+  // (`head`), Gesicht (`face`) und Farbsatz.
   var CHARACTERS = [
-    // --- Ninja: Kopf komplett vermummt, nur ein Augenschlitz ---
-    { id: 'ninja-shadow', family: 'ninja', name: 'Schatten', skin: '#2b2f3a', shirt: '#343b4a', shirtDark: '#232936',
-      arm: '#2e3542', armDark: '#1e242f', pants: '#1b2029', shoe: '#4a5364', head: 'ninjaBand', face: 'ninjaSlit', cap: '#e63946', capDark: '#a02330' },
-    { id: 'ninja-frost', family: 'ninja', name: 'Frost', skin: '#dfeaf7', shirt: '#e8f2fb', shirtDark: '#bcd0e4',
-      arm: '#d8e6f4', armDark: '#aec4da', pants: '#9fb8d0', shoe: '#6b8299', head: 'ninjaBand', face: 'ninjaSlit', cap: '#5ee6ff', capDark: '#2a9cb8' },
-    { id: 'ninja-jade', family: 'ninja', name: 'Jade', skin: '#20402f', shirt: '#2b5540', shirtDark: '#1b3a2b',
-      arm: '#254a38', armDark: '#163024', pants: '#16281e', shoe: '#3f6b52', head: 'ninjaBand', face: 'ninjaSlit', cap: '#ffd15c', capDark: '#b8891f' },
-    { id: 'ninja-violet', family: 'ninja', name: 'Nachtschatten', skin: '#332b4a', shirt: '#41355e', shirtDark: '#2c2440',
-      arm: '#3a2f54', armDark: '#261f38', pants: '#221c33', shoe: '#5a4a80', head: 'ninjaBand', face: 'ninjaSlit', cap: '#c2b8ff', capDark: '#7a6bb8' },
-    { id: 'ninja-ember', family: 'ninja', name: 'Glut', skin: '#3a2622', shirt: '#4a2f28', shirtDark: '#33201b',
-      arm: '#42291f', armDark: '#2b1a14', pants: '#241713', shoe: '#7a4a33', head: 'ninjaBand', face: 'ninjaSlit', cap: '#ff8a4c', capDark: '#b8521f' },
+    // Kopf komplett vermummt, nur ein schmaler Sehschlitz
+    { id: 'ninja', name: 'Shadow', skin: '#2b2f3a', shirt: '#343b4a', shirtDark: '#232936',
+      arm: '#2e3542', armDark: '#1e242f', pants: '#1b2029', shoe: '#4a5364',
+      head: 'ninjaBand', face: 'ninjaSlit', cap: '#e63946', capDark: '#a02330' },
 
-    // --- Roboter: Visier statt Augen, Antenne ---
-    { id: 'robot-steel', family: 'robot', name: 'Stahl', skin: '#b9c3d1', shirt: '#7e8b9e', shirtDark: '#5c6878',
-      arm: '#8e9aab', armDark: '#66727f', pants: '#4f5a68', shoe: '#39424e', head: 'antenna', face: 'visor', cap: '#5ee6ff', capDark: '#2a9cb8', visor: '#5ee6ff' },
-    { id: 'robot-copper', family: 'robot', name: 'Kupfer', skin: '#d8a074', shirt: '#b87a4a', shirtDark: '#8a5730',
-      arm: '#c2884f', armDark: '#8f5e33', pants: '#6b4426', shoe: '#4a2f1b', head: 'antenna', face: 'visor', cap: '#ffb03a', capDark: '#c2791a', visor: '#ffe66b' },
-    { id: 'robot-medic', family: 'robot', name: 'Sani', skin: '#e8eef4', shirt: '#f4f7fa', shirtDark: '#cbd5df',
-      arm: '#e4ebf2', armDark: '#bfcad6', pants: '#aab8c6', shoe: '#7e8b9e', head: 'antenna', face: 'visor', cap: '#7dffb5', capDark: '#2e9c68', visor: '#7dffb5' },
-    { id: 'robot-battle', family: 'robot', name: 'Kampfbot', skin: '#4a5060', shirt: '#343b4a', shirtDark: '#232936',
-      arm: '#3d4454', armDark: '#262c38', pants: '#1f242e', shoe: '#5a6478', head: 'antenna', face: 'visor', cap: '#ff4f5e', capDark: '#a81f2c', visor: '#ff6b81' },
-    { id: 'robot-gold', family: 'robot', name: 'Prototyp', skin: '#e8cf8a', shirt: '#d4b45c', shirtDark: '#a8892f',
-      arm: '#dcbe6e', armDark: '#ab8c34', pants: '#6b5a2a', shoe: '#4a3f1d', head: 'antenna', face: 'visor', cap: '#c2a8ff', capDark: '#7a5fd0', visor: '#d6b4ff' },
+    { id: 'robot', name: 'Steel', skin: '#b9c3d1', shirt: '#7e8b9e', shirtDark: '#5c6878',
+      arm: '#8e9aab', armDark: '#66727f', pants: '#4f5a68', shoe: '#39424e',
+      head: 'antenna', face: 'visor', cap: '#5ee6ff', capDark: '#2a9cb8' },
 
-    // --- Kletterin: Pferdeschwanz, Stirnband ---
-    { id: 'climber-teal', family: 'climber', name: 'Aylin', skin: '#ffd9a8', shirt: '#1f9ab8', shirtDark: '#15748c',
-      arm: '#1b8aa6', armDark: '#116579', pants: '#2d4a6b', shoe: '#ffe66b', head: 'headband', face: 'lashes', hair: '#3a2a1c', cap: '#ffb03a', capDark: '#c2791a' },
-    { id: 'climber-rose', family: 'climber', name: 'Mira', skin: '#f2c59b', shirt: '#ff6b9a', shirtDark: '#c2416e',
-      arm: '#f05c8e', armDark: '#b03a63', pants: '#3a2b4a', shoe: '#f4f1ea', head: 'headband', face: 'lashes', hair: '#1f1a18', cap: '#ffe66b', capDark: '#c2a01f' },
-    { id: 'climber-violet', family: 'climber', name: 'Suri', skin: '#e8b892', shirt: '#8a6fe0', shirtDark: '#5f45b0',
-      arm: '#7d61d6', armDark: '#543c9c', pants: '#2f2160', shoe: '#ffd15c', head: 'headband', face: 'lashes', hair: '#b8442a', cap: '#5ee6ff', capDark: '#2a9cb8' },
-    { id: 'climber-amber', family: 'climber', name: 'Nala', skin: '#c98a5c', shirt: '#ff9a52', shirtDark: '#c26a2a',
-      arm: '#f08a42', armDark: '#b35c1f', pants: '#4a3320', shoe: '#7dffb5', head: 'headband', face: 'lashes', hair: '#2b1a12', cap: '#7dffb5', capDark: '#2e9c68' },
-    { id: 'climber-frost', family: 'climber', name: 'Eira', skin: '#f7e0cc', shirt: '#bfe9ff', shirtDark: '#8ab8d6',
-      arm: '#aee0f7', armDark: '#7aa8c6', pants: '#5a7a96', shoe: '#f4f1ea', head: 'headband', face: 'lashes', hair: '#e8eef4', cap: '#ff8fa3', capDark: '#c2415c' },
+    { id: 'penguin', name: 'Emperor', skin: '#20242e', shirt: '#2b303c', shirtDark: '#1d222c',
+      arm: '#252a35', armDark: '#181d26', pants: '#20242e', shoe: '#ffb03a',
+      head: 'none', face: 'beak', belly: '#f4f1ea', beak: '#ffb03a' },
 
-    // --- Pinguin: Schnabel, heller Bauch ---
-    { id: 'penguin-emperor', family: 'penguin', name: 'Kaiser', skin: '#20242e', shirt: '#2b303c', shirtDark: '#1d222c',
-      arm: '#252a35', armDark: '#181d26', pants: '#20242e', shoe: '#ffb03a', head: 'none', face: 'beak', belly: '#f4f1ea', beak: '#ffb03a' },
-    { id: 'penguin-king', family: 'penguin', name: 'König', skin: '#2a2f3d', shirt: '#343b4a', shirtDark: '#232936',
-      arm: '#2e3542', armDark: '#1e242f', pants: '#2a2f3d', shoe: '#ff8a4c', head: 'none', face: 'beak', belly: '#ffe9c4', beak: '#ff8a4c' },
-    { id: 'penguin-rock', family: 'penguin', name: 'Felsen', skin: '#23262f', shirt: '#2f333f', shirtDark: '#1f232c',
-      arm: '#282c36', armDark: '#191d25', pants: '#23262f', shoe: '#ffe66b', head: 'tuft', face: 'beak', belly: '#f4f1ea', beak: '#ff6b4a', cap: '#ffe66b', capDark: '#c2a01f' },
-    { id: 'penguin-blue', family: 'penguin', name: 'Zwerg', skin: '#2b3a5a', shirt: '#36496e', shirtDark: '#243250',
-      arm: '#2f4060', armDark: '#1e2a44', pants: '#2b3a5a', shoe: '#9fd8ff', head: 'none', face: 'beak', belly: '#e8f2fb', beak: '#7aa8c6' },
-    { id: 'penguin-candy', family: 'penguin', name: 'Bonbon', skin: '#5a2b47', shirt: '#7a3a5f', shirtDark: '#54283f',
-      arm: '#6b3353', armDark: '#452136', pants: '#5a2b47', shoe: '#ffc2e0', head: 'none', face: 'beak', belly: '#ffe0ef', beak: '#ff8fa3' },
-
-    // --- Magier: Spitzhut und Bart ---
-    { id: 'wizard-violet', family: 'wizard', name: 'Arkan', skin: '#ffd9a8', shirt: '#6b4ec4', shirtDark: '#4c3593',
-      arm: '#5f45b0', armDark: '#3f2c7d', pants: '#2f2160', shoe: '#ffd15c', head: 'hat', face: 'beard', cap: '#8a6fe0', capDark: '#57409e', beard: '#f4f1ea' },
-    { id: 'wizard-frost', family: 'wizard', name: 'Frostbart', skin: '#f2e0cc', shirt: '#4a86b8', shirtDark: '#2f628f',
-      arm: '#3f78a8', armDark: '#275a80', pants: '#1f4a6b', shoe: '#bfe9ff', head: 'hat', face: 'beard', cap: '#9fd8ff', capDark: '#5a8faa', beard: '#dff2ff' },
-    { id: 'wizard-ember', family: 'wizard', name: 'Glutmagier', skin: '#e8b892', shirt: '#b8422a', shirtDark: '#8a2f1c',
-      arm: '#a83a24', armDark: '#7a2716', pants: '#5a2318', shoe: '#ffe66b', head: 'hat', face: 'beard', cap: '#ff8a4c', capDark: '#b8521f', beard: '#ffd9a8' },
-    { id: 'wizard-grove', family: 'wizard', name: 'Hainweiser', skin: '#e0c49c', shirt: '#4a8a4e', shirtDark: '#336638',
-      arm: '#3f7a43', armDark: '#2a5a2e', pants: '#26482a', shoe: '#d2a05e', head: 'hat', face: 'beard', cap: '#8fd46a', capDark: '#4d9636', beard: '#e8f0d8' },
-    { id: 'wizard-void', family: 'wizard', name: 'Leerling', skin: '#c9b8d6', shirt: '#2b2340', shirtDark: '#1b1629',
-      arm: '#251e38', armDark: '#161122', pants: '#141021', shoe: '#6b5fa8', head: 'hat', face: 'beard', cap: '#4a3a7a', capDark: '#2b2148', beard: '#b8a8d6' },
-  ];
-
-  var FAMILIES = [
-    { id: 'ninja', name: 'Ninja' },
-    { id: 'robot', name: 'Roboter' },
-    { id: 'climber', name: 'Kletterin' },
-    { id: 'penguin', name: 'Pinguin' },
-    { id: 'wizard', name: 'Magier' },
+    { id: 'wizard', name: 'Arcane', skin: '#ffd9a8', shirt: '#6b4ec4', shirtDark: '#4c3593',
+      arm: '#5f45b0', armDark: '#3f2c7d', pants: '#2f2160', shoe: '#ffd15c',
+      head: 'hat', face: 'beard', cap: '#8a6fe0', capDark: '#57409e', beard: '#f4f1ea' },
   ];
 
   var charById = {};
@@ -598,10 +546,6 @@
   };
 
   sprites.CHARACTERS = CHARACTERS;
-  sprites.FAMILIES = FAMILIES;
-  sprites.charactersOf = function (familyId) {
-    return CHARACTERS.filter(function (c) { return c.family === familyId; });
-  };
 
   ET.sprites = sprites;
 })(window);

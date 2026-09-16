@@ -60,12 +60,13 @@ Handy nachzujustieren.
 - `index.html` – Markup + Overlay-Screens (Menü, Pause, Game Over)
 - `style.css` – Layout, responsive Skalierung auf 340×480-Referenz
 - `js/constants.js` – Physik, Etagen, Kamera/Scroll, Combo, Neigung
-- `js/settings.js` – gewählte Steuerung (Neigen/Tippen), lokal gespeichert
+- `js/settings.js` – gewählte Steuerung (Neigen/Tippen) und Figur, lokal
+  gespeichert
 - `js/game.js` – Zustandsmaschine, Physik-Loop (fix 60Hz), Rendering,
   Etagen-Kollision, Wandabprall, Combo-Wertung, Auto-Scroll-Kamera
 - `js/input.js` – Neigung (Lenken), Antippen/Halten (Sprunghöhe), Tastatur
-- `js/sprites.js` – Figur (Posen: stehen/laufen/springen/fallen) und
-  Eisplatten, prozedural gezeichnet
+- `js/sprites.js` – die vier Figuren (Shadow/Steel/Emperor/Arcane) mit
+  ihren Posen sowie die Plattformen aller Welten, prozedural gezeichnet
 - `js/trail.js` – Regenbogen-Schweif
 - `js/particles.js` – Landestaub, Wandabprall-Funken
 - `js/sounds.js` – spielspezifische Ton-Sequenzen (aufbauend auf
@@ -131,6 +132,11 @@ Praktisch, um an der Optik zu schrauben, ohne im Spiel danach zu jagen:
 - **Score** = erreichte Etage × `POINTS_PER_FLOOR` + Combo-Punkte. Jede
   zehnte Etage ist farblich hervorgehoben, die Etagennummern stehen am
   linken Rand.
+- **Welten**: alle `FLOOR_THEME_EVERY` (100) Etagen wechselt die
+  Plattform-Optik durch acht Welten mit je eigener Deko – siehe
+  `PLANK_THEMES` und `drawDeco` in `sprites.js`.
+- **Figuren**: vier auswählbare Skins, im Menü umschaltbar und lokal
+  gespeichert.
 - **Verloren** ist, wer komplett unter den sichtbaren Bildausschnitt
   fällt – ohne Puffer, sobald die Figur weg ist, ist die Runde vorbei.
   Es gibt keine andere Verlustbedingung.

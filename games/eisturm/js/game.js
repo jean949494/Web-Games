@@ -43,6 +43,7 @@
   // Dauerspringen ohne jede Eingabe (Touch-Steuerung, siehe settings.js):
   // die Figur hüpft von selbst, gelenkt wird nur links/rechts.
   var autoJump = false;
+  var skinId = null; // von main.js gesetzt, Standard ist der erste Skin
 
   function emitChange(extra) {
     var payload = Object.assign({ state: state, score: currentScore(), best: best || 0 }, extra || {});
@@ -432,7 +433,7 @@
       squash: chr.squash,
       runPhase: chr.runPhase,
       speedFactor: Math.min(1, Math.abs(chr.vx) / C.MAX_RUN_SPEED),
-    });
+    }, skinId);
   }
 
   // Combo-Meldung: ploppt mit Überschwinger auf, wackelt kurz nach,
@@ -594,6 +595,10 @@
 
     jumpStart: jumpStart,
     jumpRelease: jumpRelease,
+
+    setSkin: function (id) {
+      skinId = id;
+    },
 
     // Dauerspringen an/aus (Touch-Steuerung). Greift ab der nächsten
     // Landung bzw. sofort, wenn die Figur gerade steht.

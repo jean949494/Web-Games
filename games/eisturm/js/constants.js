@@ -50,7 +50,9 @@
     JUMP_VY_BASE: -8.4, // Sprung im Stand (kein Schwung), voll gehalten
     JUMP_VY_BONUS: -5.6, // zusätzlich bei voller Laufgeschwindigkeit
     JUMP_CUT_FACTOR: 0.5, // beim Loslassen: Rest-Steiggeschwindigkeit * dieser Faktor
-    JUMP_VY_MIN: -5.0, // Untergrenze nach dem Kappen: ein Tipp reicht immer für ~50px
+    // Untergrenze nach dem Kappen. Muss über einer Etage liegen (~91px bei
+    // FLOOR_SPACING 82), sonst bringt ein kurzer Tipp gar nichts.
+    JUMP_VY_MIN: -6.7,
     // Tempo-Anteil, der maximal in die Sprunghöhe eingeht. Über 1, damit
     // der Extra-Schwung aus einem Wandabprall wirklich höher trägt.
     JUMP_SPEED_FACTOR_MAX: 1.7,
