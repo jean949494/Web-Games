@@ -18,10 +18,26 @@
     <div id="screen-menu" class="screen">
       <div class="title">🧊 Eisturm</div>
       <button id="btn-start" class="btn-primary" aria-label="Start">▶</button>
-      <div class="hint">Neigen zum Laufen &middot; Antippen zum Springen<br />Alternativ: Bildschirmhälfte halten zum Laufen &middot; Richtung Gesicht kippen zum Springen</div>
+      <div id="hint-controls" class="hint"></div>
       <button id="btn-tilt" class="btn-secondary" hidden>📱 Neigungssteuerung erlauben</button>
       <div id="best-score" class="best-score"></div>
+      <button id="btn-settings" class="icon-btn settings-corner" aria-label="Einstellungen">⚙️</button>
       <button id="btn-sound-menu" class="icon-btn sound-corner" aria-label="Sound an/aus">🔊</button>
+    </div>
+
+    <div id="screen-settings" class="screen" hidden>
+      <div class="title small">Steuerung</div>
+      <div class="mode-options">
+        <button id="btn-mode-tilt" class="btn-mode" data-mode="tilt">
+          <div class="btn-mode-title">📱 Neigung</div>
+          <div class="btn-mode-desc">Links/rechts neigen lenkt &middot; Antippen springt</div>
+        </button>
+        <button id="btn-mode-hold" class="btn-mode" data-mode="hold">
+          <div class="btn-mode-title">👆 Halten</div>
+          <div class="btn-mode-desc">Bildschirmhälfte halten lenkt &middot; Richtung Gesicht kippen springt</div>
+        </button>
+      </div>
+      <button id="btn-settings-close" class="btn-secondary">Fertig</button>
     </div>
 
     <div id="screen-pause" class="screen" hidden>
@@ -46,6 +62,7 @@
   <script src="../../shared/analytics.js"></script>
   <script src="../../shared/poki.js"></script>
   <script src="js/constants.js"></script>
+  <script src="js/settings.js"></script>
   <script src="js/sounds.js"></script>
   <script src="js/particles.js"></script>
   <script src="js/game.js"></script>

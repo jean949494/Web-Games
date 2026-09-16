@@ -1,21 +1,18 @@
 /**
- * Steuerung: mehrere Eingabewege, die sich nicht in die Quere kommen.
+ * Steuerung – genau EIN Modus ist aktiv (siehe settings.js), damit sich
+ * Neigung und Halten/Tippen nicht gegenseitig stören:
  *
- *   1. Neigung links/rechts (Gamma-Achse)  -> Lauftempo/-richtung, je
- *      stärker geneigt desto schneller (bis TILT_STEER_MAX_DEG).
- *   2. Kurzes Antippen (ohne nennenswerte Bewegung, < TAP_MAX_MS)
- *      irgendwo auf dem Feld -> Sprung.
- *   3. Alternative zum Testen ohne/gegen die Neigung: linke oder rechte
- *      Bildschirmhälfte HALTEN lässt in die Richtung laufen (wie bei
- *      Kurve Solo) – das startet zwar auch sofort volle Fahrt in diese
- *      Richtung, wird aber erst beim Loslassen als "kein Sprung" gewertet
- *      (nur ein KURZES Antippen löst den Sprung aus, s.o.), stört sich
- *      also nicht mit Punkt 2.
- *   4. Handy Richtung Gesicht kippen (Beta-Achse) -> löst zusätzlich
- *      einen Sprung aus. Praktisch für Testrunde 3, wo Antippen für die
- *      Laufrichtung reserviert ist.
- *   5. Tastatur (Desktop-Test): Pfeiltasten/A-D halten = laufen,
- *      Leertaste/Pfeil-hoch = springen, ESC = Pause.
+ *   TILT-Modus: Neigen links/rechts (Gamma-Achse) lenkt, stufenlos, je
+ *   stärker geneigt desto schneller. Kurzes Antippen irgendwo auf dem
+ *   Feld löst den Sprung aus.
+ *
+ *   HOLD-Modus: linke/rechte Bildschirmhälfte HALTEN lenkt (wie bei
+ *   Kurve Solo). Handy Richtung Gesicht kippen (Beta-Achse) löst den
+ *   Sprung aus.
+ *
+ * Tastatur (Desktop-Test) läuft unabhängig vom Modus immer mit:
+ * Pfeiltasten/A-D halten = laufen, Leertaste/Pfeil-hoch = springen,
+ * ESC = Pause.
  *
  * Die TILT_*-Schwellen in constants.js sind Platzhalter (kein Gyroskop
  * im Entwicklungscontainer verfügbar) – mit `?debug` in der URL zeigt
@@ -27,6 +24,7 @@
 
   var ET = global.ET = global.ET || {};
   var C = ET.constants;
+  var MODES = ET.settings.MODES;
 
   var debugMode = /[?&]debug\b/.test(global.location.search);
 
@@ -39,18 +37,18 @@
       stageEl.appendChild(debugEl);
     }
 
-    // ---------- Touch/Maus: Zone-Halten + kurzes Antippen ----------
+    // ---------- Touch/Maus ----------
+    //
+    // HOLD-Modus: Bildschirmhälfte halten lenkt sofort (kein Sprung über
+    // Antippen, der kommt hier über Neigung Richtung Gesicht).
+    // TILT-Modus: nur ein kurzes, kaum bewegtes Antippen (< TAP_MAX_MS)
+    // löst den Sprung aus, die Laufrichtung kommt ausschließlich über
+    // Neigung. Pointer-Events steuern hier also je nach Modus entweder
+    // NUR die Laufrichtung oder NUR den Sprung, nie beides gleichzeitig.
 
-    // Ein kurzes Antippen (< TAP_MAX_MS, kaum Bewegung) löst NUR den
-    // Sprung aus, ohne die Laufrichtung zu beeinflussen. Erst wenn der
-    // Finger länger liegen bleibt oder deutlich bewegt wird, gilt es als
-    // "Halten" und steuert die Laufrichtung (Zone-Alternative) – so
-    // kommen sich beide Gesten nicht in die Quere.
     var pointerActive = false;
     var downTime = 0;
     var downX = 0, downY = 0;
-    var holding = false;
-    var holdTimer = null;
 
     function sideFactorForClientX(clientX) {
       var rect = stageEl.getBoundingClientRect();
@@ -58,46 +56,36 @@
       return clientX < mid ? -1 : 1;
     }
 
-    function beginHolding(clientX) {
-      holding = true;
-      clearTimeout(holdTimer);
-      ET.game.setSteer(sideFactorForClientX(clientX));
-    }
-
     stageEl.addEventListener('pointerdown', function (e) {
       pointerActive = true;
       downTime = Date.now();
       downX = e.clientX;
       downY = e.clientY;
-      holding = false;
-      var clientXAtDown = e.clientX;
-      clearTimeout(holdTimer);
-      holdTimer = setTimeout(function () {
-        if (pointerActive) beginHolding(clientXAtDown);
-      }, C.TAP_MAX_MS);
+      if (ET.settings.getControlMode() === MODES.HOLD) {
+        ET.game.setSteer(sideFactorForClientX(e.clientX));
+      }
       e.preventDefault();
     });
 
     stageEl.addEventListener('pointermove', function (e) {
       if (!pointerActive) return;
-      var dx = e.clientX - downX;
-      var dy = e.clientY - downY;
-      if (!holding && Math.sqrt(dx * dx + dy * dy) > C.TAP_MOVE_THRESHOLD_PX) {
-        beginHolding(e.clientX);
+      if (ET.settings.getControlMode() === MODES.HOLD) {
+        ET.game.setSteer(sideFactorForClientX(e.clientX));
       }
-      if (holding) ET.game.setSteer(sideFactorForClientX(e.clientX));
     });
 
     function release(e, allowTap) {
       if (!pointerActive) return;
       pointerActive = false;
-      clearTimeout(holdTimer);
-      if (holding) {
+      var mode = ET.settings.getControlMode();
+      if (mode === MODES.HOLD) {
         ET.game.setSteer(0);
-      } else if (allowTap && Date.now() - downTime < C.TAP_MAX_MS) {
-        ET.game.jump();
+      } else if (mode === MODES.TILT && allowTap) {
+        var dx = e ? e.clientX - downX : 0;
+        var dy = e ? e.clientY - downY : 0;
+        var moved = Math.sqrt(dx * dx + dy * dy) > C.TAP_MOVE_THRESHOLD_PX;
+        if (!moved && Date.now() - downTime < C.TAP_MAX_MS) ET.game.jump();
       }
-      holding = false;
       if (e) e.preventDefault();
     }
 
@@ -174,23 +162,28 @@
         return;
       }
 
+      var mode = ET.settings.getControlMode();
       var dGamma = angleDelta(e.gamma, baseGamma);
       var dBeta = angleDelta(e.beta, baseBeta);
 
-      var steer = Math.max(-1, Math.min(1, dGamma / C.TILT_STEER_MAX_DEG));
-      ET.game.setSteer(steer);
+      if (mode === MODES.TILT) {
+        var steer = Math.max(-1, Math.min(1, dGamma / C.TILT_STEER_MAX_DEG));
+        ET.game.setSteer(steer);
+      }
 
-      var jumpSignal = C.TILT_JUMP_SIGN * dBeta;
-      if (jumpArmed && jumpSignal > C.TILT_JUMP_TRIGGER_DEG) {
-        jumpArmed = false;
-        ET.game.jump();
-      } else if (!jumpArmed && jumpSignal < C.TILT_JUMP_REARM_DEG) {
-        jumpArmed = true;
+      if (mode === MODES.HOLD) {
+        var jumpSignal = C.TILT_JUMP_SIGN * dBeta;
+        if (jumpArmed && jumpSignal > C.TILT_JUMP_TRIGGER_DEG) {
+          jumpArmed = false;
+          ET.game.jump();
+        } else if (!jumpArmed && jumpSignal < C.TILT_JUMP_REARM_DEG) {
+          jumpArmed = true;
+        }
       }
 
       if (debugEl) {
-        debugEl.textContent = 'γΔ ' + dGamma.toFixed(0) + '°  βΔ ' + dBeta.toFixed(0) + '°'
-          + (jumpArmed ? '' : '  (springt gleich)');
+        debugEl.textContent = 'Modus: ' + mode + '  γΔ ' + dGamma.toFixed(0) + '°  βΔ ' + dBeta.toFixed(0) + '°'
+          + (mode === MODES.HOLD && !jumpArmed ? '  (springt gleich)' : '');
       }
     }
 
