@@ -14,6 +14,10 @@ HTML/CSS/JavaScript.
 - [`games/team-duell`](games/team-duell/) – 3 gegen 3 mit Schutzmauer:
   Wasserkanone (blockierbar) vs. Superwurf (über die Mauer), Teammates
   per Kommando steuern
+- [`games/eisturm`](games/eisturm/) – Icy-Tower-Etagen erklimmen:
+  Handy neigen zum Laufen (je stärker, desto schneller), antippen zum
+  Springen. Schnellerer Anlauf = höherer Sprung, mehrere Etagen auf
+  einmal geben Combo-Bonus
 
 ## Loslegen
 
