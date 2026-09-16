@@ -100,7 +100,10 @@ Praktisch, um an der Optik zu schrauben, ohne im Spiel danach zu jagen:
   `JUMP_VY_MIN`, damit ein kurzer Tipp nie völlig ins Leere geht).
 - **Wandabprall**: an den Seitenwänden kommt man mit `WALL_BOUNCE` (1.55,
   also deutlich schneller als man ankam) zurück, gedeckelt durch
-  `WALL_BOUNCE_MAX`. Für `WALL_LOCK_MS` ignoriert die Figur dabei die
+  `WALL_BOUNCE_MAX` – aber nur, wenn man aktiv hineinläuft. Ohne Eingabe
+  schluckt der Abprall Energie (`WALL_BOUNCE_IDLE`) und der Überschuss
+  rollt schneller aus (`OVERSPEED_FRICTION_IDLE`); sonst prallt eine
+  unbediente Figur endlos zwischen den Wänden hin und her. Für `WALL_LOCK_MS` ignoriert die Figur dabei die
   Steuerung – sonst würde die weiterhin gehaltene Richtung sie sofort
   wieder in die Wand ziehen und der Abpraller verpuffen. Solange das
   Tempo über dem normalen Lauftempo liegt, hat der Schwung generell

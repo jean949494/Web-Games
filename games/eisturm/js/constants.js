@@ -64,10 +64,17 @@
     // Lauftempo hinaus baut sich nur langsam ab (OVERSPEED_FRICTION) und
     // gibt so auch höhere Sprünge – Combos gibt es nur aus diesem Zustand.
     WALL_BOUNCE: 1.55,
+    // Ohne Eingabe verliert der Abprall Energie, statt den Schwung erneut
+    // aufzuladen – sonst prallt eine unbediente Figur endlos zwischen den
+    // Wänden hin und her und ist nicht mehr einzufangen.
+    WALL_BOUNCE_IDLE: 0.55,
     WALL_BOUNCE_MIN_SPEED: 0.8, // darunter einfach stoppen statt abprallen
     WALL_BOUNCE_MAX: 8.5, // Deckel, damit es sich nicht endlos aufschaukelt
     WALL_LOCK_MS: 380,
     OVERSPEED_FRICTION: 0.022, // px/frame², so langsam verliert sich der Dash-Schwung
+    // ... aber nur, solange man ihn auch nutzt. Ohne Eingabe rollt er
+    // deutlich schneller aus.
+    OVERSPEED_FRICTION_IDLE: 0.14,
     // Hält man nach dem Abprall noch in die alte Richtung geneigt (was
     // fast immer passiert, man kam ja gerade von dort), würde normales
     // Gegenlenk-Bremsen den Dash in ~130ms abwürgen – schneller als man
@@ -95,8 +102,10 @@
     FLOOR_THICK: 6,
     PLANK_WIDTH_START: 150,
     PLANK_WIDTH_TARGET: 66, // > 2*CHAR_R + Puffer, sonst kaum noch zu treffen
-    PLANK_RAMP_START_FLOOR: 8,
-    PLANK_RAMP_FLOORS: 70, // über so viele Etagen von START auf TARGET
+    PLANK_RAMP_START_FLOOR: 10,
+    // Über die ganze Welten-Reihe hinweg schmaler werden, nicht schon nach
+    // 80 Etagen am Minimum sein.
+    PLANK_RAMP_FLOORS: 900,
     FLOOR_MARK_EVERY: 10, // jede zehnte Etage wird hervorgehoben (wie im Original)
     FLOOR_THEME_EVERY: 100, // alle 100 Etagen wechselt die Optik der Plattformen
 

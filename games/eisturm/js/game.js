@@ -237,7 +237,10 @@
       return;
     }
     var impact = Math.min(1, Math.abs(chr.vx) / C.MAX_RUN_SPEED);
-    var speed = Math.min(C.WALL_BOUNCE_MAX, Math.abs(chr.vx) * C.WALL_BOUNCE);
+    // Nur wer aktiv in die Wand läuft, bekommt Schwung zurück. Ohne
+    // Eingabe schluckt der Abprall Energie.
+    var factor = steerFactor === 0 ? C.WALL_BOUNCE_IDLE : C.WALL_BOUNCE;
+    var speed = Math.min(C.WALL_BOUNCE_MAX, Math.abs(chr.vx) * factor);
     chr.vx = -dir * speed;
     chr.wallLockMs = C.WALL_LOCK_MS;
     chr.wallBoostMs = C.WALL_BOOST_MS;
@@ -330,7 +333,10 @@
         chr.dashBraking = true;
         return;
       }
-      chr.vx -= (chr.vx > 0 ? 1 : -1) * (gegen ? C.BOOST_COUNTER_BRAKE : C.OVERSPEED_FRICTION);
+      var friction = C.OVERSPEED_FRICTION;
+      if (gegen) friction = C.BOOST_COUNTER_BRAKE;
+      else if (wantDir === 0) friction = C.OVERSPEED_FRICTION_IDLE; // niemand lenkt -> ausrollen
+      chr.vx -= (chr.vx > 0 ? 1 : -1) * friction;
       return;
     }
 
