@@ -19,16 +19,21 @@
       SG.audio.tone(200, 60, { type: 'sine', slideTo: 140, gain: 0.09 });
     },
 
+    // Kurzes "Ping" beim Abprallen an der Seitenwand.
+    playWall: function () {
+      SG.audio.tone(520, 55, { type: 'square', slideTo: 760, gain: 0.07 });
+    },
+
     // Combo-Fanfare: mehr Töne bei höherer Combo.
     playCombo: function (comboCount) {
-      var notes = [660, 880, 1100, 1320];
-      var count = Math.min(notes.length, comboCount);
+      var notes = [660, 880, 1100, 1320, 1560, 1760];
+      var count = Math.max(2, Math.min(notes.length, comboCount));
       var delay = 0;
       for (var i = 0; i < count; i++) {
         (function (freq) {
           setTimeout(function () { SG.audio.tone(freq, 90, { type: 'triangle', gain: 0.1 }); }, delay);
         })(notes[i]);
-        delay += 70;
+        delay += 65;
       }
     },
   };

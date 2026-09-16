@@ -1,5 +1,5 @@
 /**
- * Staubpartikel bei Landung.
+ * Staubpartikel bei Landung, Funken beim Wandabprall.
  */
 (function (global) {
   'use strict';
@@ -27,6 +27,24 @@
           decay: 0.04 + Math.random() * 0.03,
           size: 1.4 + Math.random() * 1.6,
           color: '#d8d2c4',
+        });
+      }
+    },
+
+    // dirX: Richtung, in die die Funken wegfliegen (weg von der Wand)
+    spawnWallSpark: function (x, y, dirX) {
+      for (var i = 0; i < 6; i++) {
+        var spread = (Math.random() - 0.5) * 1.6;
+        var speed = 1.2 + Math.random() * 1.8;
+        list.push({
+          x: x,
+          y: y,
+          vx: dirX * speed,
+          vy: spread,
+          life: 1,
+          decay: 0.06 + Math.random() * 0.03,
+          size: 1.5 + Math.random() * 1.3,
+          color: '#5ee6ff',
         });
       }
     },

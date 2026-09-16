@@ -1,18 +1,15 @@
 /**
- * Steuerung – genau EIN Modus ist aktiv (siehe settings.js), damit sich
- * Neigung und Halten/Tippen nicht gegenseitig stören:
+ * Steuerung:
  *
- *   TILT-Modus: Neigen links/rechts (Gamma-Achse) lenkt, stufenlos, je
- *   stärker geneigt desto schneller. Antippen (egal wo auf dem Feld,
- *   ohne Zeit-/Bewegungs-Schwellwert) löst sofort den Sprung aus.
+ *   - Handy links/rechts neigen (Gamma-Achse) -> laufen, stufenlos, je
+ *     stärker geneigt desto schneller (bis TILT_STEER_MAX_DEG).
+ *   - Antippen (egal wo auf dem Feld) -> springen. Je länger gedrückt
+ *     gehalten wird, desto höher der Sprung: das Loslassen kappt einen
+ *     noch steigenden Sprung (siehe game.js jumpRelease).
  *
- *   HOLD-Modus: linke/rechte Bildschirmhälfte HALTEN lenkt (wie bei
- *   Kurve Solo). Handy Richtung Gesicht kippen (Beta-Achse) löst den
- *   Sprung aus.
- *
- * Tastatur (Desktop-Test) läuft unabhängig vom Modus immer mit:
- * Pfeiltasten/A-D halten = laufen, Leertaste/Pfeil-hoch = springen,
- * ESC = Pause.
+ * Tastatur läuft als PC-Test-Fallback immer mit: Pfeiltasten/A-D halten
+ * = laufen, Leertaste/Pfeil-hoch halten = springen (Höhe wie beim
+ * Antippen über die Haltedauer), ESC = Pause.
  *
  * Die TILT_*-Schwellen in constants.js sind Platzhalter (kein Gyroskop
  * im Entwicklungscontainer verfügbar) – mit `?debug` in der URL zeigt
@@ -24,7 +21,6 @@
 
   var ET = global.ET = global.ET || {};
   var C = ET.constants;
-  var MODES = ET.settings.MODES;
 
   var debugMode = /[?&]debug\b/.test(global.location.search);
 
@@ -37,48 +33,20 @@
       stageEl.appendChild(debugEl);
     }
 
-    // ---------- Touch/Maus ----------
-    //
-    // Die beiden Modi nutzen Pointer-Events für komplett unterschiedliche,
-    // sich nie überschneidende Dinge:
-    //   HOLD-Modus: Bildschirmhälfte halten lenkt sofort (Sprung kommt
-    //   hier über Neigung Richtung Gesicht, nicht über Antippen).
-    //   TILT-Modus: JEDES Antippen löst sofort einen Sprung aus, egal wo
-    //   und wie – die Laufrichtung kommt hier ausschließlich über
-    //   Neigung, es gibt also nichts, womit sich ein Tap in die Quere
-    //   kommen könnte (kein Zeit-/Bewegungs-Schwellwert nötig).
+    // ---------- Touch/Maus: Antippen = springen ----------
 
     var pointerActive = false;
 
-    function sideFactorForClientX(clientX) {
-      var rect = stageEl.getBoundingClientRect();
-      var mid = rect.left + rect.width / 2;
-      return clientX < mid ? -1 : 1;
-    }
-
     stageEl.addEventListener('pointerdown', function (e) {
       pointerActive = true;
-      if (ET.settings.getControlMode() === MODES.HOLD) {
-        ET.game.setSteer(sideFactorForClientX(e.clientX));
-      } else {
-        ET.game.jump();
-      }
+      ET.game.jumpStart();
       e.preventDefault();
-    });
-
-    stageEl.addEventListener('pointermove', function (e) {
-      if (!pointerActive) return;
-      if (ET.settings.getControlMode() === MODES.HOLD) {
-        ET.game.setSteer(sideFactorForClientX(e.clientX));
-      }
     });
 
     function release(e) {
       if (!pointerActive) return;
       pointerActive = false;
-      if (ET.settings.getControlMode() === MODES.HOLD) {
-        ET.game.setSteer(0);
-      }
+      ET.game.jumpRelease(); // Loslassen kappt den Sprung -> Höhe über Haltedauer
       if (e) e.preventDefault();
     }
 
@@ -106,7 +74,7 @@
         ET.game.setSteer(keyFactor());
         e.preventDefault();
       } else if (e.code === 'Space' || e.code === 'ArrowUp') {
-        if (!e.repeat) ET.game.jump();
+        if (!e.repeat) ET.game.jumpStart();
         e.preventDefault();
       } else if (e.code === 'Escape') {
         ET.game.togglePause();
@@ -122,6 +90,9 @@
         keyRight = false;
         ET.game.setSteer(keyFactor());
         e.preventDefault();
+      } else if (e.code === 'Space' || e.code === 'ArrowUp') {
+        ET.game.jumpRelease();
+        e.preventDefault();
       }
     });
 
@@ -130,14 +101,14 @@
       keyLeft = false;
       keyRight = false;
       ET.game.setSteer(0);
+      ET.game.jumpRelease();
     });
 
     // ---------- Neigung (Gyroskop) ----------
 
     var tiltActive = false;
     var needsCalibration = true;
-    var baseGamma = 0, baseBeta = 0;
-    var jumpArmed = true;
+    var baseGamma = 0;
 
     function angleDelta(a, b) {
       var d = a - b;
@@ -147,36 +118,19 @@
     }
 
     function onOrientation(e) {
-      if (e.gamma == null || e.beta == null) return;
+      if (e.gamma == null) return;
       if (needsCalibration) {
         baseGamma = e.gamma;
-        baseBeta = e.beta;
         needsCalibration = false;
         return;
       }
 
-      var mode = ET.settings.getControlMode();
       var dGamma = angleDelta(e.gamma, baseGamma);
-      var dBeta = angleDelta(e.beta, baseBeta);
-
-      if (mode === MODES.TILT) {
-        var steer = Math.max(-1, Math.min(1, dGamma / C.TILT_STEER_MAX_DEG));
-        ET.game.setSteer(steer);
-      }
-
-      if (mode === MODES.HOLD) {
-        var jumpSignal = C.TILT_JUMP_SIGN * dBeta;
-        if (jumpArmed && jumpSignal > C.TILT_JUMP_TRIGGER_DEG) {
-          jumpArmed = false;
-          ET.game.jump();
-        } else if (!jumpArmed && jumpSignal < C.TILT_JUMP_REARM_DEG) {
-          jumpArmed = true;
-        }
-      }
+      var steer = Math.max(-1, Math.min(1, dGamma / C.TILT_STEER_MAX_DEG));
+      ET.game.setSteer(steer);
 
       if (debugEl) {
-        debugEl.textContent = 'Modus: ' + mode + '  γΔ ' + dGamma.toFixed(0) + '°  βΔ ' + dBeta.toFixed(0) + '°'
-          + (mode === MODES.HOLD && !jumpArmed ? '  (springt gleich)' : '');
+        debugEl.textContent = 'γΔ ' + dGamma.toFixed(1) + '°  Lenkung ' + steer.toFixed(2);
       }
     }
 
@@ -214,11 +168,9 @@
     ET.game.onChange(function (payload) {
       if (payload.state === ET.game.STATES.PLAYING) {
         needsCalibration = true;
-        jumpArmed = true;
       }
     });
 
-    ET.input = ET.input || {};
     ET.input.needsIosTiltPermission = needsIosPermission;
     ET.input.requestTiltPermission = requestTiltPermission;
   }

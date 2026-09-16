@@ -1,22 +1,22 @@
 /**
  * Eisturm – Spiellogik & Rendering.
  *
- * Icy-Tower-Mechanik: Etagen (schmale Plattformen, nicht die volle
- * Breite) erklimmen, Anlauftempo bestimmt Sprunghöhe/-weite, "Combo"
- * fürs Überspringen mehrerer Etagen in einem einzigen Sprung. Neu
- * (statt Tastatur/Timing) ist die Steuerung per Neigung/Tippen/Halten –
- * siehe input.js. Diese Datei kennt nur zwei Eingaben: setSteer(-1..1)
- * (stufenlose Laufrichtung/-tempo) und jump() (löst einen Sprung aus,
- * wenn gerade auf einer Etage gestanden wird).
+ * Icy-Tower-Mechanik:
+ *  - Etagen sind schmale Plattformen, von unten immer durchspringbar
+ *    (kein Anstoßen). Beim Fallen fängt einen nur auf, wer über der
+ *    Plattform steht – sonst geht es weiter nach unten.
+ *  - Die Sprunghöhe kommt aus Anlauftempo UND Haltedauer: losgelassen
+ *    wird ein noch steigender Sprung gekappt (kurz tippen = kleiner
+ *    Hüpfer, halten = voller Satz).
+ *  - An den Seitenwänden prallt man mit fast vollem Schwung ab; die
+ *    Steuerung ist dabei kurz gesperrt, damit der Abpraller auch wirkt.
+ *  - Mehrere Etagen in einem Sprung starten eine Combo-Serie mit
+ *    Zeitfenster und Multiplikator.
+ *  - Der Bildausschnitt wandert nach kurzer Schonfrist von selbst nach
+ *    oben und wird dabei immer schneller. Wer stehen bleibt oder zu tief
+ *    zurückfällt, fällt unten raus – das ist die einzige Verlustbedingung.
  *
- * Kollisionsmodell: Etagen sind "Von-unten-durchspringbare" Plattformen
- * (wie bei Doodle Jump) – beim Steigen nie ein Hindernis, ganz gleich wo
- * man gerade ist. Beim Fallen wird man von der Plattform aufgefangen,
- * sobald man über ihr steht; steht man daneben, fällt man einfach weiter
- * zur nächsten Etage darunter. Verliert man dabei zu viel Höhe
- * gegenüber der (nur nach oben mitlaufenden) Kamera, ist die Runde vorbei
- * – wie im Original, wo der sichtbare Ausschnitt nach oben wandert und
- * man nicht zurückfallen darf.
+ * Eingaben von input.js: setSteer(-1..1), jumpStart(), jumpRelease().
  */
 (function (global) {
   'use strict';
@@ -34,7 +34,8 @@
   var state = STATES.MENU;
   var changeListeners = [];
 
-  var chr, camera, floors, nextFloorY, floorSeq, score, best, bonusScore, jumpFromSeq, flashes, accMs, lastTs, rafId;
+  var chr, camera, floors, nextFloorY, floorSeq, best, comboPoints, combo, flashes;
+  var accMs, lastTs, rafId;
   var steerFactor = 0; // -1..1, von input.js gesetzt (Neigung, Zone-Halten oder Tastatur)
 
   function emitChange(extra) {
@@ -44,17 +45,23 @@
     });
   }
 
-  function heightClimbed() {
-    return Math.max(0, chr.startY - chr.y);
-  }
-
   function currentScore() {
-    return Math.floor((chr ? chr.maxHeight : 0) + (bonusScore || 0));
+    if (!chr) return 0;
+    return chr.maxFloor * C.POINTS_PER_FLOOR + comboPoints;
   }
 
-  // Ist x (mit Radius r) über der Plattform dieser Etage? Nur das
-  // entscheidet, ob man beim Fallen darauf landet. Die Boden-Etage ist
-  // immer volle Breite (plankWidth = CANVAS_W), also immer "true".
+  // Oberkante der Plattform – darauf steht die Figur (Fußpunkt), nicht
+  // auf der Mittellinie der gezeichneten Leiste.
+  function floorTopY(floor) {
+    return floor.y - C.FLOOR_THICK / 2;
+  }
+
+  function restY(floor) {
+    return floorTopY(floor) - C.CHAR_R;
+  }
+
+  // Steht x (mit Radius r) über der Plattform dieser Etage? Nur das
+  // entscheidet, ob man beim Fallen aufgefangen wird.
   function onPlank(floor, x, r) {
     return x + r > floor.plankX && x - r < floor.plankX + floor.plankWidth;
   }
@@ -65,23 +72,24 @@
 
     chr = {
       x: C.CANVAS_W / 2,
-      y: groundY - C.CHAR_R,
+      y: restY(groundFloor),
       vx: 0,
       vy: 0,
       grounded: true,
       floor: groundFloor,
       facing: 1,
       squash: 0,
-      startY: groundY - C.CHAR_R, // = chr.y beim Start, sonst würde die Höhe/Score schon mit CHAR_R starten
-      maxHeight: 0,
+      jumpHeld: false,
+      jumpFromSeq: 0,
+      wallLockMs: 0,
+      maxFloor: 0,
     };
-    camera = { y: 0 };
+    camera = { y: 0, scrolling: false, ageMs: 0 };
     floors = [groundFloor];
     floorSeq = 0;
     nextFloorY = groundY - (C.FLOOR_SPACING + Math.random() * C.FLOOR_SPACING_JITTER);
-    score = 0;
-    bonusScore = 0;
-    jumpFromSeq = 0;
+    comboPoints = 0;
+    combo = { floors: 0, timerMs: 0 };
     flashes = [];
     steerFactor = 0;
     ET.particles.reset();
@@ -91,17 +99,17 @@
   function ensureFloorsAhead() {
     var horizon = camera.y - C.CANVAS_H * 2.2;
     while (nextFloorY > horizon) {
-      var plankWidth = C.plankWidthAt(heightClimbed());
+      floorSeq++;
+      var plankWidth = C.plankWidthAt(floorSeq);
       var margin = C.EDGE_MARGIN;
       var plankX = margin + Math.random() * Math.max(10, C.CANVAS_W - margin * 2 - plankWidth);
-      floorSeq++;
       floors.push({ y: nextFloorY, plankX: plankX, plankWidth: plankWidth, seq: floorSeq });
       nextFloorY -= C.FLOOR_SPACING + (Math.random() * C.FLOOR_SPACING_JITTER * 2 - C.FLOOR_SPACING_JITTER);
     }
   }
 
   function pruneOldFloors() {
-    while (floors.length && !floors[0].isGround && floors[0].y - camera.y > C.CANVAS_H + C.PRUNE_MARGIN) {
+    while (floors.length > 1 && floors[0].y - camera.y > C.CANVAS_H + C.PRUNE_MARGIN) {
       floors.shift();
     }
   }
@@ -110,79 +118,150 @@
     if (state !== STATES.PLAYING) return;
     state = STATES.GAMEOVER;
     var finalScore = currentScore();
-    score = finalScore;
     var isNewBest = SG.storage.setBest(ET.GAME_ID, finalScore);
     best = SG.storage.getBest(ET.GAME_ID);
     SG.audio.playGameOver();
     SG.poki.gameplayStop();
-    SG.analytics.track('game_over', { reason: reason, score: finalScore, best: best, newBest: isNewBest });
-    emitChange({ reason: reason, newBest: isNewBest });
+    SG.analytics.track('game_over', { reason: reason, score: finalScore, floor: chr.maxFloor, best: best, newBest: isNewBest });
+    emitChange({ reason: reason, newBest: isNewBest, floor: chr.maxFloor });
   }
 
-  function doJump() {
+  // ---------- Eingaben ----------
+
+  function jumpStart() {
     if (state !== STATES.PLAYING) return;
     if (!chr.grounded) return;
     var speedFactor = Math.min(1, Math.abs(chr.vx) / C.MAX_RUN_SPEED);
-    jumpFromSeq = chr.floor.seq;
+    chr.jumpFromSeq = chr.floor.seq;
     chr.grounded = false;
     chr.floor = null;
+    chr.jumpHeld = true;
     chr.vy = C.JUMP_VY_BASE + C.JUMP_VY_BONUS * speedFactor;
     SG.audio.unlock();
     ET.sounds.playJump(speedFactor);
     SG.analytics.track('jump', { speedFactor: Math.round(speedFactor * 100) / 100 });
   }
 
-  function onLand(floor) {
-    var comboCount = Math.max(0, floor.seq - jumpFromSeq - 1);
-    chr.grounded = true;
-    chr.floor = floor;
-    chr.vy = 0;
-    chr.squash = C.SQUASH_LAND;
-    ET.particles.spawnLandDust(chr.x, floor.y);
-    ET.sounds.playLand();
-    if (comboCount >= C.COMBO_MIN_FOR_BONUS) {
-      bonusScore += comboCount * C.COMBO_BONUS_PER_FLOOR;
-      flashes.push({ x: chr.x, y: floor.y, life: 1, text: (comboCount + 1) + ' Etagen!' });
-      ET.sounds.playCombo(comboCount);
-      SG.analytics.track('combo', { floors: comboCount });
+  // Loslassen kappt einen noch steigenden Sprung – daraus entsteht die
+  // Höhensteuerung über die Haltedauer. JUMP_VY_MIN sorgt dafür, dass
+  // auch ein ganz kurzer Tipp noch ein brauchbarer Hüpfer bleibt.
+  function jumpRelease() {
+    if (!chr || !chr.jumpHeld) return;
+    chr.jumpHeld = false;
+    if (chr.vy < C.JUMP_VY_MIN) {
+      chr.vy = Math.min(chr.vy * C.JUMP_CUT_FACTOR, C.JUMP_VY_MIN);
     }
   }
 
-  // Nur beim Fallen relevant: Etagen sind von unten immer durchspringbar
-  // (wie bei Doodle Jump), man kann beim Steigen also nie "anstoßen".
-  // Steht man beim Fallen über der Plattform, wird man aufgefangen,
-  // sonst fällt man einfach weiter zur nächsten Etage darunter.
+  // ---------- Physik ----------
+
+  function onLand(floor) {
+    var skipped = Math.max(0, floor.seq - chr.jumpFromSeq - 1);
+    chr.grounded = true;
+    chr.floor = floor;
+    chr.jumpHeld = false;
+    chr.vy = 0;
+    chr.y = restY(floor);
+    chr.squash = C.SQUASH_LAND;
+    ET.particles.spawnLandDust(chr.x, floorTopY(floor));
+    ET.sounds.playLand();
+
+    if (floor.seq > chr.maxFloor) chr.maxFloor = floor.seq;
+
+    if (skipped >= C.COMBO_MIN_FLOORS) {
+      combo.floors += skipped;
+      combo.timerMs = C.COMBO_WINDOW_MS;
+      var mult = 1 + Math.floor(combo.floors / C.COMBO_FLOORS_PER_MULT);
+      comboPoints += skipped * C.COMBO_POINTS_PER_FLOOR * mult;
+      var label = C.comboLabelFor(skipped);
+      flashes.push({
+        x: chr.x,
+        y: floorTopY(floor),
+        life: 1,
+        text: label.text,
+        sub: skipped + ' Etagen' + (mult > 1 ? '  ×' + mult : ''),
+        color: label.color,
+        size: label.size,
+      });
+      ET.sounds.playCombo(skipped);
+      SG.analytics.track('combo', { floors: skipped, serie: combo.floors, mult: mult });
+    }
+  }
+
+  function hitWall(dir) {
+    // dir: -1 = linke Wand, +1 = rechte Wand
+    if (Math.abs(chr.vx) < C.WALL_BOUNCE_MIN_SPEED) {
+      chr.vx = 0;
+      return;
+    }
+    chr.vx = -dir * Math.abs(chr.vx) * C.WALL_BOUNCE;
+    chr.wallLockMs = C.WALL_LOCK_MS;
+    chr.squash = C.SQUASH_WALL;
+    ET.particles.spawnWallSpark(chr.x, chr.y, -dir);
+    ET.sounds.playWall();
+  }
+
+  // Nur beim Fallen relevant: Etagen sind von unten immer durchspringbar.
+  // Geprüft wird der Fußpunkt gegen die Plattform-Oberkante, damit die
+  // Figur sauber obendrauf steht statt in der Leiste zu stecken.
   function handleFloorCrossing(prevY) {
-    var newY = chr.y;
-    if (chr.vy <= 0) return; // nur beim Fallen (vy>0), Steigen ist immer frei
+    if (chr.vy <= 0) return;
+    var prevFoot = prevY + C.CHAR_R;
+    var newFoot = chr.y + C.CHAR_R;
 
     for (var i = 0; i < floors.length; i++) {
       var floor = floors[i];
-      if (prevY < floor.y && newY >= floor.y && onPlank(floor, chr.x, C.CHAR_R)) {
+      var top = floorTopY(floor);
+      if (prevFoot <= top && newFoot >= top && onPlank(floor, chr.x, C.CHAR_R)) {
         onLand(floor);
         return;
       }
     }
   }
 
-  function updatePhysics() {
+  function updateCamera() {
+    // Nach der Schonfrist wandert der Ausschnitt von selbst nach oben und
+    // wird mit der Höhe schneller – der eigentliche Zeitdruck im Spiel.
+    camera.ageMs += STEP_MS;
+    if (!camera.scrolling && (chr.maxFloor >= C.SCROLL_START_FLOOR || camera.ageMs >= C.SCROLL_START_MS)) {
+      camera.scrolling = true;
+    }
+    if (camera.scrolling) camera.y -= C.scrollSpeedAt(chr.maxFloor);
+
+    // Nur nach oben und dabei weich nachziehen, damit ein hoher Sprung
+    // die Kamera nicht komplett mitreißt.
     var targetCamY = chr.y - C.CANVAS_H * C.CAMERA_FOLLOW_RATIO;
-    if (targetCamY < camera.y) camera.y = targetCamY;
+    if (targetCamY < camera.y) camera.y += (targetCamY - camera.y) * C.CAMERA_FOLLOW_LERP;
 
-    chr.maxHeight = Math.max(chr.maxHeight, heightClimbed());
-    ensureFloorsAhead();
+    // Sicherheitsnetz: nie aus dem oberen Bildrand herausklettern.
+    if (chr.y - camera.y < C.CAMERA_MAX_TOP) camera.y = chr.y - C.CAMERA_MAX_TOP;
+  }
 
+  function updateSteering() {
+    if (chr.wallLockMs > 0) {
+      chr.wallLockMs -= STEP_MS;
+      return; // Abprall wirkt, Steuerung greift gleich wieder
+    }
     var targetVx = steerFactor * C.MAX_RUN_SPEED;
-    if (chr.vx < targetVx) chr.vx = Math.min(targetVx, chr.vx + C.RUN_ACCEL);
-    else if (chr.vx > targetVx) chr.vx = Math.max(targetVx, chr.vx - C.RUN_ACCEL);
+    // Gegenlenken beschleunigt stärker als weiter Gas geben -> wendiger
+    var accel = (targetVx * chr.vx < 0) ? C.RUN_ACCEL_TURN : C.RUN_ACCEL;
+    if (chr.vx < targetVx) chr.vx = Math.min(targetVx, chr.vx + accel);
+    else if (chr.vx > targetVx) chr.vx = Math.max(targetVx, chr.vx - accel);
+  }
+
+  function updatePhysics() {
+    updateCamera();
+    ensureFloorsAhead();
+    updateSteering();
+
     if (chr.vx > 0.05) chr.facing = 1;
     else if (chr.vx < -0.05) chr.facing = -1;
 
     chr.x += chr.vx;
     var minX = C.EDGE_MARGIN + C.CHAR_R;
     var maxX = C.CANVAS_W - C.EDGE_MARGIN - C.CHAR_R;
-    if (chr.x < minX) { chr.x = minX; chr.vx = 0; }
-    if (chr.x > maxX) { chr.x = maxX; chr.vx = 0; }
+    if (chr.x < minX) { chr.x = minX; hitWall(-1); }
+    else if (chr.x > maxX) { chr.x = maxX; hitWall(1); }
 
     if (chr.grounded) {
       if (chr.floor && !onPlank(chr.floor, chr.x, C.CHAR_R)) {
@@ -196,6 +275,14 @@
       handleFloorCrossing(prevY);
     }
 
+    if (combo.timerMs > 0) {
+      combo.timerMs -= STEP_MS;
+      if (combo.timerMs <= 0) {
+        combo.timerMs = 0;
+        combo.floors = 0;
+      }
+    }
+
     if (chr.squash !== 0) {
       if (chr.squash > 0) chr.squash = Math.max(0, chr.squash - C.SQUASH_DECAY);
       else chr.squash = Math.min(0, chr.squash + C.SQUASH_DECAY);
@@ -204,8 +291,8 @@
     ET.particles.update();
 
     for (var f = flashes.length - 1; f >= 0; f--) {
-      flashes[f].life -= 0.018;
-      flashes[f].y -= 0.4;
+      flashes[f].life -= 0.015;
+      flashes[f].y -= 0.5;
       if (flashes[f].life <= 0) flashes.splice(f, 1);
     }
 
@@ -220,13 +307,13 @@
   // ---------- Rendering ----------
 
   function draw() {
-    ctx.clearRect(0, 0, C.CANVAS_W, C.CANVAS_H);
-
     var grad = ctx.createLinearGradient(0, 0, 0, C.CANVAS_H);
     grad.addColorStop(0, '#1c2f45');
     grad.addColorStop(1, '#101a2b');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, C.CANVAS_W, C.CANVAS_H);
+
+    drawWalls();
 
     if (state === STATES.MENU) {
       drawChar();
@@ -237,27 +324,51 @@
     ET.particles.draw(ctx, camera.y);
     drawChar();
     drawFlashes();
+    drawCombo();
+  }
+
+  // Seitenwände sichtbar machen – an ihnen prallt man ab, das soll man sehen.
+  function drawWalls() {
+    var w = C.EDGE_MARGIN;
+    ctx.fillStyle = 'rgba(94, 230, 255, 0.30)';
+    ctx.fillRect(0, 0, w, C.CANVAS_H);
+    ctx.fillRect(C.CANVAS_W - w, 0, w, C.CANVAS_H);
+    ctx.fillStyle = 'rgba(94, 230, 255, 0.75)';
+    ctx.fillRect(w - 1, 0, 1, C.CANVAS_H);
+    ctx.fillRect(C.CANVAS_W - w, 0, 1, C.CANVAS_H);
   }
 
   function drawFloors() {
+    ctx.textAlign = 'left';
     for (var i = 0; i < floors.length; i++) {
       var floor = floors[i];
       var screenY = floor.y - camera.y;
       if (screenY < -20 || screenY > C.CANVAS_H + 20) continue;
 
-      ctx.fillStyle = floor.isGround ? '#5ee6ff' : '#bfe9ff';
+      var marked = !floor.isGround && floor.seq % C.FLOOR_MARK_EVERY === 0;
+      ctx.fillStyle = floor.isGround ? '#5ee6ff' : (marked ? '#ffd15c' : '#bfe9ff');
       ctx.fillRect(floor.plankX, screenY - C.FLOOR_THICK / 2, floor.plankWidth, C.FLOOR_THICK);
+
+      if (!floor.isGround) {
+        ctx.fillStyle = marked ? 'rgba(255, 209, 92, 0.9)' : 'rgba(191, 233, 255, 0.35)';
+        ctx.font = (marked ? 'bold 11px' : '10px') + ' sans-serif';
+        ctx.fillText(floor.seq, C.EDGE_MARGIN + 3, screenY - 5);
+      }
     }
   }
 
   function drawChar() {
     var screenY = chr.y - camera.y;
-    var sx = 1 - Math.max(-0.6, Math.min(0.6, chr.squash)) * 0.5;
-    var sy = 1 + Math.max(-0.6, Math.min(0.6, chr.squash)) * 0.5;
+    var s = Math.max(-0.7, Math.min(0.7, chr.squash));
+    var sx = 1 + s * 0.45;
+    var sy = 1 - s * 0.45;
 
     ctx.save();
-    ctx.translate(chr.x, screenY);
+    // Um den Fußpunkt skalieren, damit die Figur beim Stauchen auf der
+    // Plattform stehen bleibt statt in sie hineinzurutschen.
+    ctx.translate(chr.x, screenY + C.CHAR_R);
     ctx.scale(sx, sy);
+    ctx.translate(0, -C.CHAR_R);
 
     ctx.fillStyle = '#2b2f3a';
     ctx.beginPath();
@@ -283,16 +394,37 @@
   }
 
   function drawFlashes() {
+    ctx.textAlign = 'center';
     for (var i = 0; i < flashes.length; i++) {
       var f = flashes[i];
       var screenY = f.y - camera.y;
-      ctx.globalAlpha = Math.max(0, f.life);
-      ctx.fillStyle = '#ffd15c';
-      ctx.font = 'bold 15px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(f.text, chr.x, screenY - 20);
+      ctx.globalAlpha = Math.max(0, Math.min(1, f.life * 1.6));
+      ctx.fillStyle = f.color;
+      ctx.font = 'bold ' + f.size + 'px sans-serif';
+      ctx.fillText(f.text, C.CANVAS_W / 2, screenY - 24);
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText(f.sub, C.CANVAS_W / 2, screenY - 8);
       ctx.globalAlpha = 1;
     }
+  }
+
+  // Laufende Combo-Serie mit Restzeit-Balken, direkt unter dem Score.
+  function drawCombo() {
+    if (combo.floors <= 0) return;
+    var mult = 1 + Math.floor(combo.floors / C.COMBO_FLOORS_PER_MULT);
+    var w = 130;
+    var x = (C.CANVAS_W - w) / 2;
+    var y = 40;
+
+    ctx.fillStyle = '#ffd15c';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('SERIE ' + combo.floors + '  ×' + mult, C.CANVAS_W / 2, y);
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+    ctx.fillRect(x, y + 5, w, 4);
+    ctx.fillStyle = '#ffd15c';
+    ctx.fillRect(x, y + 5, w * Math.max(0, combo.timerMs / C.COMBO_WINDOW_MS), 4);
   }
 
   // ---------- Loop ----------
@@ -381,7 +513,8 @@
       steerFactor = Math.max(-1, Math.min(1, factor));
     },
 
-    jump: doJump,
+    jumpStart: jumpStart,
+    jumpRelease: jumpRelease,
 
     toggleSound: function () {
       var on = SG.audio.toggle();
@@ -394,10 +527,15 @@
         state: state,
         score: currentScore(),
         best: best,
+        floor: chr ? chr.maxFloor : 0,
+        charX: chr ? chr.x : null,
+        charVx: chr ? chr.vx : null,
         charY: chr ? chr.y : null,
         cameraY: camera ? camera.y : null,
+        scrolling: camera ? camera.scrolling : false,
         floorCount: floors ? floors.length : 0,
         grounded: chr ? chr.grounded : null,
+        comboFloors: combo ? combo.floors : 0,
       };
     },
   };

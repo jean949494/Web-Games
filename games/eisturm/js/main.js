@@ -30,7 +30,6 @@
     var stage = document.getElementById('stage');
 
     var screenMenu = document.getElementById('screen-menu');
-    var screenSettings = document.getElementById('screen-settings');
     var screenPause = document.getElementById('screen-pause');
     var screenGameOver = document.getElementById('screen-gameover');
     var hudScore = document.getElementById('hud-score');
@@ -43,13 +42,10 @@
     var btnSoundMenu = document.getElementById('btn-sound-menu');
     var btnSoundPause = document.getElementById('btn-sound-pause');
     var btnTilt = document.getElementById('btn-tilt');
-    var btnSettings = document.getElementById('btn-settings');
-    var btnSettingsClose = document.getElementById('btn-settings-close');
-    var hintControls = document.getElementById('hint-controls');
-    var modeButtons = [document.getElementById('btn-mode-tilt'), document.getElementById('btn-mode-hold')];
 
     var bestScoreEl = document.getElementById('best-score');
     var goScoreEl = document.getElementById('go-score');
+    var goFloorEl = document.getElementById('go-floor');
     var goBestEl = document.getElementById('go-best');
 
     SG.analytics.setGame(ET.GAME_ID);
@@ -60,41 +56,10 @@
     setSoundIcon(btnSoundPause, SG.audio.isEnabled());
     bestScoreEl.textContent = 'Rekord: ' + SG.storage.getBest(ET.GAME_ID);
 
-    var CONTROL_HINTS = {};
-    CONTROL_HINTS[ET.settings.MODES.TILT] = 'Links/rechts neigen zum Laufen &middot; Antippen zum Springen';
-    CONTROL_HINTS[ET.settings.MODES.HOLD] = 'Bildschirmhälfte halten zum Laufen &middot; Richtung Gesicht kippen zum Springen';
-
-    function refreshControlModeUI() {
-      var mode = ET.settings.getControlMode();
-      hintControls.innerHTML = CONTROL_HINTS[mode];
-      modeButtons.forEach(function (btn) {
-        btn.classList.toggle('active', btn.dataset.mode === mode);
-      });
-    }
-
-    refreshControlModeUI();
-
-    btnSettings.addEventListener('click', function () {
-      hide(screenMenu);
-      show(screenSettings);
-    });
-
-    btnSettingsClose.addEventListener('click', function () {
-      hide(screenSettings);
-      show(screenMenu);
-    });
-
-    modeButtons.forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        ET.settings.setControlMode(btn.dataset.mode);
-        refreshControlModeUI();
-      });
-    });
-
     // Nur auf Geräten (v.a. iOS 13+) zeigen, die für Neigungssensoren
     // eine explizite Erlaubnis per Nutzer-Tap verlangen. Ohne diesen Tap
-    // bleibt die Neigungssteuerung sonst stumm – Antippen/Halten geht
-    // aber immer, auch ohne diesen Button.
+    // bleibt die Lenkung stumm – Antippen/Springen geht aber immer,
+    // auch ohne diesen Button.
     if (ET.input.needsIosTiltPermission && ET.input.needsIosTiltPermission()) {
       btnTilt.hidden = false;
       btnTilt.addEventListener('click', function (e) {
@@ -131,6 +96,7 @@
           break;
         case ET.game.STATES.GAMEOVER:
           goScoreEl.textContent = payload.score;
+          goFloorEl.textContent = 'Etage ' + payload.floor;
           goBestEl.textContent = payload.newBest ? 'Neuer Rekord!' : ('Rekord: ' + payload.best);
           show(screenGameOver);
           break;
@@ -161,9 +127,8 @@
       });
     });
 
-    // Diese Overlay-Buttons dürfen nicht gleichzeitig einen Sprung/Lauf auslösen.
-    [btnStart, btnResume, btnRestart, btnRestartPause, btnPause, btnSoundMenu, btnSoundPause, btnTilt,
-      btnSettings, btnSettingsClose, modeButtons[0], modeButtons[1]]
+    // Diese Overlay-Buttons dürfen nicht gleichzeitig einen Sprung auslösen.
+    [btnStart, btnResume, btnRestart, btnRestartPause, btnPause, btnSoundMenu, btnSoundPause, btnTilt]
       .forEach(function (btn) {
         btn.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
       });
