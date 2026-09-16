@@ -56,22 +56,9 @@
 
   // ---------- Etagen ----------
 
-  function drawDeco(ctx, t, x, y, w, h) {
+  function drawDeco(ctx, t, x, y, w, h, marked) {
     var i;
     switch (t.deco) {
-      case 'icicles': // Eiszapfen an der Unterkante
-        ctx.fillStyle = t.base;
-        for (i = x + 7; i < x + w - 5; i += 19) {
-          var len = 3 + ((i * 7) % 4);
-          ctx.beginPath();
-          ctx.moveTo(i - 2, y + h);
-          ctx.lineTo(i + 2, y + h);
-          ctx.lineTo(i, y + h + len);
-          ctx.closePath();
-          ctx.fill();
-        }
-        break;
-
       case 'puffs': // weiche Wolkenpuffs an der Unterkante
         ctx.fillStyle = t.base;
         for (i = x + 8; i < x + w - 5; i += 17) {
@@ -82,7 +69,7 @@
         break;
 
       case 'polyps': // Korallenpolypen, die nach oben wachsen
-        ctx.strokeStyle = t.top;
+        ctx.strokeStyle = t.polyp || t.top;
         ctx.lineWidth = 1.4;
         for (i = x + 8; i < x + w - 6; i += 18) {
           var ph = 2.6 + ((i * 7) % 3);
@@ -97,11 +84,11 @@
 
       case 'gears': // Zahnräder im Messingwerk
         for (i = x + 11; i < x + w - 8; i += 21) {
-          ctx.fillStyle = t.deep;
+          ctx.fillStyle = t.gear || t.deep;
           ctx.beginPath();
           ctx.arc(i, y + h / 2, 2.4, 0, Math.PI * 2);
           ctx.fill();
-          ctx.strokeStyle = t.top;
+          ctx.strokeStyle = t.gear || t.top;
           ctx.lineWidth = 0.9;
           for (var g = 0; g < 6; g++) {
             var a = (g / 6) * Math.PI * 2;
@@ -113,17 +100,32 @@
         }
         break;
 
-      case 'lightning': // Blitze, die nach unten zucken
-        ctx.strokeStyle = t.mark;
-        ctx.lineWidth = 1.3;
-        for (i = x + 12; i < x + w - 8; i += 26) {
+      case 'storm': // Gewitterwolke: bauschige Unterkante, Blitz über die ganze Länge
+        ctx.fillStyle = t.deep;
+        for (i = x + 5; i < x + w - 3; i += 12) {
           ctx.beginPath();
-          ctx.moveTo(i, y + h);
-          ctx.lineTo(i - 2.2, y + h + 3);
-          ctx.lineTo(i + 0.6, y + h + 3);
-          ctx.lineTo(i - 1.6, y + h + 6.5);
-          ctx.stroke();
+          ctx.arc(i, y + h - 0.8, 3 + ((i * 3) % 2) * 1, 0, Math.PI);
+          ctx.fill();
         }
+
+        // Zehner-Etagen blitzen grün, die normalen gelb
+        var bolt = marked ? (t.boltMark || t.bolt) : t.bolt;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        var high = true;
+        ctx.moveTo(x + 3, y + h / 2);
+        for (i = x + 3; i < x + w - 3; i += 8) {
+          ctx.lineTo(i, y + (high ? 1.1 : h - 1.1));
+          high = !high;
+        }
+        ctx.lineTo(x + w - 3, y + h / 2);
+        ctx.strokeStyle = marked ? 'rgba(107, 255, 74, 0.3)' : 'rgba(255, 230, 107, 0.3)'; // Schein
+        ctx.lineWidth = 3.4;
+        ctx.stroke();
+        ctx.strokeStyle = bolt;
+        ctx.lineWidth = 1.1;
+        ctx.stroke();
         break;
 
       case 'cracks': // glühende Risse im dunklen Gestein
@@ -468,12 +470,12 @@
       roundRect(ctx, x + 1.5, y, w - 3, 1.6, 0.8);
       ctx.globalAlpha = 1;
 
-      drawDeco(ctx, t, x, y, w, h);
+      drawDeco(ctx, t, x, y, w, h, marked);
     },
 
     // Eigene Deko je Welt – ohne die wären die Welten nur Farbvarianten.
-    drawDeco: function (ctx, theme, x, y, w, h) {
-      drawDeco(ctx, theme, x, y, w, h);
+    drawDeco: function (ctx, theme, x, y, w, h, marked) {
+      drawDeco(ctx, theme, x, y, w, h, marked);
     },
 
     drawGround: function (ctx, screenY, width) {
