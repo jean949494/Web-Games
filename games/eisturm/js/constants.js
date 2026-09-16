@@ -66,8 +66,6 @@
     WALL_BOUNCE_MAX: 8.5, // Deckel, damit es sich nicht endlos aufschaukelt
     WALL_LOCK_MS: 300,
     OVERSPEED_FRICTION: 0.022, // px/frame², so langsam verliert sich der Dash-Schwung
-    WALL_SHAKE_MS: 170, // kurzes Rütteln beim Aufprall
-    WALL_SHAKE_MAX: 5.5,
     // Zeitfenster nach einem Wandabprall, in dem ein Sprung als Combo zählt.
     WALL_BOOST_MS: 1500,
 
@@ -117,17 +115,19 @@
 
     // Steuerung: Neigung. Kleiner Winkel = sensibler (weniger kippen für
     // volles Tempo); die Zwischenwerte bleiben stufenlos für feines Dosieren.
-    TILT_STEER_MAX_DEG: 8, // Neigungswinkel für volles Lauftempo – bewusst
-    // klein, damit das Handy fast aufrecht bleibt und man den Bildschirm
-    // gut im Blick behält.
+    TILT_STEER_MAX_DEG: 5, // Neigungswinkel für volles Lauftempo – bewusst
+    // sehr klein, damit das Handy nahezu aufrecht bleibt und der
+    // Bildschirm gut im Blick bleibt.
     // Totzone um die Nulllage: ohne sie lässt schon leichtes Handzittern
     // das Vorzeichen kippen und die Figur eiert hin und her.
-    TILT_DEAD_DEG: 1.8,
+    TILT_DEAD_DEG: 1.2,
     // Kennlinie: < 1 heißt, kleine Neigungen wirken überproportional stark
-    // (bei ~40 % Kippweg gibt es schon ~53 % Tempo), oben bleibt es
+    // (bei ~20 % Kippweg gibt es schon ~40 % Tempo), oben bleibt es
     // trotzdem fein dosierbar.
-    TILT_EXPO: 0.7,
-    TILT_SMOOTH: 0.3, // Tiefpass gegen Sensorrauschen (1 = ungefiltert)
+    TILT_EXPO: 0.6,
+    // Etwas stärker geglättet, weil die kleinere Totzone Sensorrauschen
+    // sonst eher durchlässt.
+    TILT_SMOOTH: 0.25,
 
     // Juice. squash > 0 = breiter/flacher (Landung), < 0 = schmaler/höher
     // (Wandabprall); skaliert wird um den Fußpunkt, siehe sprites.js.

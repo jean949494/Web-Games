@@ -99,9 +99,10 @@ Praktisch, um an der Optik zu schrauben, ohne im Spiel danach zu jagen:
 - **Neigung**: Totzone (`TILT_DEAD_DEG`) und Tiefpass (`TILT_SMOOTH`)
   halten die Nulllage ruhig, damit leichtes Handzittern die Figur nicht
   eiern lässt. Darüber wirkt eine Kennlinie (`TILT_EXPO` < 1), die kleine
-  Winkel überproportional umsetzt: das Handy bleibt fast aufrecht
-  (3° ≈ ein Drittel Tempo, 4° ≈ die Hälfte, ab 6° Vollgas), man sieht den
-  Bildschirm also weiterhin gut.
+  Winkel überproportional umsetzt: das Handy bleibt nahezu aufrecht
+  (1,5° ≈ 22 % Tempo, 2° ≈ 39 %, 2,5° ≈ 53 %, ab 5° Vollgas), man sieht
+  den Bildschirm also weiterhin gut. Gegengetestet: ±1,6° Handzittern
+  bewegen die Figur nicht, 2,2° klare Neigung ziehen sofort an.
 - **Zeitdruck**: ab Etage `SCROLL_START_FLOOR` (spätestens nach
   `SCROLL_START_MS`) wandert die Kamera von selbst nach oben und
   beschleunigt über `SCROLL_RAMP_FLOORS` Etagen von

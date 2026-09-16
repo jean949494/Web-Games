@@ -87,7 +87,7 @@
       wallJump: false, // zählt der laufende Sprung als Wand-Sprung (= Combo möglich)?
       maxFloor: 0,
     };
-    camera = { y: 0, scrolling: false, ageMs: 0, shakeMs: 0, shakeMag: 0 };
+    camera = { y: 0, scrolling: false, ageMs: 0 };
     floors = [groundFloor];
     floorSeq = 0;
     nextFloorY = groundY - (C.FLOOR_SPACING + Math.random() * C.FLOOR_SPACING_JITTER);
@@ -210,8 +210,6 @@
     chr.wallBoostMs = C.WALL_BOOST_MS;
     if (!chr.grounded) chr.wallJump = true; // auch mitten im Flug abgeprallt zählt
     chr.squash = C.SQUASH_WALL;
-    camera.shakeMs = C.WALL_SHAKE_MS;
-    camera.shakeMag = C.WALL_SHAKE_MAX * impact;
     ET.particles.spawnWallSpark(chr.x, chr.y, -dir, impact);
     ET.sounds.playWall(impact);
   }
@@ -238,7 +236,6 @@
     // Nach der Schonfrist wandert der Ausschnitt von selbst nach oben und
     // wird mit der Höhe schneller – der eigentliche Zeitdruck im Spiel.
     camera.ageMs += STEP_MS;
-    if (camera.shakeMs > 0) camera.shakeMs -= STEP_MS;
     if (!camera.scrolling && (chr.maxFloor >= C.SCROLL_START_FLOOR || camera.ageMs >= C.SCROLL_START_MS)) {
       camera.scrolling = true;
     }
@@ -367,32 +364,19 @@
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, C.CANVAS_W, C.CANVAS_H);
 
+    drawWalls();
+
     if (state === STATES.MENU) {
-      drawWalls();
       drawChar();
       return;
     }
 
-    // Aufprall-Rütteln: nur die Spielwelt wackelt, der Hintergrund bleibt
-    // stehen, sonst blitzen an den Rändern Lücken auf.
-    ctx.save();
-    if (camera.shakeMs > 0) {
-      var t = camera.shakeMs / C.WALL_SHAKE_MS;
-      ctx.translate(
-        (Math.random() - 0.5) * camera.shakeMag * t * 2,
-        (Math.random() - 0.5) * camera.shakeMag * t * 2
-      );
-    }
-
-    drawWalls();
     drawFloors();
     ET.particles.draw(ctx, camera.y);
     ET.trail.draw(ctx, camera.y);
     drawChar();
     drawFlashes();
-    ctx.restore();
-
-    drawCombo(); // HUD bleibt ruhig
+    drawCombo();
   }
 
   // Seitenwände sichtbar machen – an ihnen prallt man ab, das soll man sehen.
