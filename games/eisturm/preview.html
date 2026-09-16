@@ -63,7 +63,7 @@
 
     <h2>Welten (alle 100 Etagen die nächste)</h2>
     <div class="card">
-      <canvas id="themes" width="640" height="440"></canvas>
+      <canvas id="themes" width="540" height="470"></canvas>
       <div class="note">Jede Welt hat eine eigene Deko, nicht nur einen anderen Farbton. Links normal, rechts die hervorgehobene Zehner-Etage.</div>
     </div>
 
@@ -140,13 +140,17 @@
       bg(ctx, cv.width, cv.height);
       ctx.scale(2, 2);
       C.PLANK_THEMES.forEach(function (t, i) {
-        var y = 24 + i * 26;
-        S.drawFloor(ctx, { plankX: 14, plankWidth: 112 }, y, false, t);
-        S.drawFloor(ctx, { plankX: 140, plankWidth: 72 }, y, true, t);
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
-        ctx.font = 'bold 10px sans-serif';
+        var y = 26 + i * 28;
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.font = 'bold 9px sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText((i * 100) + '+  ' + t.name, 222, y + 3.5);
+        ctx.fillText('ab ' + (i * 100), 8, y + 3);
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(t.name, 34, y + 3.5);
+
+        S.drawFloor(ctx, { plankX: 112, plankWidth: 96 }, y, false, t);
+        S.drawFloor(ctx, { plankX: 218, plankWidth: 48 }, y, true, t);
       });
     })();
 
