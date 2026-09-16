@@ -115,7 +115,7 @@
 
   // Einblendung beim Betreten einer neuen Welt (alle FLOOR_THEME_EVERY Etagen)
   function showWorldBanner(theme) {
-    banner = { text: theme.en, color: theme.mark, ageMs: 0 };
+    banner = { text: theme.en, theme: theme, ageMs: 0 };
   }
 
   function ensureFloorsAhead() {
@@ -538,17 +538,37 @@
     ctx.scale(scale, scale);
     ctx.textAlign = 'center';
 
+    // Die Schrift trägt die Optik der Plattformen dieser Welt: Glanzkante
+    // oben, Körperfarbe in der Mitte, Tiefe unten – wie ein Querschnitt
+    // durch die Platte selbst.
+    var th = banner.theme;
     ctx.font = 'bold 26px sans-serif';
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = 'rgba(12, 18, 30, 0.9)';
+
+    ctx.lineWidth = 6;
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(10, 14, 24, 0.9)';
     ctx.strokeText(banner.text, 0, 0);
-    ctx.fillStyle = banner.color;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = th.deep;
+    ctx.strokeText(banner.text, 0, 0);
+
+    var fill = ctx.createLinearGradient(0, -19, 0, 7);
+    fill.addColorStop(0, th.top);
+    fill.addColorStop(0.42, th.base);
+    fill.addColorStop(1, th.deep);
+    ctx.fillStyle = fill;
     ctx.fillText(banner.text, 0, 0);
 
-    // Zierlinien ober- und unterhalb, die mit aufziehen
+    // Zierlinien im selben Aufbau wie eine Platte
     var half = ctx.measureText(banner.text).width / 2 + 10;
-    ctx.fillRect(-half, -22, half * 2, 2);
-    ctx.fillRect(-half, 8, half * 2, 2);
+    [-23, 9].forEach(function (ly) {
+      ctx.fillStyle = th.base;
+      ctx.fillRect(-half, ly, half * 2, 3);
+      ctx.fillStyle = th.deep;
+      ctx.fillRect(-half, ly + 2, half * 2, 1.2);
+      ctx.fillStyle = th.top;
+      ctx.fillRect(-half + 1, ly, half * 2 - 2, 1);
+    });
     ctx.restore();
     ctx.globalAlpha = 1;
   }
