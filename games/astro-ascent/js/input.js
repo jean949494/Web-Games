@@ -6,21 +6,21 @@
 (function (global) {
   'use strict';
 
-  var NW = global.NW = global.NW || {};
+  var AA = global.AA = global.AA || {};
 
   function attach(stageEl) {
     var pointerActive = false;
 
     stageEl.addEventListener('pointerdown', function (e) {
       pointerActive = true;
-      NW.game.chargeStart();
+      AA.game.chargeStart();
       e.preventDefault();
     });
 
     function release(e) {
       if (!pointerActive) return;
       pointerActive = false;
-      NW.game.chargeRelease();
+      AA.game.chargeRelease();
       if (e) e.preventDefault();
     }
 
@@ -35,18 +35,18 @@
       if (e.code === 'Space' || e.code === 'ArrowUp') {
         if (!e.repeat && !keyActive) {
           keyActive = true;
-          NW.game.chargeStart();
+          AA.game.chargeStart();
         }
         e.preventDefault();
       } else if (e.code === 'Escape') {
-        NW.game.togglePause();
+        AA.game.togglePause();
       }
     });
 
     global.addEventListener('keyup', function (e) {
       if (e.code === 'Space' || e.code === 'ArrowUp') {
         keyActive = false;
-        NW.game.chargeRelease();
+        AA.game.chargeRelease();
         e.preventDefault();
       }
     });
@@ -58,5 +58,5 @@
     });
   }
 
-  NW.input = { attach: attach };
+  AA.input = { attach: attach };
 })(window);

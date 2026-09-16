@@ -6,9 +6,9 @@
 (function (global, document) {
   'use strict';
 
-  var NW = global.NW;
+  var AA = global.AA;
   var SG = global.SG;
-  var C = NW.constants;
+  var C = AA.constants;
 
   function fitStage() {
     var stage = document.getElementById('stage');
@@ -46,18 +46,18 @@
     var goScoreEl = document.getElementById('go-score');
     var goBestEl = document.getElementById('go-best');
 
-    SG.analytics.setGame(NW.GAME_ID);
-    NW.game.init(canvas);
-    NW.input.attach(stage);
+    SG.analytics.setGame(AA.GAME_ID);
+    AA.game.init(canvas);
+    AA.input.attach(stage);
 
     setSoundIcon(btnSoundMenu, SG.audio.isEnabled());
     setSoundIcon(btnSoundPause, SG.audio.isEnabled());
-    bestScoreEl.textContent = 'Rekord: ' + SG.storage.getBest(NW.GAME_ID);
+    bestScoreEl.textContent = 'Rekord: ' + SG.storage.getBest(AA.GAME_ID);
 
     function show(el) { el.hidden = false; }
     function hide(el) { el.hidden = true; }
 
-    NW.game.onChange(function (payload) {
+    AA.game.onChange(function (payload) {
       hide(screenMenu);
       hide(screenPause);
       hide(screenGameOver);
@@ -65,20 +65,20 @@
       hide(hudScore);
 
       switch (payload.state) {
-        case NW.game.STATES.MENU:
+        case AA.game.STATES.MENU:
           show(screenMenu);
           bestScoreEl.textContent = 'Rekord: ' + payload.best;
           break;
-        case NW.game.STATES.PLAYING:
+        case AA.game.STATES.PLAYING:
           show(btnPause);
           show(hudScore);
           break;
-        case NW.game.STATES.PAUSED:
+        case AA.game.STATES.PAUSED:
           show(btnPause);
           show(hudScore);
           show(screenPause);
           break;
-        case NW.game.STATES.GAMEOVER:
+        case AA.game.STATES.GAMEOVER:
           goScoreEl.textContent = payload.score;
           goBestEl.textContent = payload.newBest ? 'Neuer Rekord!' : ('Rekord: ' + payload.best);
           show(screenGameOver);
@@ -88,24 +88,24 @@
 
     // laufenden Score anzeigen
     (function updateScoreLoop() {
-      if (NW.game.getState() === NW.game.STATES.PLAYING) {
-        hudScore.textContent = NW.game.getDebugState().score;
+      if (AA.game.getState() === AA.game.STATES.PLAYING) {
+        hudScore.textContent = AA.game.getDebugState().score;
       }
       global.requestAnimationFrame(updateScoreLoop);
     })();
 
-    btnStart.addEventListener('click', function () { NW.game.start(); });
+    btnStart.addEventListener('click', function () { AA.game.start(); });
     btnRestart.addEventListener('click', function () {
-      SG.poki.commercialBreak(function () { NW.game.restart(); });
+      SG.poki.commercialBreak(function () { AA.game.restart(); });
     });
-    btnRestartPause.addEventListener('click', function () { NW.game.restart(); });
-    btnResume.addEventListener('click', function () { NW.game.resume(); });
-    btnPause.addEventListener('click', function () { NW.game.togglePause(); });
+    btnRestartPause.addEventListener('click', function () { AA.game.restart(); });
+    btnResume.addEventListener('click', function () { AA.game.resume(); });
+    btnPause.addEventListener('click', function () { AA.game.togglePause(); });
 
     [btnSoundMenu, btnSoundPause].forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
-        var on = NW.game.toggleSound();
+        var on = AA.game.toggleSound();
         setSoundIcon(btnSoundMenu, on);
         setSoundIcon(btnSoundPause, on);
       });

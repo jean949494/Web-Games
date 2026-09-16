@@ -283,6 +283,22 @@
     var spd = currentSpeed();
     player.x += Math.cos(player.angle) * spd;
     player.y += Math.sin(player.angle) * spd;
+
+    // Während der Unverwundbarkeit lässt man Hindernisse/Gegner/die
+    // eigene Linie durchlässig (bewusst "unschlagbar"), aber die
+    // Seitenwand NICHT wirklich verlassen – man rutscht höchstens daran
+    // entlang. Sonst kann man beim unaufmerksamen "bin doch eh
+    // unschlagbar"-Fahren beliebig weit außerhalb des Feldes landen,
+    // und selbst die Kulanzzeit am Boost-Ende reicht dann nicht mehr,
+    // um rechtzeitig zurückzulenken, bevor der Kulanz-Deckel greift und
+    // man mitten im Nichts crasht.
+    if (player.invincibleFrames > 0) {
+      var wHalfW = C.fieldHalfWidthAt(heightClimbed());
+      var wCx = C.CANVAS_W / 2;
+      var wallMargin = Math.sqrt(C.HIT_FACTOR_SQ) * C.THICK;
+      player.x = Math.max(wCx - wHalfW + wallMargin, Math.min(wCx + wHalfW - wallMargin, player.x));
+    }
+
     player.trail.push({ x: player.x, y: player.y });
 
     player.maxHeight = Math.max(player.maxHeight, heightClimbed());

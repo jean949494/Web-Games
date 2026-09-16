@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0e14" />
+  <title>Blackout</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="stage">
+    <canvas id="game" width="640" height="360"></canvas>
+
+    <button id="btn-pause" class="icon-btn corner-btn" aria-label="Pause" hidden>⏸</button>
+
+    <div id="screen-menu" class="screen">
+      <div class="title">BLACKOUT</div>
+      <div class="hint">Schalter finden, Tür nehmen, bevor die Zeit ausgeht</div>
+      <button id="btn-start" class="btn-primary" aria-label="Start">▶</button>
+
+      <div class="settings">
+        <div class="setting">
+          <span class="setting-label">Steuerung</span>
+          <button id="btn-scheme" class="pill" aria-label="Steuerung umschalten">Bildschirmhälften</button>
+        </div>
+        <div class="setting">
+          <span class="setting-label">Sturz-Tod</span>
+          <button id="btn-impact" class="pill" aria-label="Sturz-Toleranz umschalten">mild</button>
+        </div>
+      </div>
+
+      <div id="best-score" class="best-score"></div>
+      <button id="btn-sound-menu" class="icon-btn sound-corner" aria-label="Sound an/aus">🔊</button>
+    </div>
+
+    <div id="screen-pause" class="screen" hidden>
+      <div class="title small">Pause</div>
+      <button id="btn-resume" class="btn-primary" aria-label="Weiter">▶</button>
+      <div class="row">
+        <button id="btn-sound-pause" class="icon-btn" aria-label="Sound an/aus">🔊</button>
+        <button id="btn-restart-pause" class="icon-btn" aria-label="Neustart">↻</button>
+      </div>
+      <div class="settings">
+        <div class="setting">
+          <span class="setting-label">Steuerung</span>
+          <button id="btn-scheme-pause" class="pill">Bildschirmhälften</button>
+        </div>
+        <div class="setting">
+          <span class="setting-label">Sturz-Tod</span>
+          <button id="btn-impact-pause" class="pill">mild</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-gameover" class="screen" hidden>
+      <div class="title small">Erwischt</div>
+      <div id="go-score" class="go-score">0</div>
+      <div class="go-label">Räume geschafft</div>
+      <div id="go-best" class="go-best"></div>
+      <button id="btn-restart" class="btn-primary" aria-label="Neustart">↻</button>
+    </div>
+
+    <div id="touch-guide" class="touch-guide" hidden>
+      <div class="tg-zone tg-left">←</div>
+      <div class="tg-zone tg-right">→</div>
+      <div class="tg-zone tg-jump">SPRUNG</div>
+    </div>
+  </div>
+
+  <div id="rotate-hint" class="rotate-hint" hidden>
+    <div class="rotate-icon">📱</div>
+    <div>Bitte Handy quer halten</div>
+  </div>
+
+  <script src="../../shared/storage.js"></script>
+  <script src="../../shared/audio.js"></script>
+  <script src="../../shared/analytics.js"></script>
+  <script src="../../shared/poki.js"></script>
+  <script src="js/constants.js"></script>
+  <script src="js/sounds.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/ninja.js"></script>
+  <script src="js/hazards.js"></script>
+  <script src="js/level.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

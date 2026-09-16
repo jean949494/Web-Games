@@ -1,0 +1,185 @@
+:root {
+  color-scheme: dark;
+  --bg: #05070d;
+  --accent: #5ee1a3;
+  --danger: #ff5566;
+  --text: #eef3ff;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Autor-Stylesheets überschreiben sonst das UA-Default für [hidden],
+   weil beide dieselbe Spezifität haben. */
+[hidden] { display: none !important; }
+
+#stage {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 640px;
+  height: 360px;
+  overflow: hidden;
+  border-radius: 10px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+
+canvas#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.corner-btn {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  z-index: 5;
+}
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.icon-btn:active { background: rgba(255, 255, 255, 0.22); }
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(5, 7, 13, 0.82);
+  text-align: center;
+  padding: 16px;
+}
+
+.title {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 6px;
+  color: var(--accent);
+}
+
+.title.small { font-size: 22px; letter-spacing: 2px; color: var(--text); }
+
+.btn-primary {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: #06281c;
+  font-size: 26px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(94, 225, 163, 0.3);
+}
+
+.btn-primary:active { transform: scale(0.96); }
+
+.hint { font-size: 12px; opacity: 0.65; }
+.best-score, .go-best { font-size: 12px; opacity: 0.75; }
+.go-score { font-size: 46px; font-weight: 800; color: var(--accent); line-height: 1; }
+.go-label { font-size: 11px; opacity: 0.6; margin-top: -6px; }
+.row { display: flex; gap: 12px; }
+
+.settings {
+  display: flex;
+  gap: 18px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.setting { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.setting-label { font-size: 10px; opacity: 0.5; text-transform: uppercase; letter-spacing: 1px; }
+
+.pill {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.pill:active { background: rgba(255, 255, 255, 0.16); }
+
+.sound-corner {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+}
+
+/* Kurz eingeblendete Zonen-Hilfe beim ersten Spielzug */
+.touch-guide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  pointer-events: none;
+  opacity: 0.5;
+  animation: fadeOut 2.6s forwards;
+}
+
+.tg-zone {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+  border-right: 1px dashed rgba(255, 255, 255, 0.18);
+}
+
+.tg-left { width: 25%; }
+.tg-right { width: 25%; }
+.tg-jump { width: 50%; border-right: none; }
+
+@keyframes fadeOut {
+  0%, 60% { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+
+.rotate-hint {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-size: 15px;
+  z-index: 50;
+}
+
+.rotate-icon { font-size: 46px; animation: tilt 1.6s ease-in-out infinite; }
+
+@keyframes tilt {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(90deg); }
+}
