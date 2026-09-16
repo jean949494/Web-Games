@@ -35,6 +35,8 @@
   var changeListeners = [];
 
   var chr, camera, floors, nextFloorY, floorSeq, best, comboPoints, combo, flashes, banner;
+  // Aktueller Welt-Hintergrund, beim Wechsel über den alten geblendet.
+  var bg = { from: C.PLANK_THEMES[0], to: C.PLANK_THEMES[0], mix: 1 };
   var accMs, lastTs, rafId;
   var steerFactor = 0; // -1..1, von input.js gesetzt (Neigung oder Tastatur)
   // Liegt der Finger (bzw. die Taste) gerade auf? Dann wird bei jeder
@@ -49,7 +51,6 @@
   // Neigen wäre das unfair, weil man das Handy nicht so schnell
   // zurückkippen kann – da bremst Gegenlenken nur sanft.
   var directSteering = false;
-  var dashGrace = C.DASH_GRACE_LEVELS[C.DASH_GRACE_DEFAULT];
 
   function emitChange(extra) {
     var payload = Object.assign({ state: state, score: currentScore(), best: best || 0 }, extra || {});
@@ -100,8 +101,12 @@
       wallJump: false, // zählt der laufende Sprung als Wand-Sprung (= Combo möglich)?
       dashBraking: false, // bremst gerade einen Dash aus, siehe updateSteering
       maxFloor: 0,
+      // Höhe der höchsten Etage, auf der wirklich gelandet wurde. Daran
+      // hängen Kamera und Todeslinie – nicht an der Momentanhöhe, die im
+      // Sprung ja weit darüber liegt.
+      anchorY: restY(groundFloor),
     };
-    camera = { y: 0, scrolling: false, ageMs: 0 };
+    camera = { y: 0, base: 0, scrolling: false, ageMs: 0 };
     floors = [groundFloor];
     floorSeq = 0;
     nextFloorY = groundY - (C.FLOOR_SPACING + Math.random() * C.FLOOR_SPACING_JITTER);
@@ -110,14 +115,24 @@
     flashes = [];
     banner = null;
     steerFactor = 0;
+    // Ohne harten Reset würde eine neue Runde aus der zuletzt erreichten
+    // Welt heraus auf das Wolkendeck zurückblenden.
+    bg.from = bg.to = C.themeForFloor(0);
+    bg.mix = 1;
     ET.particles.reset();
     ET.trail.reset();
     ensureFloorsAhead();
   }
 
-  // Einblendung beim Betreten einer neuen Welt (alle FLOOR_THEME_EVERY Etagen)
+  // Einblendung beim Betreten einer neuen Welt (alle FLOOR_THEME_EVERY
+  // Etagen) – dabei blendet auch der Hintergrund auf die neue Welt um.
   function showWorldBanner(theme) {
     banner = { text: theme.en, theme: theme, ageMs: 0 };
+    if (theme !== bg.to) {
+      bg.from = bg.to;
+      bg.to = theme;
+      bg.mix = 0;
+    }
   }
 
   function ensureFloorsAhead() {
@@ -126,14 +141,24 @@
       floorSeq++;
       var plankWidth = C.plankWidthAt(floorSeq);
       var margin = C.EDGE_MARGIN;
+      // Bewusst unabhängig gewürfelt. Ein begrenzter Versatz zur Etage
+      // darunter klingt hilfreicher, ist aber das Gegenteil: dann liegen
+      // die Lücken benachbarter Etagen übereinander, und ein Fehlsprung
+      // fällt durch mehrere davon am Stück. Unabhängig gesetzt ist jede
+      // Etage ein neuer Versuch, aufgefangen zu werden.
       var plankX = margin + Math.random() * Math.max(10, C.CANVAS_W - margin * 2 - plankWidth);
       floors.push({ y: nextFloorY, plankX: plankX, plankWidth: plankWidth, seq: floorSeq });
       nextFloorY -= C.FLOOR_SPACING + (Math.random() * C.FLOOR_SPACING_JITTER * 2 - C.FLOOR_SPACING_JITTER);
     }
   }
 
+  // Aufräumen gegen camera.base, NICHT gegen die gezeichnete camera.y:
+  // die ist im Sprung weit nach oben geschoben, und dagegen gemessen fielen
+  // Etagen weg, die noch klar über der Verlustgrenze lagen. Wer dann tief
+  // danebensprang, fiel durch ein Loch aus dem Nichts bis zum Tod – im
+  // Testlauf elf Etagen am Stück ohne eine einzige Platte.
   function pruneOldFloors() {
-    while (floors.length > 1 && floors[0].y - camera.y > C.CANVAS_H + C.PRUNE_MARGIN) {
+    while (floors.length > 1 && floors[0].y - camera.base > C.CANVAS_H + C.PRUNE_MARGIN) {
       floors.shift();
     }
   }
@@ -191,6 +216,7 @@
     chr.vy = 0;
     chr.y = restY(floor);
     chr.squash = C.SQUASH_LAND;
+    if (chr.y < chr.anchorY) chr.anchorY = chr.y;
     ET.particles.spawnLandDust(chr.x, floorTopY(floor));
     ET.sounds.playLand();
 
@@ -268,21 +294,36 @@
     }
   }
 
+  // Die Kamera hat zwei Höhen:
+  //
+  //  camera.base – wandert ausschließlich nach oben: durch den Auto-Scroll
+  //    (der Zeitdruck) und durch die höchste Etage, auf der wirklich
+  //    GELANDET wurde. Bewusst nicht durch die Momentanhöhe: sonst reißt
+  //    jeder hohe Sprung das Bild mit hoch, und nach der Landung klebt man
+  //    ein Stück weiter unten – nach ein paar Sprüngen unten am Rand.
+  //    An dieser Höhe hängt auch die Verlustbedingung.
+  //
+  //  camera.y – was tatsächlich gezeichnet wird: die Basis, vorübergehend
+  //    weiter hochgeschoben, solange die Figur sonst oben aus dem Bild
+  //    klettern würde. Das verschiebt die Basis NICHT, das Bild kommt also
+  //    nach der Landung von selbst wieder zurück.
   function updateCamera() {
-    // Nach der Schonfrist wandert der Ausschnitt von selbst nach oben und
-    // wird mit der Höhe schneller – der eigentliche Zeitdruck im Spiel.
     camera.ageMs += STEP_MS;
     if (!camera.scrolling && (chr.maxFloor >= C.SCROLL_START_FLOOR || camera.ageMs >= C.SCROLL_START_MS)) {
       camera.scrolling = true;
     }
-    if (camera.scrolling) camera.y -= C.scrollSpeedAt(chr.maxFloor);
+    if (camera.scrolling) camera.base -= C.scrollSpeedAt(chr.maxFloor);
 
-    // Nur nach oben und dabei weich nachziehen, damit ein hoher Sprung
-    // die Kamera nicht komplett mitreißt.
-    var targetCamY = chr.y - C.CANVAS_H * C.CAMERA_FOLLOW_RATIO;
-    if (targetCamY < camera.y) camera.y += (targetCamY - camera.y) * C.CAMERA_FOLLOW_LERP;
+    var targetBase = chr.anchorY - C.CANVAS_H * C.CAMERA_FOLLOW_RATIO;
+    // Begrenzt nachziehen statt sofort: wer schneller klettert als die
+    // Kamera nachkommt, steigt im Bild nach oben und gewinnt damit Luft
+    // nach unten. Diese "Gutschrift" ist auf CAMERA_MAX_LAG gedeckelt.
+    if (targetBase < camera.base) {
+      camera.base = Math.max(targetBase, camera.base - C.CAMERA_CATCHUP);
+    }
+    if (camera.base - targetBase > C.CAMERA_MAX_LAG) camera.base = targetBase + C.CAMERA_MAX_LAG;
 
-    // Sicherheitsnetz: nie aus dem oberen Bildrand herausklettern.
+    camera.y = camera.base;
     if (chr.y - camera.y < C.CAMERA_MAX_TOP) camera.y = chr.y - C.CAMERA_MAX_TOP;
   }
 
@@ -294,7 +335,7 @@
       // damit man den Finger lösen und ihn ganz auskosten kann. Danach
       // holt ein Druck die Kontrolle sofort zurück.
       var sinceBounce = C.WALL_BOOST_MS - chr.wallBoostMs;
-      if (directSteering && steerFactor !== 0 && sinceBounce >= dashGrace) {
+      if (directSteering && steerFactor !== 0 && sinceBounce >= C.DASH_GRACE_MS) {
         chr.wallLockMs = 0;
       } else {
         chr.wallLockMs -= STEP_MS;
@@ -416,8 +457,15 @@
       if (banner.ageMs >= C.BANNER_DURATION_MS) banner = null;
     }
 
-    // Verloren, sobald die Figur komplett unter dem sichtbaren Bild ist.
-    if (chr.y - C.CHAR_R - camera.y > C.CANVAS_H) {
+    if (bg.mix < 1) {
+      bg.mix = Math.min(1, bg.mix + STEP_MS / C.BG_FADE_MS);
+      if (bg.mix >= 1) bg.from = bg.to;
+    }
+
+    // Verloren, sobald die Figur komplett unter dem Bild ist. Gemessen
+    // wird gegen camera.base, nicht gegen die momentan hochgeschobene
+    // Ansicht – ein hoher Sprung soll den Puffer nach unten nicht kosten.
+    if (chr.y - C.CHAR_R - camera.base > C.CANVAS_H) {
       killChar('fell');
       return;
     }
@@ -428,12 +476,7 @@
   // ---------- Rendering ----------
 
   function draw() {
-    var grad = ctx.createLinearGradient(0, 0, 0, C.CANVAS_H);
-    grad.addColorStop(0, '#1c2f45');
-    grad.addColorStop(1, '#101a2b');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, C.CANVAS_W, C.CANVAS_H);
-
+    drawBackground();
     drawWalls();
 
     if (state === STATES.MENU) {
@@ -450,15 +493,33 @@
     drawWorldBanner();
   }
 
-  // Seitenwände sichtbar machen – an ihnen prallt man ab, das soll man sehen.
+  // Hintergrund der aktuellen Welt, beim Wechsel über den alten geblendet.
+  function drawBackground() {
+    var now = global.performance && global.performance.now ? global.performance.now() : Date.now();
+    var camY = camera ? camera.y : 0;
+    ET.background.draw(ctx, bg.from, camY, now);
+    if (bg.mix < 1) {
+      ctx.globalAlpha = bg.mix;
+      ET.background.draw(ctx, bg.to, camY, now);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // Seitenwände sichtbar machen – an ihnen prallt man ab, das soll man
+  // sehen. Die Farbe kommt aus der Welt, damit sie sich in den Hintergrund
+  // einfügt statt überall gleich zu leuchten.
   function drawWalls() {
     var w = C.EDGE_MARGIN;
-    ctx.fillStyle = 'rgba(94, 230, 255, 0.30)';
+    var color = bg.mix < 0.5 ? bg.from.bg.wall : bg.to.bg.wall;
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.28;
     ctx.fillRect(0, 0, w, C.CANVAS_H);
     ctx.fillRect(C.CANVAS_W - w, 0, w, C.CANVAS_H);
-    ctx.fillStyle = 'rgba(94, 230, 255, 0.75)';
+    ctx.globalAlpha = 0.8;
     ctx.fillRect(w - 1, 0, 1, C.CANVAS_H);
     ctx.fillRect(C.CANVAS_W - w, 0, 1, C.CANVAS_H);
+    ctx.restore();
   }
 
   function drawFloors() {
@@ -719,12 +780,6 @@
       directSteering = !!on;
     },
 
-    // Schonzeit nach dem Abprall (Index in DASH_GRACE_LEVELS)
-    setDashGrace: function (index) {
-      dashGrace = C.DASH_GRACE_LEVELS[index];
-      if (dashGrace == null) dashGrace = C.DASH_GRACE_LEVELS[C.DASH_GRACE_DEFAULT];
-    },
-
     // Dauerspringen an/aus (Touch-Steuerung). Greift ab der nächsten
     // Landung bzw. sofort, wenn die Figur gerade steht.
     setAutoJump: function (on) {
@@ -748,6 +803,8 @@
         charVx: chr ? chr.vx : null,
         charY: chr ? chr.y : null,
         cameraY: camera ? camera.y : null,
+        cameraBase: camera ? camera.base : null,
+        anchorY: chr ? chr.anchorY : null,
         scrolling: camera ? camera.scrolling : false,
         floorCount: floors ? floors.length : 0,
         grounded: chr ? chr.grounded : null,

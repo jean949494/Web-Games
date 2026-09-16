@@ -25,7 +25,11 @@
 
   var constants = {
     CANVAS_W: 340,
-    CANVAS_H: 480,
+    // 340×600 ≈ 9:16, also echtes Handyformat. Vorher 340×480 (3:4): das
+    // ließ oben und unten breite Ränder frei UND gab nur knapp sechs
+    // Etagen Sicht – ein Fehlsprung kostete damit sofort die Runde. Hoch
+    // gibt es jetzt zehn Etagen Sicht und entsprechend Luft nach unten.
+    CANVAS_H: 600,
 
     CHAR_R: 12,
     EDGE_MARGIN: 6, // Abstand zwischen Spielfeldrand und Lauf-Grenze
@@ -50,8 +54,9 @@
     JUMP_VY_BASE: -8.4, // Sprung im Stand (kein Schwung), voll gehalten
     JUMP_VY_BONUS: -5.6, // zusätzlich bei voller Laufgeschwindigkeit
     JUMP_CUT_FACTOR: 0.5, // beim Loslassen: Rest-Steiggeschwindigkeit * dieser Faktor
-    // Untergrenze nach dem Kappen. Muss über einer Etage liegen (~91px bei
-    // FLOOR_SPACING 82), sonst bringt ein kurzer Tipp gar nichts.
+    // Untergrenze nach dem Kappen. Muss über einer Etage liegen: -6.7
+    // trägt 93 px, der größte Etagenabstand sind 68 px. Sonst brächte ein
+    // kurzer Tipp gar nichts.
     JUMP_VY_MIN: -6.7,
     // Tempo-Anteil, der maximal in die Sprunghöhe eingeht. Über 1, damit
     // der Extra-Schwung aus einem Wandabprall wirklich höher trägt.
@@ -87,9 +92,8 @@
     DASH_BRAKE: 0.55,
     // Davor ein kurzes Fenster, in dem der Abprall geschützt läuft: so
     // bleibt Zeit, den Finger zu lösen und den Dash ganz auszukosten.
-    // Erst danach greift ein Druck sofort. Zum Antesten in fünf Stufen.
-    DASH_GRACE_LEVELS: [60, 120, 190, 270, 380],
-    DASH_GRACE_DEFAULT: 1,
+    // Erst danach greift ein Druck sofort. Per Playtest festgelegt.
+    DASH_GRACE_MS: 120,
     // Zeitfenster nach einem Wandabprall, in dem ein Sprung als Combo zählt.
     WALL_BOOST_MS: 1500,
 
@@ -97,32 +101,61 @@
     // durchspringbar (wie bei Doodle Jump). Steht man beim Fallen über
     // ihr, landet man; sonst fällt man weiter zur nächsten Etage darunter
     // – siehe game.js handleFloorCrossing/onPlank.
-    FLOOR_SPACING: 82,
-    FLOOR_SPACING_JITTER: 14,
+    // Enger gesetzt als anfangs (82): bei 480 px Bildhöhe waren nur knapp
+    // sechs Etagen zu sehen, ein Fehlsprung von drei Etagen kostete damit
+    // sofort den ganzen Puffer nach unten. Bei 58 px sind über acht Etagen
+    // im Bild, und derselbe Fehlsprung ist wieder aufzuholen.
+    FLOOR_SPACING: 58,
+    FLOOR_SPACING_JITTER: 10,
     FLOOR_THICK: 6,
-    PLANK_WIDTH_START: 150,
+    // Bewusst unter 164 px (= halbe Laufbreite): darüber deckt jede Platte
+    // zwangsläufig die Bildmitte ab, und man klettert ohne jede Eingabe
+    // endlos weiter – im Testlauf kam eine völlig unbediente Figur so bis
+    // Etage 105.
+    PLANK_WIDTH_START: 158,
     PLANK_WIDTH_TARGET: 66, // > 2*CHAR_R + Puffer, sonst kaum noch zu treffen
-    PLANK_RAMP_START_FLOOR: 10,
+    PLANK_RAMP_START_FLOOR: 25,
     // Über die ganze Welten-Reihe hinweg schmaler werden, nicht schon nach
-    // 80 Etagen am Minimum sein.
-    PLANK_RAMP_FLOORS: 900,
+    // 80 Etagen am Minimum sein. Gegengemessen: bei 900 Etagen Rampe war
+    // die Platte ab Etage ~300 wieder so schmal, dass Fehlsprünge tief
+    // durchfielen – genau daran endeten die Testläufe.
+    PLANK_RAMP_FLOORS: 1400,
     FLOOR_MARK_EVERY: 10, // jede zehnte Etage wird hervorgehoben (wie im Original)
     FLOOR_THEME_EVERY: 100, // alle 100 Etagen wechselt die Optik der Plattformen
 
     // Kamera: folgt nach oben mit – UND wandert nach einer Schonfrist von
     // selbst weiter nach oben, immer schneller. Das ist der eigentliche
     // Zeitdruck: stehen bleiben heißt irgendwann unten rausfallen.
-    CAMERA_FOLLOW_RATIO: 0.55, // Ziel-Bildhöhe der Figur (von oben)
-    // Weich nachziehen statt hart mitziehen: ein Riesensprung reißt die
-    // Kamera sonst so weit hoch, dass man nach der Landung fast unten
-    // am Bildrand klebt.
-    CAMERA_FOLLOW_LERP: 0.14,
-    CAMERA_MAX_TOP: 70, // näher als das darf die Figur der Oberkante nie kommen
-    SCROLL_START_FLOOR: 3, // ab dieser erreichten Etage beginnt das Hochwandern
-    SCROLL_START_MS: 6000, // ... spätestens aber nach dieser Zeit, damit Trödeln unten nicht ewig geht
-    SCROLL_SPEED_START: 0.55, // px/frame (~33 px/s: Stehenbleiben kostet nach ~10s die Runde)
-    SCROLL_SPEED_MAX: 2.6,
-    SCROLL_RAMP_FLOORS: 100, // über so viele Etagen von START auf MAX
+    // Bildhöhe, auf der die Figur nach einer Landung steht (von oben).
+    // Was darunter frei bleibt, ist der Puffer zum Zurückfallen: bei 0.36
+    // sind das 307 px, also gut fünf Etagen, die man danebenspringen darf,
+    // bevor es eng wird.
+    CAMERA_FOLLOW_RATIO: 0.36,
+    // Wie schnell die Basis dem Aufstieg höchstens nachzieht (px/frame).
+    // Bewusst langsamer als man klettern kann: wer Tempo macht, steigt im
+    // Bild nach oben und sammelt damit Luft nach unten – genau das macht
+    // einen schnellen Lauf in Icy Tower sicher. Zöge die Kamera sofort
+    // nach, wäre der Puffer nach einem Fehlsprung immer derselbe, egal wie
+    // gut man vorher gespielt hat.
+    CAMERA_CATCHUP: 0.9,
+    // ... aber höchstens so weit zurückbleiben, sonst klebt die Figur oben
+    // am Rand und stirbt irgendwann weit außerhalb des sichtbaren Bildes.
+    CAMERA_MAX_LAG: 130,
+    CAMERA_MAX_TOP: 60, // näher als das darf die Figur der Oberkante nie kommen
+    SCROLL_START_FLOOR: 4, // ab dieser erreichten Etage beginnt das Hochwandern
+    SCROLL_START_MS: 8000, // ... spätestens aber nach dieser Zeit, damit Trödeln unten nicht ewig geht
+    // Tempo der Kamera, in px/frame. Zum Einordnen: wer je Sprung nur EINE
+    // Etage schafft, steigt mit ~1.0 px/frame, wer zwei Etagen nimmt mit
+    // ~2.2. Die Kamera muss also spürbar unter 1.0 bleiben, solange eine
+    // Runde noch normal läuft – sonst ist sie nicht einzuholen.
+    SCROLL_SPEED_START: 0.4, // ~24 px/s
+    SCROLL_SPEED_MAX: 1.8, // ~108 px/s, verlangt echtes Lauftempo
+    // Sehr lange Rampe: die ersten Minuten sollen fahrbar bleiben, der
+    // Druck kommt erst in den oberen Welten. (Vorher waren es 100 Etagen –
+    // damit war bei Etage 100 schon Vollgas-Pflicht.) Entscheidend ist
+    // nicht das Klettertempo selbst, sondern die Sekunden nach einem
+    // Fehlsprung: da steigt man kaum, und die Kamera frisst den Puffer.
+    SCROLL_RAMP_FLOORS: 1500,
     // Verloren, sobald die Figur komplett aus dem sichtbaren Bild ist –
     // kein zusätzlicher Puffer darunter.
     PRUNE_MARGIN: 200,
@@ -208,25 +241,66 @@
 
   // Plattform-Welten, die alle FLOOR_THEME_EVERY Etagen durchgewechselt
   // werden. Jede hat neben den Farben eine eigene Deko (siehe sprites.js
-  // drawFloor), damit sie sich nicht nur im Farbton unterscheiden.
+  // drawFloor) und einen eigenen Hintergrund (background.js), damit sie
+  // sich nicht nur im Farbton unterscheiden.
   //   base = Körper, deep = Unterkante, top = Glanzkante,
-  //   mark/markDeep = jede zehnte Etage, deco = Zusatzgrafik.
+  //   mark/markDeep = jede zehnte Etage, deco = Zusatzgrafik,
+  //   bg.sky = Himmelsverlauf (oben/unten), bg.deco + bg.dec = Deko-Feld,
+  //   bg.wall = Farbe der Seitenwände.
   constants.PLANK_THEMES = [
-    { name: 'Wolkendeck', en: 'CLOUD DECK', base: '#e8f0fb', deep: '#a8bcd6', top: '#ffffff', mark: '#ffd15c', markDeep: '#c9962c', deco: 'puffs' },
-    { name: 'Rostwerk', en: 'RUST WORKS', base: '#c47a4a', deep: '#6b3c22', top: '#e8b083', mark: '#9fd8ff', markDeep: '#4a7a96', deco: 'rivets' },
-    { name: 'Wüstenruine', en: 'DESERT RUINS', base: '#e0b878', deep: '#96703c', top: '#f7e2b8', mark: '#7dd6c0', markDeep: '#2e8a78', deco: 'bricks' },
-    { name: 'Korallenriff', en: 'CORAL REEF', base: '#2fb8a8', deep: '#176b63', top: '#8ff0e0', mark: '#ff8a4c', markDeep: '#b8521f', deco: 'polyps', polyp: '#ff6b81' },
-    { name: 'Magmaschlund', en: 'MAGMA PIT', base: '#5a3330', deep: '#2b1715', top: '#ff9a52', mark: '#ffe66b', markDeep: '#c2a01f', deco: 'cracks' },
+    {
+      name: 'Wolkendeck', en: 'CLOUD DECK', base: '#e8f0fb', deep: '#a8bcd6', top: '#ffffff', mark: '#ffd15c', markDeep: '#c9962c', deco: 'puffs',
+      bg: { sky: ['#2f6ea8', '#9fcbe8'], deco: 'clouds', dec: 'rgba(255, 255, 255, 0.5)', wall: '#d8ecff' },
+    },
+    {
+      name: 'Rostwerk', en: 'RUST WORKS', base: '#c47a4a', deep: '#6b3c22', top: '#e8b083', mark: '#9fd8ff', markDeep: '#4a7a96', deco: 'rivets',
+      bg: { sky: ['#1e120c', '#6b3f22'], deco: 'pipes', dec: 'rgba(14, 8, 5, 0.42)', wall: '#e8b083' },
+    },
+    {
+      name: 'Wüstenruine', en: 'DESERT RUINS', base: '#e0b878', deep: '#96703c', top: '#f7e2b8', mark: '#7dd6c0', markDeep: '#2e8a78', deco: 'bricks',
+      // Deutlich dunklerer Abendhimmel: die Platten sind selbst sandfarben
+      // und würden vor einem hellen Sandhimmel verschwinden.
+      bg: { sky: ['#4a1a1e', '#b8553a'], deco: 'pillars', dec: 'rgba(52, 22, 16, 0.38)', wall: '#f7e2b8' },
+    },
+    {
+      name: 'Korallenriff', en: 'CORAL REEF', base: '#2fb8a8', deep: '#176b63', top: '#8ff0e0', mark: '#ff8a4c', markDeep: '#b8521f', deco: 'polyps', polyp: '#ff6b81',
+      bg: { sky: ['#03303f', '#0d7a88'], deco: 'bubbles', dec: 'rgba(190, 255, 255, 0.32)', wall: '#8ff0e0' },
+    },
+    {
+      name: 'Magmaschlund', en: 'MAGMA PIT', base: '#5a3330', deep: '#2b1715', top: '#ff9a52', mark: '#ffe66b', markDeep: '#c2a01f', deco: 'cracks',
+      bg: { sky: ['#140503', '#7a1f0a'], deco: 'embers', dec: '#ff8a3a', wall: '#ff9a52' },
+    },
     // Patina-Grün statt Messing: sonst zu nah an der sandfarbenen Wüstenruine
-    { name: 'Uhrwerk', en: 'CLOCKWORK', base: '#3f8a66', deep: '#1c4433', top: '#8fe0bc', mark: '#ffd15c', markDeep: '#b8891f', deco: 'gears', gear: '#e0be76' },
-    { name: 'Zuckerturm', en: 'SUGAR RUSH', base: '#ffc2e0', deep: '#c26b99', top: '#fff2f8', mark: '#8ef0ff', markDeep: '#3f9ab8', deco: 'sprinkles' },
-    { name: 'Neonlabor', en: 'NEON LAB', base: '#26304a', deep: '#141a2b', top: '#5ee6ff', mark: '#ff4fd8', markDeep: '#8a1f74', deco: 'circuit' },
+    {
+      name: 'Uhrwerk', en: 'CLOCKWORK', base: '#3f8a66', deep: '#1c4433', top: '#8fe0bc', mark: '#ffd15c', markDeep: '#b8891f', deco: 'gears', gear: '#e0be76',
+      bg: { sky: ['#0a2119', '#1e4a3c'], deco: 'cogs', dec: 'rgba(160, 230, 200, 0.09)', wall: '#8fe0bc' },
+    },
+    {
+      name: 'Zuckerturm', en: 'SUGAR RUSH', base: '#ffc2e0', deep: '#c26b99', top: '#fff2f8', mark: '#8ef0ff', markDeep: '#3f9ab8', deco: 'sprinkles',
+      // Kräftiges Beeren-Violett – die Platten sind fast weiß, davor
+      // heben sie sich ab.
+      bg: { sky: ['#3a0f52', '#a8348a'], deco: 'candy', dec: 'rgba(255, 240, 250, 0.4)', wall: '#fff2f8' },
+    },
+    {
+      name: 'Neonlabor', en: 'NEON LAB', base: '#26304a', deep: '#141a2b', top: '#5ee6ff', mark: '#ff4fd8', markDeep: '#8a1f74', deco: 'circuit',
+      bg: { sky: ['#03060f', '#101f3a'], deco: 'grid', dec: 'rgba(94, 230, 255, 0.16)', wall: '#5ee6ff' },
+    },
     // Fast schwarze Wolke in beiden Varianten – der Blitz macht den
     // Unterschied: normal gelb, auf der Zehner-Etage grün.
-    { name: 'Gewitterfront', en: 'THUNDERHEAD', base: '#14161d', deep: '#07080c', top: '#5a6478', mark: '#0e1016', markDeep: '#05060a', deco: 'storm', bolt: '#ffe66b', boltMark: '#6bff4a' },
+    {
+      name: 'Gewitterfront', en: 'THUNDERHEAD', base: '#14161d', deep: '#07080c', top: '#5a6478', mark: '#0e1016', markDeep: '#05060a', deco: 'storm', bolt: '#ffe66b', boltMark: '#6bff4a',
+      bg: { sky: ['#05070c', '#323a4e'], deco: 'storm', dec: '#ffe66b', wall: '#8a94aa' },
+    },
     // Finale der Reihe: ganz oben endet der Turm im All.
-    { name: 'Weltraum', en: 'DEEP SPACE', base: '#241f3d', deep: '#110e1f', top: '#c2b8ff', mark: '#5ee6ff', markDeep: '#2a7a96', deco: 'space' },
+    {
+      name: 'Weltraum', en: 'DEEP SPACE', base: '#241f3d', deep: '#110e1f', top: '#c2b8ff', mark: '#5ee6ff', markDeep: '#2a7a96', deco: 'space',
+      bg: { sky: ['#03020a', '#1b1140'], deco: 'stars', dec: '#ffffff', wall: '#c2b8ff' },
+    },
   ];
+
+  // Überblendung beim Weltenwechsel – ein harter Schnitt mitten im Sprung
+  // würde reißen.
+  constants.BG_FADE_MS = 900;
 
   constants.themeForFloor = function (seq) {
     var i = Math.floor(Math.max(0, seq) / constants.FLOOR_THEME_EVERY);

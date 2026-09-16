@@ -67,10 +67,16 @@
       <div class="note">Jede Welt hat eine eigene Deko, nicht nur einen anderen Farbton. Links normal, rechts die hervorgehobene Zehner-Etage.</div>
     </div>
 
+    <h2>Welt-Hintergründe</h2>
+    <div class="card">
+      <canvas id="skies"></canvas>
+      <div class="note">Jede Welt bringt ihren eigenen Himmel mit: Farbverlauf, Deko-Feld mit Parallaxe und passend eingefärbte Seitenwände. Beim Wechsel blendet das Spiel über 0,9 s um.</div>
+    </div>
+
     <h2>Etagenbreiten</h2>
     <div class="card">
       <canvas id="floors" width="640" height="360"></canvas>
-      <div class="note">Breite schrumpft mit der Höhe von 150 px auf 66 px. Unten der Startboden.</div>
+      <div class="note">Breite schrumpft mit der Höhe von 158 px auf 66 px. Unten der Startboden.</div>
     </div>
 
     <h2>Combo-Stufen</h2>
@@ -88,6 +94,7 @@
 
   <script src="js/constants.js"></script>
   <script src="js/sprites.js"></script>
+  <script src="js/background.js"></script>
   <script>
   (function (global, document) {
     'use strict';
@@ -151,6 +158,60 @@
 
         S.drawFloor(ctx, { plankX: 112, plankWidth: 96 }, y, false, t);
         S.drawFloor(ctx, { plankX: 218, plankWidth: 48 }, y, true, t);
+      });
+    })();
+
+    // --- Welt-Hintergründe ---
+    (function () {
+      var cv = document.getElementById('skies');
+      var W = C.CANVAS_W, H = C.CANVAS_H, pad = 10, lab = 24, cols = 5;
+      // Leinwand aus der Spielauflösung ableiten, nicht fest im Markup:
+      // sonst passt das Raster nicht mehr, sobald CANVAS_H sich ändert.
+      cv.width = cols * (W + pad) + pad;
+      cv.height = Math.ceil(C.PLANK_THEMES.length / cols) * (H + pad + lab) + pad;
+      var ctx = cv.getContext('2d');
+      bg(ctx, cv.width, cv.height);
+      var tile = document.createElement('canvas');
+      tile.width = W;
+      tile.height = H;
+      var tctx = tile.getContext('2d');
+
+      C.PLANK_THEMES.forEach(function (t, i) {
+        // So weit oben, wie diese Welt im Spiel beginnt – damit das
+        // Deko-Feld denselben Ausschnitt zeigt wie dort.
+        var camY = -(i * C.FLOOR_THEME_EVERY) * C.FLOOR_SPACING;
+        ET.background.draw(tctx, t, camY, 1400 + i * 260);
+
+        var w = C.EDGE_MARGIN;
+        tctx.save();
+        tctx.fillStyle = t.bg.wall;
+        tctx.globalAlpha = 0.28;
+        tctx.fillRect(0, 0, w, H);
+        tctx.fillRect(W - w, 0, w, H);
+        tctx.globalAlpha = 0.8;
+        tctx.fillRect(w - 1, 0, 1, H);
+        tctx.fillRect(W - w, 0, 1, H);
+        tctx.restore();
+
+        var rows = Math.floor((H - 60) / C.FLOOR_SPACING);
+        for (var r = 0; r < rows; r++) {
+          var seq = i * C.FLOOR_THEME_EVERY + 10 + r * 3;
+          var width = C.plankWidthAt(seq);
+          S.drawFloor(tctx, {
+            plankX: 30 + ((r * 97) % Math.max(20, W - 60 - width)), plankWidth: width, seq: seq,
+          }, 60 + r * C.FLOOR_SPACING, seq % C.FLOOR_MARK_EVERY === 0, t);
+        }
+        S.drawChar(tctx, 170, 60 + C.FLOOR_SPACING * 2 - C.CHAR_R + C.FLOOR_THICK / 2, {
+          vx: 3, vy: 0, grounded: true, facing: 1, squash: 0, runPhase: 2, speedFactor: 0.8,
+        }, S.CHARACTERS[0].id);
+
+        var cx = pad + (i % cols) * (W + pad);
+        var cy = pad + Math.floor(i / cols) * (H + pad + lab);
+        ctx.drawImage(tile, cx, cy);
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(t.en + '  ·  ' + t.name, cx + W / 2, cy + H + 17);
       });
     })();
 

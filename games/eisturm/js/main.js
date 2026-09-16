@@ -97,35 +97,6 @@
     ET.game.setSkin(currentSkin);
     renderSkinPicker();
 
-    // Schonzeit-Stufen zum Antesten: im Menü und in der Pause umschaltbar,
-    // damit sich Stufen direkt hintereinander vergleichen lassen.
-    var gracePickers = [document.getElementById('brake-picker'), document.getElementById('brake-picker-pause')];
-    var graceIndex = ET.settings.getDashGrace(C.DASH_GRACE_LEVELS, C.DASH_GRACE_DEFAULT);
-
-    function renderGracePickers() {
-      gracePickers.forEach(function (host) {
-        host.innerHTML = '';
-        C.DASH_GRACE_LEVELS.forEach(function (ms, i) {
-          var btn = document.createElement('button');
-          btn.className = 'brake-btn' + (i === graceIndex ? ' active' : '');
-          btn.textContent = String(i + 1);
-          btn.title = ms + ' ms';
-          btn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            graceIndex = i;
-            ET.settings.setDashGrace(i);
-            ET.game.setDashGrace(i);
-            renderGracePickers();
-          });
-          btn.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
-          host.appendChild(btn);
-        });
-      });
-    }
-
-    ET.game.setDashGrace(graceIndex);
-    renderGracePickers();
-
     var CONTROL_HINTS = {};
     CONTROL_HINTS[ET.settings.MODES.TILT] = 'Handy neigen zum Laufen &middot; Antippen zum Springen<br />Länger halten springt höher, Finger liegen lassen springt durchgehend';
     CONTROL_HINTS[ET.settings.MODES.TOUCH] = 'Springt von selbst &middot; linke/rechte Bildschirmhälfte drücken zum Laufen';

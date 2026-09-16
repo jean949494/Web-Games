@@ -27,7 +27,7 @@ Im Menü umschaltbar (lokal gespeichert, siehe `js/settings.js`):
 - **Linke/rechte Bildschirmhälfte drücken** – in die Richtung laufen,
   loslassen – ausrollen. Die Neigung ist in diesem Modus ohne Wirkung.
 - Direkt nach dem Abprall läuft der Dash kurz **geschützt** weiter
-  (`DASH_GRACE_LEVELS`, im Menü und in der Pause in fünf Stufen wählbar):
+  (`DASH_GRACE_MS`, 120 ms, per Playtest festgelegt):
   So bleibt Zeit, den Finger zu lösen und den Dash ganz auszukosten.
   Danach greift ein Druck auf die Gegenseite sofort und **bremst** den
   Schwung mit `DASH_BRAKE` aus, statt ihn schlagartig umzudrehen.
@@ -35,6 +35,14 @@ Im Menü umschaltbar (lokal gespeichert, siehe `js/settings.js`):
   nicht so schnell zurückkippen könnte.
 - Mehrere Finger werden mitgeführt: es zählt der zuletzt aufgesetzte,
   und wird der gehoben, übernimmt wieder der noch liegende.
+
+Beides gilt für den **ganzen Bildschirm**, nicht nur für das Spielfeld:
+die Bühne füllt ein hohes Handy nicht aus, über und unter ihr bleibt ein
+Rand – ein Druck dorthin muss genauso zählen. Deshalb
+hängen die Zeiger-Listener am `document`, nicht am Bühnen-Element, und die
+Bildschirmhälfte wird gegen `window.innerWidth` gemessen. Die
+Overlay-Knöpfe (Start, Pause, Sound, Skin, Modus) stoppen ihr
+`pointerdown` selbst und lösen deshalb keinen Sprung aus.
 
 Tastatur am PC zum Testen: Pfeiltasten/A+D halten = laufen,
 Leertaste/Pfeil-hoch halten = springen (Höhe ebenfalls über die
@@ -67,7 +75,7 @@ Handy nachzujustieren.
 ## Struktur
 
 - `index.html` – Markup + Overlay-Screens (Menü, Pause, Game Over)
-- `style.css` – Layout, responsive Skalierung auf 340×480-Referenz
+- `style.css` – Layout, responsive Skalierung auf 340×600-Referenz (9:16)
 - `js/constants.js` – Physik, Etagen, Kamera/Scroll, Combo, Neigung
 - `js/settings.js` – gewählte Steuerung (Neigen/Tippen) und Figur, lokal
   gespeichert
@@ -76,6 +84,8 @@ Handy nachzujustieren.
 - `js/input.js` – Neigung (Lenken), Antippen/Halten (Sprunghöhe), Tastatur
 - `js/sprites.js` – die vier Figuren (Shadow/Steel/Emperor/Arcane) mit
   ihren Posen sowie die Plattformen aller Welten, prozedural gezeichnet
+- `js/background.js` – der Himmel je Welt: Farbverlauf und gehashtes
+  Deko-Feld mit Parallaxe
 - `js/trail.js` – Regenbogen-Schweif
 - `js/particles.js` – Landestaub, Wandabprall-Funken
 - `js/sounds.js` – spielspezifische Ton-Sequenzen (aufbauend auf
@@ -84,7 +94,8 @@ Handy nachzujustieren.
 ## Bild-Studio
 
 `preview.html` im Spielordner zeigt alle Grafiken vergrößert nebeneinander
-(Figur in allen Posen, Schweif nach Tempo, Etagen-Breiten, Beispielszene).
+(Figur in allen Posen, Schweif nach Tempo, Plattformen und Hintergründe
+aller zehn Welten, Etagen-Breiten, Combo-Stufen, Beispielszene).
 Praktisch, um an der Optik zu schrauben, ohne im Spiel danach zu jagen:
 `https://jean949494.github.io/Web-Games/games/eisturm/preview.html`
 
@@ -113,8 +124,9 @@ Praktisch, um an der Optik zu schrauben, ohne im Spiel danach zu jagen:
   noch in die Anlaufrichtung geneigt, normales Gegenbremsen würde den
   Dash in ~130 ms abwürgen – schneller, als man zurückkippen kann. Sonst
   baut er sich nur mit `OVERSPEED_FRICTION` ab. Über
-  `JUMP_SPEED_FACTOR_MAX` trägt er direkt in die Sprunghöhe:
-  **7,3 Etagen aus dem Dash gegenüber 1,7 aus dem Stand.**
+  `JUMP_SPEED_FACTOR_MAX` trägt er direkt in die Sprunghöhe. Sprunghöhen
+  bei `FLOOR_SPACING` 58: **kurzer Tipp 1,6 Etagen · aus dem Stand
+  gehalten 2,5 · mit vollem Anlauf 7 · aus dem Wand-Dash 11,5.**
 - **Combo nur aus dem Wandabprall**: ein Sprung zählt nur dann als Combo,
   wenn er innerhalb von `WALL_BOOST_MS` nach einem Wandabprall startet
   (oder die Figur mitten im Flug eine Wand trifft). Genau dieser Zustand
@@ -135,20 +147,45 @@ Praktisch, um an der Optik zu schrauben, ohne im Spiel danach zu jagen:
   (1,5° ≈ 22 % Tempo, 2° ≈ 39 %, 2,5° ≈ 53 %, ab 5° Vollgas), man sieht
   den Bildschirm also weiterhin gut. Gegengetestet: ±1,6° Handzittern
   bewegen die Figur nicht, 2,2° klare Neigung ziehen sofort an.
+- **Kamera**: `camera.base` wandert ausschließlich nach oben – durch den
+  Auto-Scroll und durch `chr.anchorY`, die höchste Etage, auf der wirklich
+  **gelandet** wurde. Bewusst nicht durch die Momentanhöhe: sonst reißt
+  jeder hohe Sprung das Bild mit hoch, die Figur landet ein Stück weiter
+  unten und klebt nach ein paar Sprüngen am unteren Rand (genau daran
+  scheiterten Testläufe vorher schon bei Etage 15). Nachgezogen wird
+  höchstens mit `CAMERA_CATCHUP` (0,9 px/frame) – langsamer, als man
+  klettern kann. Wer Tempo macht, steigt dadurch im Bild nach oben und
+  sammelt bis zu `CAMERA_MAX_LAG` (130 px) zusätzliche Luft nach unten;
+  genau das macht einen schnellen Lauf sicher. Gezeichnet wird `camera.y`
+  = die Basis, vorübergehend weiter hochgeschoben, solange die Figur sonst
+  oben aus dem Bild klettern würde – das verschiebt die Basis nicht, das
+  Bild kommt nach der Landung von selbst zurück. Aufgeräumt wird ebenfalls
+  gegen die Basis: `pruneOldFloors` gegen `camera.y` warf im Sprung Etagen
+  weg, die noch klar über der Verlustgrenze lagen – ein Fehlsprung fiel
+  dann durch ein Loch aus dem Nichts (gemessen: elf Etagen ohne eine
+  einzige Platte).
 - **Zeitdruck**: ab Etage `SCROLL_START_FLOOR` (spätestens nach
-  `SCROLL_START_MS`) wandert die Kamera von selbst nach oben und
-  beschleunigt über `SCROLL_RAMP_FLOORS` Etagen von
-  `SCROLL_SPEED_START` auf `SCROLL_SPEED_MAX`. Sie folgt zusätzlich dem
-  Aufstieg, zieht aber nur weich nach (`CAMERA_FOLLOW_LERP`), damit ein
-  Riesensprung einen nicht anschließend am unteren Bildrand kleben lässt.
+  `SCROLL_START_MS`) wandert die Basis von selbst nach oben und
+  beschleunigt über `SCROLL_RAMP_FLOORS` (1500) Etagen von
+  `SCROLL_SPEED_START` (0,4) auf `SCROLL_SPEED_MAX` (1,8 px/frame).
+  Vorher waren es 2,6 px/frame schon ab Etage 100 – schneller, als man
+  überhaupt klettern kann. Entscheidend ist ohnehin nicht das
+  Klettertempo, sondern die Sekunden nach einem Fehlsprung: da steigt man
+  kaum, und die Kamera frisst den Puffer.
 - **Score** = erreichte Etage × `POINTS_PER_FLOOR` + Combo-Punkte. Jede
   zehnte Etage ist farblich hervorgehoben, die Etagennummern stehen am
   linken Rand.
-- **Welten**: alle `FLOOR_THEME_EVERY` (100) Etagen wechselt die
-  Plattform-Optik durch zehn Welten mit je eigener Deko – siehe
-  `PLANK_THEMES` und `drawDeco` in `sprites.js`. Ganz oben endet der Turm
-  im All (DEEP SPACE), danach beginnt die Reihe von vorn. Bei jedem
-  Wechsel zieht der englische Weltname groß auf und blendet wieder aus;
+- **Welten**: alle `FLOOR_THEME_EVERY` (100) Etagen wechselt die Optik
+  durch zehn Welten – Plattform-Deko (`drawDeco` in `sprites.js`) **und**
+  Hintergrund (`js/background.js`): eigener Himmelsverlauf, ein Deko-Feld
+  mit Parallaxe (Wolken, Rohre, Säulen, Blasen, Glut, Zahnräder, Bonbons,
+  Leiterbahnen, Blitze, Sterne) und passend eingefärbte Seitenwände. Das
+  Deko-Feld ist aus den Zellkoordinaten gehasht statt gewürfelt: derselbe
+  Ausschnitt sieht beim Zurückfallen wieder gleich aus und muss nirgends
+  gespeichert werden. Beim Wechsel blendet der Hintergrund über
+  `BG_FADE_MS` um, ein harter Schnitt mitten im Sprung würde reißen.
+  Ganz oben endet der Turm im All (DEEP SPACE), danach beginnt die Reihe
+  von vorn. Bei jedem Wechsel zieht der englische Weltname groß auf;
   geprüft wird dabei der Welt-Index, nicht die Etagennummer, weil die
   100er-Etage per Combo auch übersprungen werden kann.
 - **Figuren**: vier auswählbare Skins, im Menü umschaltbar und lokal
@@ -157,13 +194,30 @@ Praktisch, um an der Optik zu schrauben, ohne im Spiel danach zu jagen:
   fällt – ohne Puffer, sobald die Figur weg ist, ist die Runde vorbei.
   Es gibt keine andere Verlustbedingung.
 
+## Rundenlänge (gemessen)
+
+Ziel war eine Runde von mindestens drei Minuten (Poki bewertet das). Mit
+drei Bot-Profilen über je sechs Runden gegengetestet (`getDebugState()`
+und ein Steuer-Bot im Browser, alle Runden parallel in eigenen Tabs):
+
+| Profil | Beschreibung | Median | ≥ 3 min | Etage |
+| --- | --- | --- | --- | --- |
+| aktiv | läuft durchgehend Vollgas, wechselt an den Wänden | 200 s+ | 6/6 | 730–780 |
+| mittel | 70 % Tempo, 10 % Pausen | 200 s | 3/6 | 360–650 |
+| stur | rührt die Steuerung überhaupt nicht an | 165 s | 0/4 | 280–360 |
+
+Vor diesen Änderungen endete dasselbe mittlere Profil nach **8–25
+Sekunden** bei Etage 13–60. Dass "stur" am Ende trotzdem untergeht, ist
+Absicht: stehen bleiben muss die Runde kosten.
+
 ## Bewusst offen gelassen / noch zu tunen
 
 - **Neigungs-Schwellwert** (`TILT_STEER_MAX_DEG`) ist ein Platzhalter –
   im Entwicklungscontainer stand kein Gyroskop zum Kalibrieren zur
   Verfügung. Mit `?debug` live nachjustieren (siehe oben).
 - **Schwierigkeitskurve über eine volle Runde** – `SCROLL_RAMP_FLOORS`
-  und `PLANK_RAMP_FLOORS` sind erste Schätzwerte, noch nicht über viele
-  Runden gegengetestet.
+  und `PLANK_RAMP_FLOORS` sind jetzt über Bot-Läufe gegengetestet (siehe
+  oben), aber nur gegen Bots: wie es sich mit echter Neigung anfühlt,
+  muss auf dem Handy nachjustiert werden.
 - **Bewegliche/kaputte Etagen, Power-Ups** – im Original später dazu,
   hier erstmal Kernmechanik + Combo + Zeitdruck.
