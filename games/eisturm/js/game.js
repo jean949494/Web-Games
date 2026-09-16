@@ -34,7 +34,7 @@
   var state = STATES.MENU;
   var changeListeners = [];
 
-  var chr, camera, floors, nextFloorY, floorSeq, best, comboPoints, combo, flashes;
+  var chr, camera, floors, nextFloorY, floorSeq, best, comboPoints, combo, flashes, banner;
   var accMs, lastTs, rafId;
   var steerFactor = 0; // -1..1, von input.js gesetzt (Neigung oder Tastatur)
   // Liegt der Finger (bzw. die Taste) gerade auf? Dann wird bei jeder
@@ -106,10 +106,16 @@
     comboPoints = 0;
     combo = { floors: 0, timerMs: 0 };
     flashes = [];
+    banner = null;
     steerFactor = 0;
     ET.particles.reset();
     ET.trail.reset();
     ensureFloorsAhead();
+  }
+
+  // Einblendung beim Betreten einer neuen Welt (alle FLOOR_THEME_EVERY Etagen)
+  function showWorldBanner(theme) {
+    banner = { text: theme.en, color: theme.mark, ageMs: 0 };
   }
 
   function ensureFloorsAhead() {
@@ -186,7 +192,14 @@
     ET.particles.spawnLandDust(chr.x, floorTopY(floor));
     ET.sounds.playLand();
 
-    if (floor.seq > chr.maxFloor) chr.maxFloor = floor.seq;
+    if (floor.seq > chr.maxFloor) {
+      // Über den Themenindex prüfen, nicht über die Etagennummer selbst:
+      // per Combo kann die 100er-Etage auch übersprungen werden.
+      var prevWorld = Math.floor(chr.maxFloor / C.FLOOR_THEME_EVERY);
+      chr.maxFloor = floor.seq;
+      var newWorld = Math.floor(chr.maxFloor / C.FLOOR_THEME_EVERY);
+      if (newWorld !== prevWorld) showWorldBanner(C.themeForFloor(chr.maxFloor));
+    }
 
     // Combo gibt es ausschließlich für Sprünge aus einem Wandabprall.
     if (skipped >= C.COMBO_MIN_FLOORS && chr.wallJump) {
@@ -372,6 +385,11 @@
       if (flashes[f].ageMs >= C.FLASH_DURATION_MS) flashes.splice(f, 1);
     }
 
+    if (banner) {
+      banner.ageMs += STEP_MS;
+      if (banner.ageMs >= C.BANNER_DURATION_MS) banner = null;
+    }
+
     // Verloren, sobald die Figur komplett unter dem sichtbaren Bild ist.
     if (chr.y - C.CHAR_R - camera.y > C.CANVAS_H) {
       killChar('fell');
@@ -403,6 +421,7 @@
     drawChar();
     drawFlashes();
     drawCombo();
+    drawWorldBanner();
   }
 
   // Seitenwände sichtbar machen – an ihnen prallt man ab, das soll man sehen.
@@ -500,6 +519,40 @@
     ctx.globalAlpha = 1;
   }
 
+  // Name der neuen Welt: zieht auf, steht kurz, blendet aus.
+  function drawWorldBanner() {
+    if (!banner) return;
+    var t = banner.ageMs / C.BANNER_DURATION_MS;
+
+    var scale;
+    if (t < 0.14) scale = 0.5 + (t / 0.14) * 0.62;          // aufziehen
+    else if (t < 0.26) scale = 1.12 - ((t - 0.14) / 0.12) * 0.12; // zurückfedern
+    else scale = 1;
+
+    var alpha = t < 0.7 ? Math.min(1, t / 0.12) : Math.max(0, 1 - (t - 0.7) / 0.3);
+    var y = C.CANVAS_H * 0.36 - t * 16;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(C.CANVAS_W / 2, y);
+    ctx.scale(scale, scale);
+    ctx.textAlign = 'center';
+
+    ctx.font = 'bold 26px sans-serif';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'rgba(12, 18, 30, 0.9)';
+    ctx.strokeText(banner.text, 0, 0);
+    ctx.fillStyle = banner.color;
+    ctx.fillText(banner.text, 0, 0);
+
+    // Zierlinien ober- und unterhalb, die mit aufziehen
+    var half = ctx.measureText(banner.text).width / 2 + 10;
+    ctx.fillRect(-half, -22, half * 2, 2);
+    ctx.fillRect(-half, 8, half * 2, 2);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
   // Laufende Combo-Serie mit Restzeit-Balken, direkt unter dem Score.
   function drawCombo() {
     if (combo.floors <= 0) return;
@@ -573,6 +626,7 @@
       SG.audio.unlock();
       SG.poki.gameplayStart();
       SG.analytics.track('game_start', {});
+      showWorldBanner(C.themeForFloor(0)); // Startwelt gleich benennen
       emitChange();
       if (autoJump) jumpStart(); // sonst stünde die Figur bis zur ersten Landung still
     },
@@ -646,6 +700,7 @@
         floorCount: floors ? floors.length : 0,
         grounded: chr ? chr.grounded : null,
         comboFloors: combo ? combo.floors : 0,
+        banner: banner ? banner.text : null,
       };
     },
   };

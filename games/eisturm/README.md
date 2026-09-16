@@ -136,8 +136,12 @@ Praktisch, um an der Optik zu schrauben, ohne im Spiel danach zu jagen:
   zehnte Etage ist farblich hervorgehoben, die Etagennummern stehen am
   linken Rand.
 - **Welten**: alle `FLOOR_THEME_EVERY` (100) Etagen wechselt die
-  Plattform-Optik durch acht Welten mit je eigener Deko – siehe
-  `PLANK_THEMES` und `drawDeco` in `sprites.js`.
+  Plattform-Optik durch zehn Welten mit je eigener Deko – siehe
+  `PLANK_THEMES` und `drawDeco` in `sprites.js`. Ganz oben endet der Turm
+  im All (DEEP SPACE), danach beginnt die Reihe von vorn. Bei jedem
+  Wechsel zieht der englische Weltname groß auf und blendet wieder aus;
+  geprüft wird dabei der Welt-Index, nicht die Etagennummer, weil die
+  100er-Etage per Combo auch übersprungen werden kann.
 - **Figuren**: vier auswählbare Skins, im Menü umschaltbar und lokal
   gespeichert.
 - **Verloren** ist, wer komplett unter den sichtbaren Bildausschnitt

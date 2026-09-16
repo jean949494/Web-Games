@@ -120,6 +120,7 @@
     COMBO_POINTS_PER_FLOOR: 10,
     COMBO_FLOORS_PER_MULT: 5, // je so viele Serien-Etagen +1 Multiplikator
     FLASH_DURATION_MS: 1500, // Lebensdauer der Combo-Einblendung
+    BANNER_DURATION_MS: 2300, // Einblendung beim Wechsel in eine neue Welt
 
     POINTS_PER_FLOOR: 10, // Grundpunkte je erreichter Etage
 
@@ -193,14 +194,17 @@
   //   base = Körper, deep = Unterkante, top = Glanzkante,
   //   mark/markDeep = jede zehnte Etage, deco = Zusatzgrafik.
   constants.PLANK_THEMES = [
-    { name: 'Eisgipfel', base: '#bfe9ff', deep: '#6ba7cc', top: '#ffffff', mark: '#ffd15c', markDeep: '#c9962c', deco: 'icicles' },
-    { name: 'Pilzwald', base: '#8fd46a', deep: '#3f7a2e', top: '#d6f2b8', mark: '#ff8fa3', markDeep: '#c2415c', deco: 'leaves' },
-    { name: 'Magmaschlund', base: '#5a3330', deep: '#2b1715', top: '#ff9a52', mark: '#ffe66b', markDeep: '#c2a01f', deco: 'cracks' },
-    { name: 'Neonlabor', base: '#26304a', deep: '#141a2b', top: '#5ee6ff', mark: '#ff4fd8', markDeep: '#8a1f74', deco: 'circuit' },
-    { name: 'Zuckerturm', base: '#ffc2e0', deep: '#c26b99', top: '#fff2f8', mark: '#8ef0ff', markDeep: '#3f9ab8', deco: 'sprinkles' },
-    { name: 'Wüstenruine', base: '#e0b878', deep: '#96703c', top: '#f7e2b8', mark: '#7dd6c0', markDeep: '#2e8a78', deco: 'bricks' },
-    { name: 'Sternenmeer', base: '#3a2b6b', deep: '#1c1436', top: '#b8a8ff', mark: '#ffe66b', markDeep: '#b8891f', deco: 'stars' },
-    { name: 'Rostwerk', base: '#c47a4a', deep: '#6b3c22', top: '#e8b083', mark: '#9fd8ff', markDeep: '#4a7a96', deco: 'rivets' },
+    { name: 'Wolkendeck', en: 'CLOUD DECK', base: '#e8f0fb', deep: '#a8bcd6', top: '#ffffff', mark: '#ffd15c', markDeep: '#c9962c', deco: 'puffs' },
+    { name: 'Korallenriff', en: 'CORAL REEF', base: '#ff9ec4', deep: '#b8547e', top: '#ffe0ef', mark: '#7dffd6', markDeep: '#2e9c85', deco: 'polyps' },
+    { name: 'Magmaschlund', en: 'MAGMA PIT', base: '#5a3330', deep: '#2b1715', top: '#ff9a52', mark: '#ffe66b', markDeep: '#c2a01f', deco: 'cracks' },
+    { name: 'Neonlabor', en: 'NEON LAB', base: '#26304a', deep: '#141a2b', top: '#5ee6ff', mark: '#ff4fd8', markDeep: '#8a1f74', deco: 'circuit' },
+    { name: 'Zuckerturm', en: 'SUGAR RUSH', base: '#ffc2e0', deep: '#c26b99', top: '#fff2f8', mark: '#8ef0ff', markDeep: '#3f9ab8', deco: 'sprinkles' },
+    { name: 'Uhrwerk', en: 'CLOCKWORK', base: '#d8b46a', deep: '#8a6a2c', top: '#f7e2b0', mark: '#9fd8ff', markDeep: '#4a7a96', deco: 'gears' },
+    { name: 'Wüstenruine', en: 'DESERT RUINS', base: '#e0b878', deep: '#96703c', top: '#f7e2b8', mark: '#7dd6c0', markDeep: '#2e8a78', deco: 'bricks' },
+    { name: 'Rostwerk', en: 'RUST WORKS', base: '#c47a4a', deep: '#6b3c22', top: '#e8b083', mark: '#9fd8ff', markDeep: '#4a7a96', deco: 'rivets' },
+    { name: 'Gewitterfront', en: 'THUNDERHEAD', base: '#4a5162', deep: '#272c38', top: '#c2cede', mark: '#ffe66b', markDeep: '#b8891f', deco: 'lightning' },
+    // Finale der Reihe: ganz oben endet der Turm im All.
+    { name: 'Weltraum', en: 'DEEP SPACE', base: '#241f3d', deep: '#110e1f', top: '#c2b8ff', mark: '#5ee6ff', markDeep: '#2a7a96', deco: 'space' },
   ];
 
   constants.themeForFloor = function (seq) {

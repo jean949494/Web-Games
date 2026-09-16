@@ -72,12 +72,57 @@
         }
         break;
 
-      case 'leaves': // Blätterbüschel obendrauf
-        ctx.fillStyle = t.top;
-        for (i = x + 6; i < x + w - 4; i += 22) {
+      case 'puffs': // weiche Wolkenpuffs an der Unterkante
+        ctx.fillStyle = t.base;
+        for (i = x + 8; i < x + w - 5; i += 17) {
           ctx.beginPath();
-          ctx.ellipse(i, y - 1.5, 4, 2.2, ((i % 3) - 1) * 0.5, 0, Math.PI * 2);
+          ctx.arc(i, y + h - 0.5, 2.6 + ((i * 3) % 2) * 0.8, 0, Math.PI);
           ctx.fill();
+        }
+        break;
+
+      case 'polyps': // Korallenpolypen, die nach oben wachsen
+        ctx.strokeStyle = t.top;
+        ctx.lineWidth = 1.4;
+        for (i = x + 8; i < x + w - 6; i += 18) {
+          var ph = 2.6 + ((i * 7) % 3);
+          ctx.beginPath();
+          ctx.moveTo(i, y);
+          ctx.lineTo(i - 0.8, y - ph);
+          ctx.moveTo(i, y);
+          ctx.lineTo(i + 1.6, y - ph * 0.7);
+          ctx.stroke();
+        }
+        break;
+
+      case 'gears': // Zahnräder im Messingwerk
+        for (i = x + 11; i < x + w - 8; i += 21) {
+          ctx.fillStyle = t.deep;
+          ctx.beginPath();
+          ctx.arc(i, y + h / 2, 2.4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = t.top;
+          ctx.lineWidth = 0.9;
+          for (var g = 0; g < 6; g++) {
+            var a = (g / 6) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.moveTo(i + Math.cos(a) * 1.8, y + h / 2 + Math.sin(a) * 1.8);
+            ctx.lineTo(i + Math.cos(a) * 3.2, y + h / 2 + Math.sin(a) * 3.2);
+            ctx.stroke();
+          }
+        }
+        break;
+
+      case 'lightning': // Blitze, die nach unten zucken
+        ctx.strokeStyle = t.mark;
+        ctx.lineWidth = 1.3;
+        for (i = x + 12; i < x + w - 8; i += 26) {
+          ctx.beginPath();
+          ctx.moveTo(i, y + h);
+          ctx.lineTo(i - 2.2, y + h + 3);
+          ctx.lineTo(i + 0.6, y + h + 3);
+          ctx.lineTo(i - 1.6, y + h + 6.5);
+          ctx.stroke();
         }
         break;
 
@@ -121,13 +166,25 @@
         }
         break;
 
-      case 'stars': // Sternenglitzer
+      case 'space': // Sternenglitzer plus ein kleiner Ringplanet
         ctx.fillStyle = t.top;
-        for (i = x + 9; i < x + w - 6; i += 16) {
-          var r = 0.9 + ((i * 5) % 3) * 0.35;
+        for (i = x + 9; i < x + w - 6; i += 15) {
+          var r = 0.8 + ((i * 5) % 3) * 0.4;
           ctx.beginPath();
-          ctx.arc(i, y + 2 + ((i % 3) * 1.2), r, 0, Math.PI * 2);
+          ctx.arc(i, y + 1.6 + ((i % 3) * 1.4), r, 0, Math.PI * 2);
           ctx.fill();
+        }
+        if (w > 60) {
+          var px = x + w - 16;
+          ctx.fillStyle = t.mark;
+          ctx.beginPath();
+          ctx.arc(px, y + h / 2, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = t.mark;
+          ctx.lineWidth = 0.7;
+          ctx.beginPath();
+          ctx.ellipse(px, y + h / 2, 4.2, 1.2, -0.35, 0, Math.PI * 2);
+          ctx.stroke();
         }
         break;
 
