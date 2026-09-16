@@ -106,6 +106,22 @@ sind das jetzt drei Umbauten in Folge:
      gleiche Crash wie vorher, nur zeitversetzt. Die Prüfung
      berücksichtigt jetzt wie `checkObstacleCollision()` auch die
      x-Position innerhalb der Lücke, nicht nur die Höhe.
+   - **Zweite Nachbesserung** (Nutzer-Report "passt nicht" nach dem
+     vorherigen Fix): Das eigentliche strukturelle Problem war, dass
+     man während der Unverwundbarkeit auch durch die Seitenwand
+     "geistert" – hält man (wozu auch, man ist ja "unschlagbar") einen
+     Richtung durch, kann man dabei beliebig weit außerhalb des Feldes
+     landen. Dann reichte selbst die Kulanzzeit am Boost-Ende nicht
+     mehr, um rechtzeitig zurückzulenken, und der Kulanz-Deckel
+     erzwang das Ende mitten im Nichts. Fix: Während der
+     Unverwundbarkeit bleiben Hindernisse/Gegner/die eigene Linie
+     weiterhin durchlässig (das bleibt "unschlagbar"), aber die
+     Seitenwand wird nicht mehr wirklich verlassen – man rutscht
+     höchstens daran entlang (`updatePhysics()`, Positions-Clamp direkt
+     nach der Bewegung). Damit kann die "beliebig weit weg"-Situation
+     gar nicht mehr entstehen. Verifiziert: hartes Dauerlenken in eine
+     (testweise verengte) Wand über die volle Boost-Dauer – Spieler
+     verlässt das Feld nie, Boost endet pünktlich ohne jede Kulanzzeit.
    - Zusätzlich bremst das Tempo in der Vorwarnphase jetzt sanft von
      `SPEED*MULT` auf `SPEED` ab (`currentSpeed()`), statt hart zu
      schalten – synchron zum Blink-Countdown.
