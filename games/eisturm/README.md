@@ -92,9 +92,13 @@ Praktisch, um an der Optik zu schrauben, ohne im Spiel danach zu jagen:
   läuft ein Restzeit-Balken, bei jedem Combo-Sprung ploppt eine
   Stufen-Meldung auf ("Gut!" bis "UNFASSBAR!", siehe `COMBO_LABELS`).
 - **Richtungswechsel** schlägt sofort um (`TURN_SNAP_FACTOR`) statt erst
-  auszubremsen; volles Tempo braucht danach trotzdem wieder Anlauf. Die
-  Neigung hat eine Totzone (`TILT_DEAD_DEG`) und einen Tiefpass
-  (`TILT_SMOOTH`), damit leichtes Handzittern die Figur nicht eiern lässt.
+  auszubremsen; volles Tempo braucht danach trotzdem wieder Anlauf.
+- **Neigung**: Totzone (`TILT_DEAD_DEG`) und Tiefpass (`TILT_SMOOTH`)
+  halten die Nulllage ruhig, damit leichtes Handzittern die Figur nicht
+  eiern lässt. Darüber wirkt eine Kennlinie (`TILT_EXPO` < 1), die kleine
+  Winkel überproportional umsetzt: das Handy bleibt fast aufrecht
+  (3° ≈ ein Drittel Tempo, 4° ≈ die Hälfte, ab 6° Vollgas), man sieht den
+  Bildschirm also weiterhin gut.
 - **Zeitdruck**: ab Etage `SCROLL_START_FLOOR` (spätestens nach
   `SCROLL_START_MS`) wandert die Kamera von selbst nach oben und
   beschleunigt über `SCROLL_RAMP_FLOORS` Etagen von

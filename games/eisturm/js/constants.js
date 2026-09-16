@@ -119,11 +119,17 @@
 
     // Steuerung: Neigung. Kleiner Winkel = sensibler (weniger kippen für
     // volles Tempo); die Zwischenwerte bleiben stufenlos für feines Dosieren.
-    TILT_STEER_MAX_DEG: 13, // Neigungswinkel für volles Lauftempo
+    TILT_STEER_MAX_DEG: 8, // Neigungswinkel für volles Lauftempo – bewusst
+    // klein, damit das Handy fast aufrecht bleibt und man den Bildschirm
+    // gut im Blick behält.
     // Totzone um die Nulllage: ohne sie lässt schon leichtes Handzittern
     // das Vorzeichen kippen und die Figur eiert hin und her.
-    TILT_DEAD_DEG: 2.2,
-    TILT_SMOOTH: 0.35, // Tiefpass gegen Sensorrauschen (1 = ungefiltert)
+    TILT_DEAD_DEG: 1.8,
+    // Kennlinie: < 1 heißt, kleine Neigungen wirken überproportional stark
+    // (bei ~40 % Kippweg gibt es schon ~53 % Tempo), oben bleibt es
+    // trotzdem fein dosierbar.
+    TILT_EXPO: 0.7,
+    TILT_SMOOTH: 0.3, // Tiefpass gegen Sensorrauschen (1 = ungefiltert)
     // Vorzeichen/Schwelle fürs Sprung-Kippen (Richtung Gesicht). Muss
     // evtl. auf dem echten Handy angepasst werden (TILT_JUMP_SIGN auf
     // -1 drehen, falls der Sprung in die falsche Richtung auslöst).

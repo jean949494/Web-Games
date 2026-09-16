@@ -137,7 +137,9 @@
       else d = d - (d > 0 ? 1 : -1) * C.TILT_DEAD_DEG;
 
       var span = C.TILT_STEER_MAX_DEG - C.TILT_DEAD_DEG;
-      var steer = Math.max(-1, Math.min(1, d / span));
+      var ratio = Math.max(-1, Math.min(1, d / span));
+      // Kennlinie anwenden: schon wenig Neigung bringt spürbar Tempo
+      var steer = (ratio < 0 ? -1 : 1) * Math.pow(Math.abs(ratio), C.TILT_EXPO);
       ET.game.setSteer(steer);
 
       if (debugEl) {
