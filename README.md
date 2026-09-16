@@ -8,6 +8,9 @@ HTML/CSS/JavaScript.
 
 - [`games/ninja-wandsprung`](games/ninja-wandsprung/) – Endless-Climber:
   Ladesprung von Wand zu Wand, Stacheln ausweichen
+- [`games/astro-ascent`](games/astro-ascent/) – dieselbe Grundmechanik,
+  aber schwerelosere Physik und Laser-Geschütze zum Timen/Anschleichen
+  statt nur Ausweichen (Details in der eigenen README)
 
 ## Loslegen
 
@@ -20,10 +23,12 @@ Ausführlich erklärt in [`DEV.md`](DEV.md).
 
 ## Gemeinsames Grundgerüst
 
-Diese Bausteine sind bewusst spielunabhängig geschrieben und lassen sich
-für jedes weitere Spiel wiederverwenden (aktuell in
-`games/ninja-wandsprung/js/`, beim zweiten Spiel wandern sie in einen
-gemeinsamen `shared/`-Ordner):
+Diese Bausteine sind bewusst spielunabhängig geschrieben und in jedem
+Spielordner als eigene Kopie vorhanden (`storage.js`/`audio.js` nutzen pro
+Spiel eigene, klar benannte localStorage-Keys, damit sich Highscores
+nicht überschreiben). Bei einem dritten Spiel lohnt sich die
+Zusammenlegung in einen gemeinsamen `shared/`-Ordner – aktuell bei zwei
+Spielen ist der Kopieraufwand noch gering:
 
 - `storage.js` – Highscore und Einstellungen lokal speichern
 - `audio.js` – Sounds ohne Asset-Dateien, an/aus, wird gemerkt

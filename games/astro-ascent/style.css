@@ -1,0 +1,143 @@
+:root {
+  color-scheme: dark;
+  --bg: #070a14;
+  --accent: #4fd6e0;
+  --accent-2: #ff9a4a;
+  --text: #eef4f8;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#stage {
+  position: relative;
+  margin: 0 auto;
+  width: 340px;
+  height: 480px;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  /* Positionierung/Skalierung auf die Viewport-Größe übernimmt main.js
+     (position:fixed + left/top 50% + translate(-50%,-50%) scale(...),
+     daher hier bewusst der Standard-transform-origin: center). */
+}
+
+canvas#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.hud-score {
+  position: absolute;
+  top: max(10px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 22px;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.corner-btn {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  z-index: 5;
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.icon-btn:active { background: rgba(255, 255, 255, 0.22); }
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: rgba(16, 20, 31, 0.72);
+  backdrop-filter: blur(2px);
+  text-align: center;
+  padding: 20px;
+}
+
+/* Autor-Stylesheets überschreiben sonst das UA-Default für [hidden],
+   da beide dieselbe Spezifität haben – ohne diese Regel blieben
+   Overlays trotz hidden-Attribut sichtbar und übereinander liegend. */
+[hidden] {
+  display: none !important;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.title.small { font-size: 20px; }
+
+.btn-primary {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: #08222a;
+  font-size: 30px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(79, 214, 224, 0.35);
+}
+
+.btn-primary:active { transform: scale(0.96); }
+
+.hint {
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+.best-score, .go-best {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.go-score {
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.row {
+  display: flex;
+  gap: 14px;
+}
+
+.sound-corner {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+}

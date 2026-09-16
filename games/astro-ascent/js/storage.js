@@ -11,7 +11,7 @@
   // Highscore ist pro Spiel eigen (eigener Key), die Sound-Einstellung ist
   // spielübergreifend geteilt (einmal stummschalten gilt für alle Spiele
   // im Hub) – beide Spiele nutzen denselben Origin, also dasselbe localStorage.
-  var KEY_BEST = 'webgames_best_ninja-wandsprung';
+  var KEY_BEST = 'webgames_best_astro-ascent';
   var KEY_SOUND = 'webgames_sound_enabled';
 
   var memory = { best: 0, sound: true };
