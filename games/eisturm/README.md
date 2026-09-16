@@ -74,14 +74,17 @@ Praktisch, um an der Optik zu schrauben, ohne im Spiel danach zu jagen:
   `JUMP_VY_BASE + JUMP_VY_BONUS * Tempo-Anteil`; das Loslassen kappt
   einen noch steigenden Sprung auf `JUMP_CUT_FACTOR` (mindestens
   `JUMP_VY_MIN`, damit ein kurzer Tipp nie völlig ins Leere geht).
-- **Wandabprall**: an den Seitenwänden kommt man mit `WALL_BOUNCE` (> 1,
-  also schneller als man ankam) zurück, gedeckelt durch
+- **Wandabprall**: an den Seitenwänden kommt man mit `WALL_BOUNCE` (1.55,
+  also deutlich schneller als man ankam) zurück, gedeckelt durch
   `WALL_BOUNCE_MAX`. Für `WALL_LOCK_MS` ignoriert die Figur dabei die
   Steuerung – sonst würde die weiterhin gehaltene Richtung sie sofort
-  wieder in die Wand ziehen und der Abpraller verpuffen. Der Überschuss
-  über das normale Lauftempo hinaus wird nicht hart gekappt, sondern baut
-  sich nur mit `OVERSPEED_FRICTION` ab und trägt über
-  `JUMP_SPEED_FACTOR_MAX` in höhere Sprünge.
+  wieder in die Wand ziehen und der Abpraller verpuffen. Solange das
+  Tempo über dem normalen Lauftempo liegt, hat der Schwung generell
+  Vorrang vor der Steuerung (auch vor dem Richtungs-Snap, der ihn sonst
+  schlagartig vernichten würde); bewusstes Gegenlenken bremst ihn
+  allmählich, sonst baut er sich nur mit `OVERSPEED_FRICTION` ab. Über
+  `JUMP_SPEED_FACTOR_MAX` trägt er direkt in die Sprunghöhe:
+  **7,3 Etagen aus dem Dash gegenüber 1,7 aus dem Stand.**
 - **Combo nur aus dem Wandabprall**: ein Sprung zählt nur dann als Combo,
   wenn er innerhalb von `WALL_BOOST_MS` nach einem Wandabprall startet
   (oder die Figur mitten im Flug eine Wand trifft). Genau dieser Zustand

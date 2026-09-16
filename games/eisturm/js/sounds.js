@@ -19,9 +19,14 @@
       SG.audio.tone(200, 60, { type: 'sine', slideTo: 140, gain: 0.09 });
     },
 
-    // Kurzes "Ping" beim Abprallen an der Seitenwand.
-    playWall: function () {
-      SG.audio.tone(520, 55, { type: 'square', slideTo: 760, gain: 0.07 });
+    // Wandabprall: je härter der Aufprall, desto tiefer der Schlag und
+    // desto höher das nachgeschobene "Zisch" – soll nach Schub klingen.
+    playWall: function (power) {
+      var p = Math.max(0, Math.min(1, power || 0));
+      SG.audio.tone(210 - p * 60, 90, { type: 'square', slideTo: 90, gain: 0.09 + p * 0.05 });
+      setTimeout(function () {
+        SG.audio.tone(620 + p * 320, 110, { type: 'triangle', slideTo: 1200 + p * 500, gain: 0.07 + p * 0.05 });
+      }, 45);
     },
 
     // Combo-Fanfare: mehr Töne bei höherer Combo.

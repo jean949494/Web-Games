@@ -32,19 +32,22 @@
     },
 
     // dirX: Richtung, in die die Funken wegfliegen (weg von der Wand)
-    spawnWallSpark: function (x, y, dirX) {
-      for (var i = 0; i < 6; i++) {
-        var spread = (Math.random() - 0.5) * 1.6;
-        var speed = 1.2 + Math.random() * 1.8;
+    // power: 0..1, skaliert Menge und Wucht des Funkenschlags
+    spawnWallSpark: function (x, y, dirX, power) {
+      var p = Math.max(0, Math.min(1, power == null ? 0.5 : power));
+      var count = Math.round(6 + p * 12);
+      for (var i = 0; i < count; i++) {
+        var spread = (Math.random() - 0.5) * (1.6 + p * 2.2);
+        var speed = (1.2 + Math.random() * 1.8) * (1 + p * 1.3);
         list.push({
           x: x,
           y: y,
           vx: dirX * speed,
           vy: spread,
           life: 1,
-          decay: 0.06 + Math.random() * 0.03,
-          size: 1.5 + Math.random() * 1.3,
-          color: '#5ee6ff',
+          decay: 0.055 + Math.random() * 0.03,
+          size: (1.5 + Math.random() * 1.3) * (1 + p * 0.5),
+          color: p > 0.6 ? '#ffd15c' : '#5ee6ff',
         });
       }
     },

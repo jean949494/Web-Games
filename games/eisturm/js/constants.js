@@ -7,17 +7,13 @@
  * wandert von selbst nach oben und wird schneller – wer stehen bleibt,
  * fällt unten raus.
  *
- * Steuerung in zwei wählbaren Modi (siehe settings.js):
- *   - Neigung (Standard): links/rechts neigen -> laufen, je stärker
- *     geneigt desto schneller (siehe TILT_STEER_MAX_DEG). Antippen ->
- *     springen, länger gedrückt halten -> höher springen.
- *   - Halten: Bildschirmhälfte halten -> laufen. Handy Richtung Gesicht
- *     kippen -> springen (immer voller Sprung, kein Halten möglich).
+ * Steuerung: links/rechts neigen -> laufen, je stärker geneigt desto
+ * schneller (siehe TILT_STEER_MAX_DEG). Antippen -> springen, länger
+ * gedrückt halten -> höher springen.
  *
- * Die TILT_*-Werte sind Platzhalter, die ich ohne echtes Gerät nicht
- * kalibrieren konnte (kein Gyroskop im Testcontainer verfügbar) – mit
- * `?debug` in der URL zeigt input.js die aktuellen Neigungs-Deltas live
- * an, damit sich die Werte auf dem Handy schnell nachjustieren lassen.
+ * Die TILT_*-Werte sind ohne echtes Gerät entstanden (kein Gyroskop im
+ * Testcontainer) – mit `?debug` in der URL zeigt input.js Neigungswinkel
+ * und Lenkwert live an, damit sich das auf dem Handy nachjustieren lässt.
  */
 (function (global) {
   'use strict';
@@ -57,7 +53,7 @@
     JUMP_VY_MIN: -5.0, // Untergrenze nach dem Kappen: ein Tipp reicht immer für ~50px
     // Tempo-Anteil, der maximal in die Sprunghöhe eingeht. Über 1, damit
     // der Extra-Schwung aus einem Wandabprall wirklich höher trägt.
-    JUMP_SPEED_FACTOR_MAX: 1.35,
+    JUMP_SPEED_FACTOR_MAX: 1.7,
 
     // Wandabprall: das Herzstück des Tempoaufbaus. Man kommt SCHNELLER
     // zurück als man ankam (Faktor > 1) und ignoriert dabei kurz die
@@ -65,11 +61,13 @@
     // wieder in die Wand ziehen ("klebt"). Der Überschuss über das normale
     // Lauftempo hinaus baut sich nur langsam ab (OVERSPEED_FRICTION) und
     // gibt so auch höhere Sprünge – Combos gibt es nur aus diesem Zustand.
-    WALL_BOUNCE: 1.3,
+    WALL_BOUNCE: 1.55,
     WALL_BOUNCE_MIN_SPEED: 0.8, // darunter einfach stoppen statt abprallen
-    WALL_BOUNCE_MAX: 6.4, // Deckel, damit es sich nicht endlos aufschaukelt
-    WALL_LOCK_MS: 260,
-    OVERSPEED_FRICTION: 0.035, // px/frame², so langsam verliert sich der Dash-Schwung
+    WALL_BOUNCE_MAX: 8.5, // Deckel, damit es sich nicht endlos aufschaukelt
+    WALL_LOCK_MS: 300,
+    OVERSPEED_FRICTION: 0.022, // px/frame², so langsam verliert sich der Dash-Schwung
+    WALL_SHAKE_MS: 170, // kurzes Rütteln beim Aufprall
+    WALL_SHAKE_MAX: 5.5,
     // Zeitfenster nach einem Wandabprall, in dem ein Sprung als Combo zählt.
     WALL_BOOST_MS: 1500,
 
@@ -130,18 +128,12 @@
     // trotzdem fein dosierbar.
     TILT_EXPO: 0.7,
     TILT_SMOOTH: 0.3, // Tiefpass gegen Sensorrauschen (1 = ungefiltert)
-    // Vorzeichen/Schwelle fürs Sprung-Kippen (Richtung Gesicht). Muss
-    // evtl. auf dem echten Handy angepasst werden (TILT_JUMP_SIGN auf
-    // -1 drehen, falls der Sprung in die falsche Richtung auslöst).
-    TILT_JUMP_SIGN: 1,
-    TILT_JUMP_TRIGGER_DEG: 16,
-    TILT_JUMP_REARM_DEG: 6,
 
     // Juice. squash > 0 = breiter/flacher (Landung), < 0 = schmaler/höher
     // (Wandabprall); skaliert wird um den Fußpunkt, siehe sprites.js.
     SQUASH_DECAY: 0.09,
     SQUASH_LAND: 0.7,
-    SQUASH_WALL: -0.55,
+    SQUASH_WALL: -0.72,
     DUST_PARTICLE_COUNT: 7,
 
     // Regenbogen-Schweif (Icy-Tower-Markenzeichen): erscheint ab diesem

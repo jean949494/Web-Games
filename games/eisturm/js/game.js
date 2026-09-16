@@ -87,7 +87,7 @@
       wallJump: false, // zählt der laufende Sprung als Wand-Sprung (= Combo möglich)?
       maxFloor: 0,
     };
-    camera = { y: 0, scrolling: false, ageMs: 0 };
+    camera = { y: 0, scrolling: false, ageMs: 0, shakeMs: 0, shakeMag: 0 };
     floors = [groundFloor];
     floorSeq = 0;
     nextFloorY = groundY - (C.FLOOR_SPACING + Math.random() * C.FLOOR_SPACING_JITTER);
@@ -203,14 +203,17 @@
       chr.vx = 0;
       return;
     }
+    var impact = Math.min(1, Math.abs(chr.vx) / C.MAX_RUN_SPEED);
     var speed = Math.min(C.WALL_BOUNCE_MAX, Math.abs(chr.vx) * C.WALL_BOUNCE);
     chr.vx = -dir * speed;
     chr.wallLockMs = C.WALL_LOCK_MS;
     chr.wallBoostMs = C.WALL_BOOST_MS;
     if (!chr.grounded) chr.wallJump = true; // auch mitten im Flug abgeprallt zählt
     chr.squash = C.SQUASH_WALL;
-    ET.particles.spawnWallSpark(chr.x, chr.y, -dir);
-    ET.sounds.playWall();
+    camera.shakeMs = C.WALL_SHAKE_MS;
+    camera.shakeMag = C.WALL_SHAKE_MAX * impact;
+    ET.particles.spawnWallSpark(chr.x, chr.y, -dir, impact);
+    ET.sounds.playWall(impact);
   }
 
   // Nur beim Fallen relevant: Etagen sind von unten immer durchspringbar.
@@ -235,6 +238,7 @@
     // Nach der Schonfrist wandert der Ausschnitt von selbst nach oben und
     // wird mit der Höhe schneller – der eigentliche Zeitdruck im Spiel.
     camera.ageMs += STEP_MS;
+    if (camera.shakeMs > 0) camera.shakeMs -= STEP_MS;
     if (!camera.scrolling && (chr.maxFloor >= C.SCROLL_START_FLOOR || camera.ageMs >= C.SCROLL_START_MS)) {
       camera.scrolling = true;
     }
@@ -263,16 +267,19 @@
     var wantDir = steerFactor > 0.25 ? 1 : (steerFactor < -0.25 ? -1 : 0);
     var moveDir = chr.vx > 0.2 ? 1 : (chr.vx < -0.2 ? -1 : 0);
 
-    // Gegenlenken kippt die Richtung sofort um, statt erst auszubremsen.
-    if (wantDir !== 0 && moveDir !== 0 && wantDir !== moveDir) {
-      chr.vx = wantDir * Math.min(Math.abs(targetVx), C.MAX_RUN_SPEED * C.TURN_SNAP_FACTOR);
+    // Solange der Dash-Schwung über dem normalen Lauftempo liegt, hat er
+    // Vorrang vor der Steuerung: sonst würde die weiter gehaltene Richtung
+    // ihn per Snap sofort vernichten. Bewusstes Gegenlenken bremst ihn
+    // trotzdem ab – nur eben allmählich statt schlagartig.
+    if (Math.abs(chr.vx) > C.MAX_RUN_SPEED) {
+      var gegen = wantDir !== 0 && moveDir !== 0 && wantDir !== moveDir;
+      chr.vx -= (chr.vx > 0 ? 1 : -1) * (gegen ? C.RUN_ACCEL_TURN : C.OVERSPEED_FRICTION);
       return;
     }
 
-    // Extra-Schwung aus dem Wandabprall nicht hart auf Lauftempo kappen,
-    // sondern nur langsam abbauen – das ist der Wert des Dashs.
-    if (Math.abs(chr.vx) > C.MAX_RUN_SPEED && wantDir === moveDir) {
-      chr.vx -= (chr.vx > 0 ? 1 : -1) * C.OVERSPEED_FRICTION;
+    // Gegenlenken kippt die Richtung sofort um, statt erst auszubremsen.
+    if (wantDir !== 0 && moveDir !== 0 && wantDir !== moveDir) {
+      chr.vx = wantDir * Math.min(Math.abs(targetVx), C.MAX_RUN_SPEED * C.TURN_SNAP_FACTOR);
       return;
     }
 
@@ -360,19 +367,32 @@
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, C.CANVAS_W, C.CANVAS_H);
 
-    drawWalls();
-
     if (state === STATES.MENU) {
+      drawWalls();
       drawChar();
       return;
     }
 
+    // Aufprall-Rütteln: nur die Spielwelt wackelt, der Hintergrund bleibt
+    // stehen, sonst blitzen an den Rändern Lücken auf.
+    ctx.save();
+    if (camera.shakeMs > 0) {
+      var t = camera.shakeMs / C.WALL_SHAKE_MS;
+      ctx.translate(
+        (Math.random() - 0.5) * camera.shakeMag * t * 2,
+        (Math.random() - 0.5) * camera.shakeMag * t * 2
+      );
+    }
+
+    drawWalls();
     drawFloors();
     ET.particles.draw(ctx, camera.y);
     ET.trail.draw(ctx, camera.y);
     drawChar();
     drawFlashes();
-    drawCombo();
+    ctx.restore();
+
+    drawCombo(); // HUD bleibt ruhig
   }
 
   // Seitenwände sichtbar machen – an ihnen prallt man ab, das soll man sehen.
