@@ -40,7 +40,14 @@
     },
 
     playCharge: function () {
-      SG.audio.tone(200, 220, { type: 'sawtooth', slideTo: 420, gain: 0.04 });
+      // Ansteigend: Der Ton selbst sagt 'gleich knallt es'.
+      SG.audio.tone(220, 240, { type: 'sawtooth', slideTo: 560, gain: 0.05 });
+    },
+
+    // Kurzer, harter Knall - deutlich anders als alles andere im Spiel,
+    // damit man sofort weiß, dass geschossen wurde.
+    playShot: function () {
+      SG.audio.tone(900, 70, { type: 'square', slideTo: 160, gain: 0.07 });
     },
 
     playDeath: function () {

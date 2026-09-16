@@ -73,6 +73,13 @@
     ragdoll = null;
     // Geschütze getrennt führen, damit sie reihum denken können
     room.turrets = room.hazards.filter(function (h) { return h.kind === 'turret'; });
+    // Die Vorwarnung war bisher nur zu sehen. Ein Ton dazu ist wichtiger,
+    // als er klingt: Man schaut beim Anschleichen auf die eigene Figur,
+    // nicht auf das Geschütz.
+    room.turrets.forEach(function (t) {
+      t.onCharge = function () { if (BO.sounds) BO.sounds.playCharge(); };
+      t.onFire = function () { if (BO.sounds) BO.sounds.playShot(); };
+    });
   }
 
   function startRun() {
