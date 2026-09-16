@@ -108,6 +108,7 @@
         btn.classList.toggle('active', btn.dataset.mode === mode);
       });
       ET.game.setAutoJump(mode === ET.settings.MODES.TOUCH);
+      ET.game.setDirectSteering(mode === ET.settings.MODES.TOUCH);
     }
 
     modeButtons.forEach(function (btn) {

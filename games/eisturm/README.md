@@ -26,6 +26,9 @@ Im Menü umschaltbar (lokal gespeichert, siehe `js/settings.js`):
 - Die Figur **springt durchgehend von selbst**
 - **Linke/rechte Bildschirmhälfte drücken** – in die Richtung laufen,
   loslassen – ausrollen. Die Neigung ist in diesem Modus ohne Wirkung.
+- Ein Druck hebt den Schwung aus dem Wandabprall **sofort** auf und gibt
+  volle Kontrolle zum Justieren. Beim Neigen bleibt der Schwung dagegen
+  erhalten, weil man das Handy gar nicht so schnell zurückkippen könnte.
 
 Tastatur am PC zum Testen: Pfeiltasten/A+D halten = laufen,
 Leertaste/Pfeil-hoch halten = springen (Höhe ebenfalls über die

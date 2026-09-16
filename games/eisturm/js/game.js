@@ -44,6 +44,11 @@
   // die Figur hüpft von selbst, gelenkt wird nur links/rechts.
   var autoJump = false;
   var skinId = null; // von main.js gesetzt, Standard ist der erste Skin
+  // Direkte Eingabe (Tippen/Tasten) statt Neigung: dort kann man sofort
+  // reagieren, deshalb hebt ein Druck den Dash-Schwung sofort auf. Beim
+  // Neigen wäre das unfair, weil man das Handy nicht so schnell
+  // zurückkippen kann – da bremst Gegenlenken nur sanft.
+  var directSteering = false;
 
   function emitChange(extra) {
     var payload = Object.assign({ state: state, score: currentScore(), best: best || 0 }, extra || {});
@@ -267,8 +272,12 @@
     if (chr.wallBoostMs > 0) chr.wallBoostMs -= STEP_MS;
 
     if (chr.wallLockMs > 0) {
-      chr.wallLockMs -= STEP_MS;
-      return; // Abprall wirkt, Steuerung greift gleich wieder
+      if (directSteering && steerFactor !== 0) {
+        chr.wallLockMs = 0; // bewusster Druck holt die Kontrolle sofort zurück
+      } else {
+        chr.wallLockMs -= STEP_MS;
+        return; // Abprall wirkt, Steuerung greift gleich wieder
+      }
     }
 
     var targetVx = steerFactor * C.MAX_RUN_SPEED;
@@ -283,6 +292,11 @@
     // trotzdem ab – nur eben allmählich statt schlagartig.
     if (Math.abs(chr.vx) > C.MAX_RUN_SPEED) {
       var gegen = wantDir !== 0 && moveDir !== 0 && wantDir !== moveDir;
+      if (gegen && directSteering) {
+        // Druck auf die Gegenseite hebt den Dash sofort auf
+        chr.vx = wantDir * Math.min(Math.abs(targetVx), C.MAX_RUN_SPEED * C.TURN_SNAP_FACTOR);
+        return;
+      }
       chr.vx -= (chr.vx > 0 ? 1 : -1) * (gegen ? C.BOOST_COUNTER_BRAKE : C.OVERSPEED_FRICTION);
       return;
     }
@@ -598,6 +612,11 @@
 
     setSkin: function (id) {
       skinId = id;
+    },
+
+    // true = Eingabe wirkt sofort (Tippen/Tasten), false = Neigung.
+    setDirectSteering: function (on) {
+      directSteering = !!on;
     },
 
     // Dauerspringen an/aus (Touch-Steuerung). Greift ab der nächsten
