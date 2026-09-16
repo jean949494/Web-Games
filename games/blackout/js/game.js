@@ -55,7 +55,7 @@
     ninja.onDeath = function (reason) {
       ragdoll = new BO.Ragdoll(room.world, ninja.xpos, ninja.ypos, ninja.xspeed, ninja.yspeed);
       spawnDeathBurst(reason);
-      shake = 14;
+      shake = 5; // N selbst hat gar keinen Screenshake - hier nur ein Hauch
       deaths++;
       // Ungebanktes Gold ist weg - das ist der Preis, nicht der Lauf.
       pendingGold = 0;
@@ -248,13 +248,17 @@
     ctx.translate(ox, oy);
 
     if (room) {
-      drawTiles();
       drawGold();
       drawSwitchAndDoor();
       drawHazards();
       drawParticles();
       if (ragdoll) ragdoll.draw(ctx);
       if (ninja && !ninja.dead) drawNinja();
+      // Kacheln ZULETZT, über Figur und Partikel. Das kostet nichts und
+      // verdeckt sämtliche Durchdringungs-Artefakte der Kollisionsauflösung -
+      // laut Game-Feel-Recherche der wichtigste Einzeltrick für den sauberen
+      // Look des Originals.
+      drawTiles();
     }
 
     ctx.restore();

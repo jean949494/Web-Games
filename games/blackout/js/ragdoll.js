@@ -17,7 +17,10 @@
   var BO = global.BO = global.BO || {};
   var C = BO.constants;
 
-  var GRAVITY = 0.28;
+  // Dieselbe Schwerkraft wie die Spielfigur (Originalwert, auf 60 Bilder/s
+  // umgerechnet). Vorher stand hier ein frei gegriffener, viermal zu hoher
+  // Wert - dadurch fiel die Puppe wie ein Stein statt zu purzeln.
+  var GRAVITY = 0.0667;
   var DAMPING = 0.985;
   var CONSTRAINT_PASSES = 4;
   var POINT_RADIUS = 3.2;
@@ -26,7 +29,7 @@
   // Kollisionshülle und die Puppe fällt durch den Boden. Eine Begrenzung
   // der Schrittweite ist hier einfacher als kontinuierliche Kollision und
   // sieht obendrein ruhiger aus.
-  var MAX_STEP = 2.6;
+  var MAX_STEP = 5;
 
   function Ragdoll(world, x, y, vx, vy) {
     this.world = world;
