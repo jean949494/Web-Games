@@ -97,9 +97,26 @@ Deshalb wird nicht frei gewürfelt:
    dem, was die Physik hergibt (3.09 hoch, über 15 weit).
 3. Gefahren werden nie so gesetzt, dass ein Weg komplett dicht ist.
 
-Nachgewiesen mit `scratchpad/solver_test.js`: eine Strahlensuche, die den
-Raum mit der **echten Physik** durchspielt. Findet sie einen Weg, ist der
-Raum bewiesen lösbar.
+Nachgewiesen mit `scratchpad/solver_test.js` bzw. `solver_mines.js`: eine
+Strahlensuche, die den Raum mit der **echten Physik** durchspielt (Minen
+als tödliche Hindernisse eingerechnet). Findet sie einen Weg, ist der Raum
+bewiesen lösbar. Stand: 80 von 80 geprüften Räumen der Nummern 10–17.
+
+Diese Prüfung hat drei echte Fehler aufgedeckt, die im Spiel jeweils einen
+Lauf beendet hätten:
+
+1. **Rampen versiegelten Kletterschächte.** Ein Schacht lässt unten bewusst
+   eine Zeile als Durchgang frei – eine Rampe füllte genau die auf und machte
+   aus dem Schacht eine raumhohe Mauer quer durch den Raum. Rampen halten
+   jetzt Abstand zu hohen Wänden.
+2. **Das Erreichbarkeitsmodell war zu großzügig.** Es merkte sich nur
+   „in dieser Spalte gibt es irgendwo Wände links und rechts" und hielt eine
+   Plattform dadurch für per Wandsprung erreichbar, obwohl die Wandpaarung
+   nur in einer einzigen Zeile existierte. Jetzt muss der Schacht die ganze
+   Höhe zwischen beiden Flächen abdecken.
+3. **Minen in Engpässen.** Zwei Minen lagen übereinander in der einzigen
+   Lücke zum Schalter. Minen liegen jetzt nur noch auf Flächen von
+   mindestens fünf Kacheln Breite und nie am Rand oder in einem Schacht.
 
 ## Steuerung
 

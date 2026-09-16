@@ -91,26 +91,43 @@
     return platforms;
   }
 
-  /** Senkrechte Schächte: dort kann man sich per Wandsprung hocharbeiten. */
-  function shaftColumns(grid) {
-    var cols = {};
+  /**
+   * Senkrechte Schächte: dort kann man sich per Wandsprung hocharbeiten.
+   *
+   * Wichtig ist die Zeile, nicht nur die Spalte. Eine frühere Fassung merkte
+   * sich nur "in dieser Spalte gibt es irgendwo Wände links und rechts" -
+   * dadurch galt eine Plattform als erreichbar, obwohl die Wandpaarung nur in
+   * einer einzigen Zeile existierte und man in Wahrheit nirgends hochkam.
+   * Ein Raum war deshalb nicht lösbar.
+   */
+  function shaftCells(grid) {
+    var cells = {};
     for (var x = 1; x < C.ROOM_W - 1; x++) {
       for (var y = 1; y < C.ROOM_H - 1; y++) {
         if (grid[y][x] !== C.T_EMPTY) continue;
         var leftSolid = grid[y][x - 1] !== C.T_EMPTY;
         var rightSolid = grid[y][x + 1] !== C.T_EMPTY;
-        var narrowPair = grid[y][x + 1] === C.T_EMPTY && x + 2 < C.ROOM_W && grid[y][x + 2] !== C.T_EMPTY && leftSolid;
+        var narrowPair = grid[y][x + 1] === C.T_EMPTY && x + 2 < C.ROOM_W &&
+                         grid[y][x + 2] !== C.T_EMPTY && leftSolid;
         if ((leftSolid && rightSolid) || narrowPair) {
-          cols[x] = true;
-          if (narrowPair) cols[x + 1] = true;
+          cells[x + ',' + y] = true;
+          if (narrowPair) cells[(x + 1) + ',' + y] = true;
         }
       }
     }
-    return cols;
+    return cells;
+  }
+
+  /** Reicht ein durchgehender Schacht von Zeile yLow bis yHigh? */
+  function shaftSpans(cells, x, yHigh, yLow) {
+    for (var y = yHigh; y <= yLow; y++) {
+      if (!cells[x + ',' + y]) return false;
+    }
+    return true;
   }
 
   function platformsConnected(grid, platforms) {
-    var shafts = shaftColumns(grid);
+    var shafts = shaftCells(grid);
     var adj = platforms.map(function () { return []; });
     for (var i = 0; i < platforms.length; i++) {
       for (var j = 0; j < platforms.length; j++) {
@@ -124,10 +141,12 @@
         var reachable = false;
         if (rise > 0 && rise <= REACH_UP && gap <= REACH_ACROSS) reachable = true;
         if (rise <= 0 && -rise <= SAFE_DROP && gap <= REACH_ACROSS + 2) reachable = true;
-        // Wandsprung-Schacht: senkrecht deutlich weiter hoch
+        // Wandsprung-Schacht: senkrecht deutlich weiter hoch - aber nur,
+        // wenn der Schacht die gesamte Höhe zwischen beiden Flächen abdeckt.
         if (!reachable && rise > 0 && rise <= 10 && gap <= 1) {
-          for (var x = Math.max(a.x1 - 1, 1); x <= Math.min(a.x2 + 1, C.ROOM_W - 2); x++) {
-            if (shafts[x]) { reachable = true; break; }
+          var lo = Math.max(a.x1 - 1, 1), hi = Math.min(a.x2 + 1, C.ROOM_W - 2);
+          for (var x = lo; x <= hi; x++) {
+            if (shaftSpans(shafts, x, b.y, a.y - 1)) { reachable = true; break; }
           }
         }
         if (reachable) adj[i].push(j);
@@ -255,13 +274,45 @@
     }
   }
 
+  /**
+   * Spalten, in denen eine hohe senkrechte Wand steht (z.B. die Wände eines
+   * Kletterschachts), plus je zwei Kacheln Sicherheitsabstand.
+   *
+   * Dort dürfen keine Rampen entstehen: Ein Schacht lässt unten bewusst eine
+   * Zeile als Durchgang frei, und eine Rampe füllt genau die auf. Aus dem
+   * Schacht wird dann eine raumhohe Mauer, die den Raum in zwei Hälften
+   * teilt - ein Raum war dadurch nachweislich unlösbar.
+   */
+  function tallWallColumns(grid) {
+    var blocked = {};
+    for (var x = 1; x < C.ROOM_W - 1; x++) {
+      var run = 0, maxRun = 0;
+      for (var y = 1; y < C.ROOM_H - 1; y++) {
+        if (grid[y][x] !== C.T_EMPTY) { run++; maxRun = Math.max(maxRun, run); }
+        else run = 0;
+      }
+      if (maxRun >= 5) {
+        for (var d = -2; d <= 2; d++) blocked[x + d] = true;
+      }
+    }
+    return blocked;
+  }
+
   function addRamps(grid, rnd) {
+    var blocked = tallWallColumns(grid);
     var count = Math.floor(rnd() * 3); // 0 bis 2 Rampen
     for (var i = 0; i < count; i++) {
       var len = 2 + Math.floor(rnd() * 4);
       var dir = rnd() < 0.5 ? 1 : -1;
-      var x0 = 4 + Math.floor(rnd() * (C.ROOM_W - 10));
-      addRamp(grid, x0, len, dir);
+      for (var tries = 0; tries < 12; tries++) {
+        var x0 = 4 + Math.floor(rnd() * (C.ROOM_W - 10));
+        // Die ganze geplante Rampe muss frei von hohen Wänden sein
+        var ok = true;
+        for (var k = 0; k < len; k++) {
+          if (blocked[x0 + dir * k]) { ok = false; break; }
+        }
+        if (ok) { addRamp(grid, x0, len, dir); break; }
+      }
     }
   }
 
@@ -439,7 +490,28 @@
     // Minen liegen auf begehbaren Flächen - deshalb nicht würfeln, sondern
     // aus der Liste der Standflächen ziehen. (Zufälliges Würfeln scheiterte
     // zu oft und ließ die ersten Räume leer.)
+    // Minen NIE in einen engen Kletterschacht setzen: Dort führt der einzige
+    // Weg nach oben über eine Wandsprung-Kette, und eine Mine mittendrin
+    // macht den Raum praktisch unspielbar. (Die Lösbarkeitsprüfung mit Minen
+    // scheiterte genau an solchen Räumen - ausnahmslos Schacht-Räume.)
+    var shaftsForMines = shaftCells(grid);
+    // Minen dürfen nur auf breiten, offenen Flächen liegen - nie in einem
+    // Engpass. Ein Raum scheiterte genau daran: Zwei Minen lagen übereinander
+    // in der einzigen Lücke zum Schalter. Die alte Regel hielt nur Minen
+    // derselben Zeile auseinander und sah solche Stapel nicht.
+    var minePlatforms = buildPlatforms(grid).filter(function (p) {
+      return (p.x2 - p.x1 + 1) >= 5;
+    });
+    var onWidePlatform = {};
+    minePlatforms.forEach(function (p) {
+      // Ränder freihalten, damit man immer daneben landen kann
+      for (var x = p.x1 + 1; x <= p.x2 - 1; x++) onWidePlatform[x + ',' + p.y] = true;
+    });
+
     var standing = standableTiles(grid).filter(function (t) {
+      if (shaftsForMines[t.x + ',' + t.y] || shaftsForMines[(t.x - 1) + ',' + t.y] ||
+          shaftsForMines[(t.x + 1) + ',' + t.y]) return false;
+      if (!onWidePlatform[t.x + ',' + t.y]) return false;
       var c = tileCenter(t.x, t.y);
       if (Math.abs(c.x - room.spawn.x) < 70 && Math.abs(c.y - room.spawn.y) < 40) return false;
       if (Math.abs(c.x - room.switchPos.x) < 40 && Math.abs(c.y - room.switchPos.y) < 30) return false;
