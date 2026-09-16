@@ -5,39 +5,71 @@ Name und eigener Look, inspiriert von der Genre-Mechanik "Kurve ziehen,
 Kollision = Tod" (siehe Original-Spec-Dokument) – keine Original-Assets
 oder der Originaltitel wurden übernommen.
 
-**Endlos-Modus** (Stand: zweiter Umbau, siehe "Änderungen" unten): der
-Punkt steigt endlos nach oben (Kamera folgt, wie bei Ninja Wandsprung)
-und zieht dabei seine Linie mit gelegentlichen Lücken hinter sich her.
-Waagerechte Hindernis-Balken mit einer Lücke stehen im Weg, durch die
-man lenken muss. Das Spielfeld wird mit der Höhe schmaler und die
-Hindernis-Lücken springen stärker hin und her – es wird also mit der
-Zeit **enger und verzwickter**. Kollision mit Spielfeldrand, Hindernis
-oder eigener Linie = Tod. Ziel: möglichst hoch kommen.
+**Endlos-Modus, Hardcore-Tuning** (dritter Umbau, siehe "Änderungen"
+unten): der Punkt steigt endlos nach oben (Kamera folgt, wie bei Ninja
+Wandsprung) und zieht dabei eine **durchgehende** Linie hinter sich her.
+Waagerechte Hindernis-Balken mit einer Lücke stehen im Weg, ab einer
+gewissen Höhe kommen einzelne Gegner dazu, um die man herumschlängeln
+muss. Spielfeldbreite, Hindernis-Lücke und Gegner-Dichte werden mit der
+Höhe **ohne Plateau** immer enger/knapper/verzwickter. Gelegentlich gibt
+es ein Power-Up (kurzer Tempo-Boost + Unverwundbarkeit), das absichtlich
+weit von der sicheren Lücke entfernt liegt – ein riskanter Bonus.
+Kollision mit Spielfeldrand, Hindernis, Gegner oder eigener Linie = Tod.
+Ziel: möglichst hoch kommen.
 
-Kernphysik-Werte stammen 1:1 aus dem ursprünglichen Spec-Dokument der
-Prototyp-Phase (Chat/Visualizer) – siehe `js/constants.js`, jeder Wert
-dort kommentiert. Nicht ohne erneutes Playtesting verändern.
+Kernphysik-Werte (Geschwindigkeit, Lenkrate, Linienstärke, Kollisions-
+faktor) stammen 1:1 aus dem ursprünglichen Spec-Dokument der Prototyp-
+Phase (Chat/Visualizer) – siehe `js/constants.js`, jeder Wert dort
+kommentiert. Nicht ohne erneutes Playtesting verändern.
 
 ## Änderungen gegenüber der ursprünglichen Spec
 
 Die ursprüngliche Spec beschrieb "Solo gegen 3 KI-Bots" in einem festen
-340×480-Feld (siehe Original-Spec-Dokument). Nach dem ersten Testspielen
-kam der Wunsch nach einem echten Endlos-Modus statt Bots:
+340×480-Feld (siehe Original-Spec-Dokument). Nach zwei Playtest-Runden
+sind das jetzt drei Umbauten in Folge:
 
-- **Bots entfernt** – reiner Single-Player.
-- **Endlos statt festes Feld**: Kamera scrollt endlos nach oben (analog
-  Ninja Wandsprung) statt eines festen 340×480-Kastens.
-- **Hindernisse statt Bot-Linien**: waagerechte Balken mit einer Lücke
-  (siehe `js/game.js`, `ensureObstaclesAhead`/`checkObstacleCollision`).
-- **Steigende Schwierigkeit**: Feldbreite und Hindernis-Lücke schrumpfen
-  mit der Höhe, die Lücken-Position springt stärker – damit ist der
-  Punkt "Schwierigkeit über die Zeit steigern (Feld verengt sich
-  langsam)" aus der ursprünglichen Spec (dort als "noch offen"
-  markiert) umgesetzt.
+1. **Bots → Endlos-Modus**: kein festes Feld/Bots mehr, sondern ein
+   echter Single-Player-Endlos-Climber (Kamera scrollt endlos nach
+   oben) mit Hindernis-Balken statt Bot-Linien.
+2. **Hardcore-Tuning** (dieser Umbau), nach dem Feedback "viel zu
+   leicht, 0 Herausforderung":
+   - **Keine feste Ramp mehr, die irgendwann stehenbleibt.** Vorher
+     erreichten Feldbreite/Hindernis-Lücke bei Höhe ~7600 ihren
+     Minimalwert und blieben danach für den Rest der Runde
+     unverändert – das fühlte sich nach der Anfangsphase komplett
+     flach an. Jetzt nähern sich Feldbreite, Hindernis-Lücke,
+     Hindernis-Abstand und Zickzack-Stärke einem Zielwert nur noch
+     *asymptotisch* an (`constants.approach()`, HALF_LIFE-Kurve wie ein
+     radioaktiver Zerfall) – es wird auch nach Stunden theoretisch
+     noch (wenn auch immer langsamer) enger, nie ein echtes Plateau.
+     Zum Vergleich: bei Höhe 7600 (altes Plateau) ist die neue Kurve
+     schon spürbar enger als das alte Maximum; bei Höhe 15.000 ist sie
+     nochmal deutlich enger als das.
+   - **Zufällige Lücken in der eigenen Linie entfernt.** Die gab's im
+     Original nur für Mehrspieler-Fairness (damit gegnerische Kurven
+     aneinander vorbeikommen). Ohne Gegner-Kurven ist das nur noch ein
+     kostenloses, unverdientes Entkommen – jetzt ist die eigene Linie
+     immer und überall tödlich (außer den letzten paar selbst
+     gezeichneten Punkten, sonst crasht man sofort in sich selbst).
+   - **Gegner** (`js/game.js`, `checkEnemyCollision`): ab Höhe
+     `ENEMY_START_HEIGHT` (Platzhalter: 3500) tauchen zusätzlich zu den
+     Hindernis-Balken einzelne statische Gegner-Punkte im offenen
+     Korridor auf, die umschlängelt werden müssen – eine zusätzliche
+     Schicht für Fortgeschrittene, kommt bewusst erst "später".
+   - **Power-Up**: kurzer Geschwindigkeits-Boost + Unverwundbarkeit
+     (`player.invincibleFrames`), kurze blinkende Kopf-Animation als
+     Feedback. Wird absichtlich mit Abstand zur sicheren Hindernis-
+     Lücke platziert (`POWERUP_MIN_OFFSET_FROM_GAP`) – man muss extra
+     dafür abweichen und danach scharf zurück zur Lücke lenken, echtes
+     Risiko für den Bonus.
+   - **Steuerungs-Hinweis**: am Rundenstart für ~2,5s eine
+     halbtransparente Einblendung, die beide Bildschirmhälften mit
+     Pfeilen (◀ / ▶) markiert – ganz ohne Text, verschwindet von
+     selbst.
 
 Kernmechanik (konstante Geschwindigkeit, Lenken nur links/rechts,
-Linie mit Lücken, Kollision mit Wand/eigener Linie) ist unverändert
-1:1 aus der Original-Spec übernommen.
+Kollision mit Wand/eigener Linie) bleibt unverändert 1:1 aus der
+Original-Spec übernommen.
 
 ## Starten
 
@@ -56,12 +88,14 @@ Das Spiel liegt dann unter `http://localhost:5173/games/kurve-solo/`
 
 - `index.html` – Markup + Overlay-Screens (Menü, Pause, Game Over)
 - `style.css` – Layout, responsive Skalierung auf 340×480-Referenz
-- `js/constants.js` – alle Werte (Physik, Endlos-Rampen für
-  Feldbreite/Hindernisse)
+- `js/constants.js` – alle Werte (Physik, Endlos-Rampen für Feldbreite/
+  Hindernisse/Gegner/Power-Up, `approach()`-Helfer für die
+  plateau-freie Annäherungskurve)
 - `js/game.js` – Zustandsmaschine, Physik-Loop (fix 60Hz), Kamera,
-  Hindernis-Generierung, Kollision, Rendering
+  Hindernis-/Gegner-/Power-Up-Generierung, Kollision, Rendering,
+  Steuerungs-Hinweis-Overlay
 - `js/input.js` – Touch- (Pointer Events) und Tastatursteuerung
-- `js/particles.js` – Partikel-Burst beim Tod
+- `js/particles.js` – Partikel-Burst bei Tod/Power-Up-Pickup
 - `js/sounds.js` – kurve-spezifische Ton-Sequenzen auf Basis von
   `shared/audio.js`
 - `js/main.js` – Bootstrap, Overlay-Verdrahtung, Bühnen-Skalierung
@@ -74,39 +108,41 @@ Repo-Root, Abschnitt "Gemeinsames Grundgerüst".
 
 - Kernmechanik 1:1: `SPEED` (1.7 px/frame), `TURN` (0.05 rad/frame),
   `THICK` (3px), Kollisionsradius mit Faktor 2.2 auf `THICK²`
-- Zufällige Lücken: ca. 0.6% Chance/Frame auf eine 12-Frame-Lücke,
-  solange keine aktive Lücke läuft
-- Eigenkollision ignoriert die letzten 10 gezeichneten Punkte
+- Eigenkollision ignoriert nur die letzten 10 gezeichneten Punkte,
+  sonst ist die eigene Linie überall tödlich (siehe "Änderungen" oben)
 - Touch-Steuerung: linke/rechte Bildschirmhälfte halten, nur Pointer
   Events (keine Redundanz-Lösung, siehe Spec-Hinweis zur
   Chat-Iframe-Testumgebung)
 - Gelöstes Problem aus der Spec: ein Tap nach Game Over startet
   gleichzeitig neu UND lenkt – das gesamte Game-Over-Overlay ist der
   Tap-Bereich, kein separater Restart-Button nötig (siehe `js/input.js`)
-- Schwierigkeit über die Zeit steigend (siehe "Änderungen" oben):
-  Feldbreite und Hindernis-Lücke schrumpfen mit der Höhe, Hindernis-
-  Position springt stärker
+- Schwierigkeit über die Zeit steigend, ohne Plateau (siehe
+  "Änderungen" oben)
 - Grundgerüst: Menü, Pause, Game Over, Highscore lokal (geteilter
   Storage), Sound an/aus, Touch- **und** Tastatursteuerung
   (Pfeiltasten/A-D, Esc = Pause), Analytics-Event-Hooks, Poki-SDK als
   austauschbares Modul
-- Design-Leitplanken: kein Tutorial-Text (nur eine Zeile Hinweis
-  "Linke/rechte Seite halten"), sofortiger Start ohne Login, ein Tap zum
-  Neustart, Minimal-Menü, kindgerechte Optik (freundlicher "Puff"- statt
-  Crash-Sound)
-- Juice: Partikel-Burst beim Tod, leichter Screen-Shake
+- Design-Leitplanken: kein Tutorial-**Text** (der Steuerungs-Hinweis am
+  Rundenstart ist reine Grafik, keine Wörter), sofortiger Start ohne
+  Login, ein Tap zum Neustart, Minimal-Menü, kindgerechte Optik
+  (freundlicher "Puff"- statt Crash-Sound, Gegner mit Augen statt
+  bedrohlicher Spitzen)
+- Juice: Partikel-Burst bei Tod und Power-Up-Pickup, leichter
+  Screen-Shake, blinkende Unschlagbarkeits-Animation
 
 ## Bewusst offen gelassen
 
-- **Genaues Balancing der Rampen** (`WIDTH_RAMP_RANGE`,
-  `OBSTACLE_RAMP_RANGE`, `OBSTACLE_JITTER_MAX` in `constants.js`) sind
-  Platzhalter, mit einem einfachen automatisierten Testlauf
-  (proportionale Steuerung Richtung nächster Lücke) auf ca. 30–40
-  Sekunden Überlebenszeit bis zum Tod kalibriert – für echtes
-  menschliches Spielgefühl mit `npm run dev` gegenspielen und anpassen.
-- **Zusätzliche Juice-Elemente** (z.B. Ton beim knappen Vorbeifliegen an
-  einem Hindernis, wie Ninjas "Knapp!"-Flash) – nicht umgesetzt, um den
-  Umbau überschaubar zu halten; wäre eine einfache spätere Ergänzung.
+- **Genaues Balancing** (`WIDTH_HALF_LIFE`, `GAP_HALF_LIFE`,
+  `ENEMY_START_HEIGHT`, `POWERUP_*` in `constants.js`) sind Platzhalter
+  nach einem groben automatisierten Testlauf kalibriert (ein simpler
+  Bot, der proportional zur nächsten Lücke lenkt, stirbt jetzt nach
+  ca. 13–20s statt vorher 30–40s) – für echtes menschliches
+  Spielgefühl mit `npm run dev` gegenspielen und die HALF_LIFE-Werte
+  anpassen (kleiner = schneller schwerer).
+- **Gegner bewegen sich nicht** – aktuell statische Hindernis-Punkte.
+  Eine spätere Ausbaustufe könnte ihnen eine eigene kleine Bewegung
+  geben; bewusst nicht vorgezogen, um den ohnehin großen Umbau
+  überschaubar zu halten.
 - **Build-Skript für Portal-Export** – aktuell reicht der Ordner als
   statische Seite; ein Poki-spezifisches Zip/Export-Skript kommt erst,
   wenn die Einreichung ansteht.
@@ -118,17 +154,22 @@ Repo-Root, Abschnitt "Gemeinsames Grundgerüst".
 
 - **Score** = höchster je erreichter Punkt (px Höhe), analog zur
   Höhen-Logik in Ninja Wandsprung – fällt nicht mit, falls kurz
-  rückwärts/abwärts gelenkt wird. Alte Highscores aus der
-  Bots-Version (Score = überlebte Frames) sind mit diesem Umbau
-  nicht mehr vergleichbar und werden vom neuen, deutlich größeren
-  Höhen-Score schnell überholt.
+  rückwärts/abwärts gelenkt wird.
 - **Speicher-/Kollisions-Begrenzung für echte Endlosigkeit**: alte
-  Linienpunkte und Hindernisse, die weit unterhalb der Kamera liegen,
-  werden regelmäßig gelöscht (`pruneOld()`), damit eine lange Session
-  nicht immer langsamer wird.
+  Linienpunkte, Hindernisse, Gegner und Power-Ups, die weit unterhalb
+  der Kamera liegen, werden regelmäßig gelöscht (`pruneOld()`), damit
+  eine lange Session nicht immer langsamer wird.
 - **Rückwärts-Sicherheitsnetz**: wer absichtlich abwärts lenkt, wird
-  irgendwann durch `FALL_MARGIN` beendet (man kann also nicht durch
-  Stillstand/Rückwärtslenken die Verengung dauerhaft umgehen).
-- **Hindernis-Optik**: Balken statt Original-Stacheln, in einer eigenen
-  Warnfarbe (Amber) statt der Ninja-Stachel-Farbe, damit beide Spiele
+  irgendwann durch `FALL_MARGIN` beendet.
+- **Power-Up = "unschlagbar"**: während der Unverwundbarkeit ignoriert
+  das Spiel *alle* Kollisionen (Wand, Hindernis, Gegner, eigene Linie)
+  komplett, statt nur einzelne Gefahrenquellen zu blocken – klareres
+  "jetzt bin ich kurz unbesiegbar"-Gefühl als eine Teil-Immunität.
+- **Steuerungs-Hinweis erscheint bei jedem Rundenstart** (nicht nur
+  beim allerersten Mal), aber kurz (2,5s) und dezent (max. 30%
+  Deckkraft) – hilft neuen Spielern beim Wiedereinstieg nach jedem
+  Game Over, ohne erfahrene Spieler zu nerven.
+- **Hindernis-/Gegner-Optik**: Balken bzw. kleine Kreise mit
+  freundlichen Augen statt Original-Stacheln, in eigenen Warnfarben
+  (Amber/Pink) statt der Ninja-Stachel-Farbe, damit beide Spiele
   visuell unterscheidbar bleiben.

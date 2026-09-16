@@ -1,12 +1,15 @@
 /**
- * Kurve Solo – Spiellogik & Rendering (Endlos-Modus).
+ * Kurve Solo – Spiellogik & Rendering (Endlos-Modus, Hardcore-Tuning).
  *
  * Der Punkt steigt endlos nach oben (Kamera folgt, wie bei Ninja
- * Wandsprung), zieht dabei seine Linie mit gelegentlichen Lücken.
- * Kollision mit dem Spielfeldrand, einem Hindernis oder der eigenen
- * Linie = Tod. Das Spielfeld wird mit der Höhe schmaler, die Lücken in
- * den Hindernissen werden enger und ihre Position springt stärker hin
- * und her – siehe constants.js für alle Rampen-Werte.
+ * Wandsprung), zieht dabei seine (durchgehende, lückenlose) Linie
+ * hinter sich her. Kollision mit Spielfeldrand, Hindernis, Gegner oder
+ * eigener Linie = Tod. Spielfeld, Hindernis-Lücke und Gegner werden mit
+ * der Höhe OHNE Plateau immer enger/knapper/verzwickter (siehe
+ * constants.js, `approach()`).
+ *
+ * Power-Ups geben kurz Tempo + Unverwundbarkeit, sind aber absichtlich
+ * weit von der sicheren Lücke platziert – ein riskanter Bonus.
  *
  * Score = höchster je erreichter Punkt (px Höhe), analog zu Ninja
  * Wandsprung: fällt nicht mit, falls kurz rückwärts gelenkt wird.
@@ -27,7 +30,8 @@
   var state = STATES.MENU;
   var changeListeners = [];
 
-  var player, camera, obstacles, nextObstacleY, lastGapX, score, best, shakeFrames, accMs, lastTs, rafId;
+  var player, camera, obstacles, powerups, enemies;
+  var nextObstacleY, lastGapX, score, best, shakeFrames, controlHintFrames, accMs, lastTs, rafId;
 
   function emitChange(extra) {
     var payload = Object.assign({ state: state, score: Math.floor(score || 0), best: best || 0 }, extra || {});
@@ -47,17 +51,20 @@
       y: sy,
       angle: -Math.PI / 2, // nach oben
       turnInput: 0,
-      trail: [{ x: C.CANVAS_W / 2, y: sy, draw: false }],
-      gapFrames: 0,
+      trail: [{ x: C.CANVAS_W / 2, y: sy }],
       startY: sy,
       maxHeight: 0,
+      invincibleFrames: 0,
     };
     camera = { y: 0 };
     obstacles = [];
+    powerups = [];
+    enemies = [];
     lastGapX = C.CANVAS_W / 2;
     nextObstacleY = sy - C.OBSTACLE_FIRST_CLEARANCE;
     score = 0;
     shakeFrames = 0;
+    controlHintFrames = C.CONTROL_HINT_FRAMES;
     KS.particles.reset();
     ensureObstaclesAhead();
   }
@@ -72,15 +79,18 @@
     return Math.floor(player.maxHeight);
   }
 
+  function currentSpeed() {
+    return player.invincibleFrames > 0 ? C.SPEED * C.POWERUP_SPEED_MULT : C.SPEED;
+  }
+
   function ensureObstaclesAhead() {
     // Sorgt dafür, dass immer genug Hindernisse oberhalb der Kamera vorhanden sind.
     var horizon = camera.y - C.CANVAS_H * 2.2;
     while (nextObstacleY > horizon) {
       var h = player.startY - nextObstacleY; // Höhe dieser Reihe (für die Rampen)
-      var tGap = C.rampT(h, C.OBSTACLE_RAMP_START_HEIGHT, C.OBSTACLE_RAMP_RANGE);
-      var gapHalf = C.lerp(C.OBSTACLE_GAP_START, C.OBSTACLE_GAP_MIN, tGap) / 2;
-      var jitter = C.lerp(C.OBSTACLE_JITTER_START, C.OBSTACLE_JITTER_MAX, tGap);
-      var spacing = C.lerp(C.OBSTACLE_SPACING_START, C.OBSTACLE_SPACING_MIN, tGap);
+      var gapHalf = C.approach(h, C.OBSTACLE_GAP_START, C.OBSTACLE_GAP_TARGET, C.GAP_HALF_LIFE, C.RAMP_GRACE) / 2;
+      var jitter = C.approach(h, C.OBSTACLE_JITTER_START, C.OBSTACLE_JITTER_TARGET, C.JITTER_HALF_LIFE, C.RAMP_GRACE);
+      var spacing = C.approach(h, C.OBSTACLE_SPACING_START, C.OBSTACLE_SPACING_TARGET, C.SPACING_HALF_LIFE, C.RAMP_GRACE);
       var halfW = C.fieldHalfWidthAt(h);
       var cx = C.CANVAS_W / 2;
       var minX = cx - halfW + gapHalf + 4;
@@ -91,12 +101,35 @@
       lastGapX = gapX;
 
       obstacles.push({ y: nextObstacleY, gapX: gapX, gapHalf: gapHalf });
+
+      // Power-Up: absichtlich weit von der Lücken-Mitte entfernt, kurz
+      // "vor" dem Balken (Richtung Spieler) – riskant zu holen, weil man
+      // danach scharf zurück zur Lücke lenken muss.
+      if (Math.random() < C.POWERUP_CHANCE_PER_OBSTACLE) {
+        var side = Math.random() < 0.5 ? -1 : 1;
+        var offset = C.POWERUP_MIN_OFFSET_FROM_GAP + Math.random() * C.POWERUP_OFFSET_SPREAD;
+        var px = Math.max(cx - halfW + 12, Math.min(cx + halfW - 12, gapX + side * offset));
+        powerups.push({ x: px, y: nextObstacleY + C.POWERUP_Y_LEAD, taken: false });
+      }
+
+      // Gegner: tauchen erst ab einer gewissen Höhe auf ("später"),
+      // irgendwo im offenen Korridor zwischen dieser und der nächsten
+      // Reihe – man muss um sie herum schlängeln.
+      if (h > C.ENEMY_START_HEIGHT && Math.random() < C.ENEMY_CHANCE_PER_GAP) {
+        var ey = nextObstacleY - spacing * (0.3 + Math.random() * 0.4);
+        var eHalfW = C.fieldHalfWidthAt(player.startY - ey);
+        var reach = Math.max(0, eHalfW - C.ENEMY_RADIUS - 10);
+        var ex = cx + (Math.random() * 2 - 1) * reach;
+        enemies.push({ x: ex, y: ey, r: C.ENEMY_RADIUS });
+      }
+
       nextObstacleY -= spacing;
     }
   }
 
   function killPlayer(reason) {
     if (state !== STATES.PLAYING) return;
+    if (player.invincibleFrames > 0) return; // unschlagbar während des Power-Ups
     KS.particles.spawnBurst(player.x, player.y, C.PLAYER_COLOR);
     KS.sounds.playCrash();
     shakeFrames = C.SHAKE_FRAMES;
@@ -138,25 +171,50 @@
     return false;
   }
 
+  function checkEnemyCollision() {
+    var r = Math.sqrt(C.HIT_FACTOR_SQ) * C.THICK;
+    for (var i = 0; i < enemies.length; i++) {
+      var e = enemies[i];
+      var dx = player.x - e.x, dy = player.y - e.y;
+      var minDist = e.r + r;
+      if (dx * dx + dy * dy < minDist * minDist) return true;
+    }
+    return false;
+  }
+
   function checkSelfCollision() {
     var thresholdSq = C.HIT_FACTOR_SQ * C.THICK * C.THICK;
     var trail = player.trail;
     // Die letzten paar Punkte ignorieren, sonst crasht man sofort in die
-    // gerade selbst gezogene Linie (siehe Spec).
+    // gerade selbst gezogene Linie.
     var ignoreFrom = trail.length - C.SELF_IGNORE_RECENT_POINTS;
     for (var j = 0; j < ignoreFrom; j++) {
       var pt = trail[j];
-      if (!pt.draw) continue; // Lücke -> keine Kollision
       var dx = player.x - pt.x, dy = player.y - pt.y;
       if (dx * dx + dy * dy < thresholdSq) return true;
     }
     return false;
   }
 
-  function pruneOld() {
-    while (obstacles.length && obstacles[0].y - camera.y > C.CANVAS_H + C.PRUNE_MARGIN) {
-      obstacles.shift();
+  function checkPowerupPickup() {
+    for (var i = 0; i < powerups.length; i++) {
+      var p = powerups[i];
+      if (p.taken) continue;
+      var dx = player.x - p.x, dy = player.y - p.y;
+      if (dx * dx + dy * dy < C.POWERUP_PICKUP_RADIUS * C.POWERUP_PICKUP_RADIUS) {
+        p.taken = true;
+        player.invincibleFrames = C.POWERUP_DURATION_FRAMES;
+        KS.particles.spawnBurst(p.x, p.y, C.POWERUP_COLOR);
+        KS.sounds.playPowerup();
+        SG.analytics.track('powerup', {});
+      }
     }
+  }
+
+  function pruneOld() {
+    while (obstacles.length && obstacles[0].y - camera.y > C.CANVAS_H + C.PRUNE_MARGIN) obstacles.shift();
+    while (powerups.length && powerups[0].y - camera.y > C.CANVAS_H + C.PRUNE_MARGIN) powerups.shift();
+    while (enemies.length && enemies[0].y - camera.y > C.CANVAS_H + C.PRUNE_MARGIN) enemies.shift();
     var trail = player.trail;
     var cut = 0;
     var keepFrom = trail.length - C.SELF_IGNORE_RECENT_POINTS;
@@ -169,31 +227,27 @@
   function updatePhysics() {
     player.angle += player.turnInput * C.TURN;
 
-    // Zufällige Lücke: pro Frame ca. GAP_CHANCE, sobald keine aktive
-    // Lücke läuft (Kernfairness-Mechanik aus dem Original).
-    var inGap = player.gapFrames > 0;
-    if (inGap) {
-      player.gapFrames--;
-    } else if (Math.random() < C.GAP_CHANCE) {
-      player.gapFrames = C.GAP_LENGTH_FRAMES - 1;
-      inGap = true;
-    }
-
-    player.x += Math.cos(player.angle) * C.SPEED;
-    player.y += Math.sin(player.angle) * C.SPEED;
-    player.trail.push({ x: player.x, y: player.y, draw: !inGap });
+    var spd = currentSpeed();
+    player.x += Math.cos(player.angle) * spd;
+    player.y += Math.sin(player.angle) * spd;
+    player.trail.push({ x: player.x, y: player.y });
 
     player.maxHeight = Math.max(player.maxHeight, heightClimbed());
     if (state === STATES.PLAYING) score = currentScore();
+
+    if (player.invincibleFrames > 0) player.invincibleFrames--;
+    if (controlHintFrames > 0) controlHintFrames--;
 
     // Kamera folgt nur nach oben (nie zurück nach unten)
     var targetCamY = player.y - C.CANVAS_H * C.CAMERA_FOLLOW_RATIO;
     if (targetCamY < camera.y) camera.y = targetCamY;
 
     ensureObstaclesAhead();
+    checkPowerupPickup();
 
     if (checkWallCollision()) { killPlayer('wall'); return; }
     if (checkObstacleCollision()) { killPlayer('obstacle'); return; }
+    if (checkEnemyCollision()) { killPlayer('enemy'); return; }
     if (checkSelfCollision()) { killPlayer('self'); return; }
     // Sicherheitsnetz: weit unterhalb der Kamera "verbummelt"
     if (player.y - camera.y > C.CANVAS_H + C.FALL_MARGIN) { killPlayer('fell'); return; }
@@ -217,10 +271,13 @@
     drawWalls();
     if (state !== STATES.MENU) {
       drawObstacles();
+      drawEnemies();
+      drawPowerups();
       drawTrail();
     }
     drawHead();
     KS.particles.draw(ctx);
+    if (state === STATES.PLAYING) drawControlHint();
 
     ctx.restore();
   }
@@ -260,6 +317,43 @@
     }
   }
 
+  function drawEnemies() {
+    for (var i = 0; i < enemies.length; i++) {
+      var e = enemies[i];
+      var sy = e.y - camera.y;
+      if (sy < -30 || sy > C.CANVAS_H + 30) continue;
+      ctx.fillStyle = C.ENEMY_COLOR;
+      ctx.beginPath();
+      ctx.arc(e.x, sy, e.r, 0, Math.PI * 2);
+      ctx.fill();
+      // freundliche Augen statt bedrohlicher Optik
+      ctx.fillStyle = '#10141f';
+      ctx.beginPath();
+      ctx.arc(e.x - e.r * 0.35, sy - e.r * 0.15, e.r * 0.16, 0, Math.PI * 2);
+      ctx.arc(e.x + e.r * 0.35, sy - e.r * 0.15, e.r * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawPowerups() {
+    var pulse = 1 + Math.sin(Date.now() / 180) * 0.18;
+    for (var i = 0; i < powerups.length; i++) {
+      var p = powerups[i];
+      if (p.taken) continue;
+      var sy = p.y - camera.y;
+      if (sy < -30 || sy > C.CANVAS_H + 30) continue;
+      ctx.fillStyle = C.POWERUP_COLOR;
+      ctx.beginPath();
+      ctx.arc(p.x, sy, C.POWERUP_RADIUS * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(p.x, sy, C.POWERUP_RADIUS * pulse + 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
   function drawTrail() {
     var trail = player.trail;
     if (trail.length < 2) return;
@@ -268,25 +362,50 @@
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.beginPath();
-    var penDown = false;
+    ctx.moveTo(trail[0].x, trail[0].y - camera.y);
     for (var j = 1; j < trail.length; j++) {
-      var prev = trail[j - 1], cur = trail[j];
-      if (cur.draw) {
-        if (!penDown) { ctx.moveTo(prev.x, prev.y - camera.y); penDown = true; }
-        ctx.lineTo(cur.x, cur.y - camera.y);
-      } else {
-        penDown = false;
-      }
+      ctx.lineTo(trail[j].x, trail[j].y - camera.y);
     }
     ctx.stroke();
   }
 
   function drawHead() {
+    // Während der Unschlagbarkeit blinkt der Kopf (kurze, klare Animation).
+    if (player.invincibleFrames > 0 && Math.floor(player.invincibleFrames / C.POWERUP_BLINK_FRAMES) % 2 === 0) {
+      ctx.fillStyle = '#ffffff';
+    } else {
+      ctx.fillStyle = C.PLAYER_COLOR;
+    }
     var sy = player.y - camera.y;
-    ctx.fillStyle = C.PLAYER_COLOR;
     ctx.beginPath();
     ctx.arc(player.x, sy, C.THICK * 1.6, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  // Kurze, transparente Einblendung am Rundenstart: linke Hälfte
+  // drücken = links, rechte Hälfte = rechts – ganz ohne Text.
+  function drawControlHint() {
+    if (controlHintFrames <= 0) return;
+    var fade = Math.min(1, controlHintFrames / C.CONTROL_HINT_FADE_FRAMES);
+    var alpha = C.CONTROL_HINT_MAX_ALPHA * fade;
+    if (alpha <= 0) return;
+    var midX = C.CANVAS_W / 2;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, C.CANVAS_W, C.CANVAS_H);
+
+    ctx.globalAlpha = Math.min(1, alpha + 0.35);
+    ctx.fillStyle = '#10141f';
+    ctx.font = 'bold 36px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('◀', midX / 2, C.CANVAS_H / 2);
+    ctx.fillText('▶', midX + midX / 2, C.CANVAS_H / 2);
+
+    ctx.fillRect(midX - 1, 0, 2, C.CANVAS_H);
+    ctx.restore();
   }
 
   // ---------- Loop ----------
@@ -394,6 +513,18 @@
           if (obstacles[i].y < player.y) { nextObstacle = obstacles[i]; break; }
         }
       }
+      var nearestPowerup = null;
+      if (powerups && player) {
+        for (var p = 0; p < powerups.length; p++) {
+          if (!powerups[p].taken && powerups[p].y < player.y) { nearestPowerup = powerups[p]; break; }
+        }
+      }
+      var nearestEnemy = null;
+      if (enemies && player) {
+        for (var e = 0; e < enemies.length; e++) {
+          if (enemies[e].y < player.y) { nearestEnemy = enemies[e]; break; }
+        }
+      }
       return {
         state: state,
         score: Math.floor(score || 0),
@@ -401,8 +532,13 @@
         playerX: player ? player.x : null,
         playerY: player ? player.y : null,
         angle: player ? player.angle : null,
+        invincible: player ? player.invincibleFrames > 0 : false,
         fieldHalfWidth: player ? C.fieldHalfWidthAt(heightClimbed()) : null,
         nextObstacle: nextObstacle,
+        nearestPowerup: nearestPowerup,
+        nearestEnemy: nearestEnemy,
+        powerupCount: powerups ? powerups.filter(function (p) { return !p.taken; }).length : 0,
+        enemyCount: enemies ? enemies.length : 0,
       };
     },
   };
