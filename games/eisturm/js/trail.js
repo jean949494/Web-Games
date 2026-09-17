@@ -23,7 +23,10 @@
     push: function (x, y, intensity) {
       if (intensity <= 0) return;
       hue = (hue + C.TRAIL_HUE_STEP) % 360;
-      points.push({ x: x, y: y, hue: hue, life: 1, intensity: intensity });
+      // Farbstring gleich mitspeichern: der Farbton eines Punktes ändert
+      // sich nie mehr, und 'hsl(...)' bei jedem Punkt in jedem Bild neu
+      // parsen zu lassen kostet bei 46 Punkten spürbar Zeit.
+      points.push({ x: x, y: y, color: 'hsl(' + hue + ', 100%, 60%)', life: 1, intensity: intensity });
       if (points.length > C.TRAIL_MAX_POINTS) points.shift();
     },
 
@@ -42,7 +45,7 @@
         var r = C.CHAR_R * (0.35 + 0.5 * p.intensity) * p.life;
         if (r <= 0.3) continue;
         ctx.globalAlpha = p.life * p.life * 0.55 * p.intensity;
-        ctx.fillStyle = 'hsl(' + p.hue + ', 100%, 60%)';
+        ctx.fillStyle = p.color;
         ctx.beginPath();
         ctx.arc(p.x, p.y - cameraY, r, 0, Math.PI * 2);
         ctx.fill();

@@ -229,18 +229,46 @@
     });
     ctx.globalAlpha = 1;
 
-    // ein ferner Planet, langsam vorbeiziehend
+    // ein ferner Planet, langsam vorbeiziehend – einmal gerendert und
+    // danach nur noch kopiert, statt je Bild einen Verlauf zu bauen
     field(camY, 460, 0.07, 113, function (x, y, r1, r2, r3) {
       if (r3 > 0.5) return;
-      var rad = 26 + r3 * 26;
-      var g = ctx.createRadialGradient(x - rad * 0.3, y - rad * 0.3, rad * 0.2, x, y, rad);
-      g.addColorStop(0, 'rgba(150, 120, 220, 0.55)');
-      g.addColorStop(1, 'rgba(50, 35, 90, 0.35)');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(x, y, rad, 0, Math.PI * 2);
-      ctx.fill();
+      var pl = planetSprite(Math.round(26 + r3 * 26));
+      ctx.drawImage(pl, x - pl.width / 2, y - pl.height / 2);
     });
+  }
+
+  // Farbverläufe einmal bauen und behalten. Sie hängen nur an der Welt
+  // (bzw. am Radius), ändern sich also nie – sie in jedem Bild neu zu
+  // erzeugen war auf schwachen Geräten der teuerste Teil des Hintergrunds.
+  var skyCache = null;
+  function skyFill(ctx, bg) {
+    if (!skyCache) skyCache = {};
+    var key = bg.sky[0] + bg.sky[1];
+    if (!skyCache[key]) {
+      var g = ctx.createLinearGradient(0, 0, 0, C.CANVAS_H);
+      g.addColorStop(0, bg.sky[0]);
+      g.addColorStop(1, bg.sky[1]);
+      skyCache[key] = g;
+    }
+    return skyCache[key];
+  }
+
+  var planetCache = {};
+  function planetSprite(rad) {
+    if (planetCache[rad]) return planetCache[rad];
+    var cv = global.document.createElement('canvas');
+    cv.width = cv.height = rad * 2;
+    var cx = cv.getContext('2d');
+    var g = cx.createRadialGradient(rad * 0.7, rad * 0.7, rad * 0.2, rad, rad, rad);
+    g.addColorStop(0, 'rgba(150, 120, 220, 0.55)');
+    g.addColorStop(1, 'rgba(50, 35, 90, 0.35)');
+    cx.fillStyle = g;
+    cx.beginPath();
+    cx.arc(rad, rad, rad, 0, Math.PI * 2);
+    cx.fill();
+    planetCache[rad] = cv;
+    return cv;
   }
 
   var DECOS = {
@@ -252,10 +280,7 @@
     /** Malt Himmel + Deko einer Welt vollflächig. */
     draw: function (ctx, theme, camY, timeMs) {
       var bg = theme.bg;
-      var g = ctx.createLinearGradient(0, 0, 0, C.CANVAS_H);
-      g.addColorStop(0, bg.sky[0]);
-      g.addColorStop(1, bg.sky[1]);
-      ctx.fillStyle = g;
+      ctx.fillStyle = skyFill(ctx, bg);
       ctx.fillRect(0, 0, C.CANVAS_W, C.CANVAS_H);
 
       var deco = DECOS[bg.deco];

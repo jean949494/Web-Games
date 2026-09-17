@@ -159,19 +159,39 @@ Praktisch, um an der Optik zu schrauben, ohne im Spiel danach zu jagen:
   genau das macht einen schnellen Lauf sicher. Gezeichnet wird `camera.y`
   = die Basis, vorübergehend weiter hochgeschoben, solange die Figur sonst
   oben aus dem Bild klettern würde – das verschiebt die Basis nicht, das
-  Bild kommt nach der Landung von selbst zurück. Aufgeräumt wird ebenfalls
+  Bild kommt nach der Landung von selbst zurück. `CAMERA_MAX_TOP` ist
+  dabei mit 130 px bewusst großzügig: bei 60 px klebte die Figur in 90 %
+  der Bilder ganz oben am Rand und man sah nicht mehr, wohin man springt
+  (nachgemessen). Nachgezogen wird anteilig (`CAMERA_FOLLOW_LERP`), aber
+  je Bild höchstens `CAMERA_CATCHUP` px – mit einem festen langsamen
+  Tempo blieb das Bild beim schnellen Hochspielen einfach stehen und
+  rückte erst nach, wenn man kurz wartete. Aufgeräumt wird ebenfalls
   gegen die Basis: `pruneOldFloors` gegen `camera.y` warf im Sprung Etagen
   weg, die noch klar über der Verlustgrenze lagen – ein Fehlsprung fiel
   dann durch ein Loch aus dem Nichts (gemessen: elf Etagen ohne eine
   einzige Platte).
-- **Zeitdruck**: ab Etage `SCROLL_START_FLOOR` (spätestens nach
-  `SCROLL_START_MS`) wandert die Basis von selbst nach oben und
-  beschleunigt über `SCROLL_RAMP_FLOORS` (1500) Etagen von
-  `SCROLL_SPEED_START` (0,4) auf `SCROLL_SPEED_MAX` (1,8 px/frame).
-  Vorher waren es 2,6 px/frame schon ab Etage 100 – schneller, als man
-  überhaupt klettern kann. Entscheidend ist ohnehin nicht das
-  Klettertempo, sondern die Sekunden nach einem Fehlsprung: da steigt man
-  kaum, und die Kamera frisst den Puffer.
+- **Zeitdruck / Schwierigkeitskurve**: ab Etage `SCROLL_START_FLOOR`
+  (spätestens nach `SCROLL_START_MS`) wandert die Basis von selbst nach
+  oben. Tempo und Plattenbreite kommen aus zwei Stützstellen-Kurven
+  (`SCROLL_SPEED_CURVE`, `PLANK_WIDTH_CURVE`, dazwischen linear,
+  `curveAt`) statt aus einer einzigen Rampe – die Kurve soll gerade nicht
+  gleichmäßig sein:
+
+  | Etage | Platte | Kamera | |
+  | --- | --- | --- | --- |
+  | 0–100 | 158 px | 24–30 px/s | zum Reinkommen, bleibt flach |
+  | 200 | 127 px | 56 px/s | zieht an |
+  | 300 | 95 px | 81 px/s | so schwer wie vorher erst Etage 1000 |
+  | 500 | 76 px | 108 px/s | |
+  | 800 | 62 px | 138 px/s | |
+  | 1500 | 48 px | 185 px/s | |
+  | 2200 | 48 px | 216 px/s | schneller als man klettern kann |
+
+  Die Kurve läuft oben bewusst nicht aus: ein sauberer Vollgas-Lauf steigt
+  mit gut 3 px/frame, bei 3,6 ist deshalb für jeden Schluss. Entscheidend
+  für die Rundenlänge ist ohnehin nicht das Klettertempo, sondern die
+  Sekunden nach einem Fehlsprung: da steigt man kaum, und die Kamera
+  frisst den Puffer.
 - **Score** = erreichte Etage × `POINTS_PER_FLOOR` + Combo-Punkte. Jede
   zehnte Etage ist farblich hervorgehoben, die Etagennummern stehen am
   linken Rand.
@@ -194,6 +214,24 @@ Praktisch, um an der Optik zu schrauben, ohne im Spiel danach zu jagen:
   fällt – ohne Puffer, sobald die Figur weg ist, ist die Runde vorbei.
   Es gibt keine andere Verlustbedingung.
 
+## Zeichnen / Bildrate
+
+Auf dem Gerät ruckelte es genau dann, wenn man schnell unterwegs war. Die
+drei Ursachen hingen alle am Tempo, weil sie nur dann überhaupt auftraten:
+
+- Der Tempo-Schimmer der Figur baute ab 70 % Tempo **pro Bild** einen
+  `createRadialGradient`. Er wird jetzt einmal auf eine Hilfsleinwand
+  gerendert und nur noch mit passender Deckkraft kopiert (`glowSprite`).
+- Der Regenbogen-Schweif ließ für jeden seiner bis zu 46 Punkte in jedem
+  Bild einen `hsl(...)`-String parsen. Der Farbton eines Punktes ändert
+  sich nie – der String wird jetzt beim Anlegen mitgespeichert.
+- Himmelsverlauf und der Planet in DEEP SPACE wurden je Bild neu gebaut,
+  beim Weltenwechsel sogar doppelt. Beide hängen nur an der Welt bzw. am
+  Radius und werden jetzt gecacht (`skyFill`, `planetSprite`).
+
+Gemessen über 45 s Vollgas-Lauf: vorher 1–2 Bilder über 33 ms je 20 s,
+danach **kein einziges Bild über 20 ms** bei 2640 Bildern.
+
 ## Rundenlänge (gemessen)
 
 Ziel war eine Runde von mindestens drei Minuten (Poki bewertet das). Mit
@@ -202,13 +240,18 @@ und ein Steuer-Bot im Browser, alle Runden parallel in eigenen Tabs):
 
 | Profil | Beschreibung | Median | ≥ 3 min | Etage |
 | --- | --- | --- | --- | --- |
-| aktiv | läuft durchgehend Vollgas, wechselt an den Wänden | 200 s+ | 6/6 | 730–780 |
-| mittel | 70 % Tempo, 10 % Pausen | 200 s | 3/6 | 360–650 |
-| stur | rührt die Steuerung überhaupt nicht an | 165 s | 0/4 | 280–360 |
+| aktiv | läuft durchgehend Vollgas, wechselt an den Wänden | 143 s | 0/6 | 360–560 |
+| mittel | 70 % Tempo, 10 % Pausen | 110 s | 0/6 | 200–380 |
 
-Vor diesen Änderungen endete dasselbe mittlere Profil nach **8–25
-Sekunden** bei Etage 13–60. Dass "stur" am Ende trotzdem untergeht, ist
-Absicht: stehen bleiben muss die Runde kosten.
+Mit der flachen Kurve davor waren es 200 s+ und 6/6 über drei Minuten bei
+Etage 730–780 – das war auf Ansage zu leicht. Vor **allen** Änderungen
+endete dasselbe mittlere Profil nach 8–25 Sekunden bei Etage 13–60.
+
+Die Bots sind dabei die Untergrenze: sie wechseln die Richtung nach Zufall
+und nutzen den Wand-Dash nie gezielt für Combos. Die drei Minuten für Poki
+und "deutlich schwerer" ziehen aber in verschiedene Richtungen – falls die
+Kurve zu steil ist, reicht es, die Stützstellen in `constants.js` nach
+rechts zu schieben.
 
 ## Bewusst offen gelassen / noch zu tunen
 

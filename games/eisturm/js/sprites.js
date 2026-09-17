@@ -37,6 +37,26 @@
   var charById = {};
   CHARACTERS.forEach(function (c) { charById[c.id] = c; });
 
+  // Einmal gerenderter Tempo-Schimmer. Farbverläufe pro Bild neu zu bauen
+  // ist auf schwachen Geräten teuer; hier wird der Verlauf einmal auf eine
+  // Hilfsleinwand gelegt und danach nur noch mit passender Deckkraft
+  // kopiert. Nur die Deckkraft ändert sich, die Farbe nie.
+  var glowCache = null;
+  function glowSprite(R) {
+    if (glowCache && glowCache.r === R) return glowCache.canvas;
+    var rad = R * 2.1;
+    var cv = global.document.createElement('canvas');
+    cv.width = cv.height = Math.ceil(rad * 2);
+    var cx = cv.getContext('2d');
+    var g = cx.createRadialGradient(rad, rad, R * 0.4, rad, rad, rad);
+    g.addColorStop(0, 'rgba(255, 209, 92, 0.18)');
+    g.addColorStop(1, 'rgba(255, 209, 92, 0)');
+    cx.fillStyle = g;
+    cx.fillRect(0, 0, cv.width, cv.height);
+    glowCache = { r: R, canvas: cv };
+    return cv;
+  }
+
 
   function roundRect(ctx, x, y, w, h, r) {
     var rr = Math.min(r, w / 2, h / 2);
@@ -519,15 +539,16 @@
       ctx.scale(sx, sy);
       ctx.translate(0, -R);
 
-      // Weicher Schimmer bei Höchsttempo (dezent, nur ein Hauch)
+      // Weicher Schimmer bei Höchsttempo (dezent, nur ein Hauch). Der
+      // Verlauf wird EINMAL auf eine kleine Hilfsleinwand gerendert und
+      // danach nur noch kopiert: ein createRadialGradient pro Bild kostete
+      // auf dem Handy spürbar Zeit – und zwar genau beim schnellen Laufen,
+      // weil der Schimmer erst ab 70 % Tempo überhaupt erscheint.
       if (speed > 0.7) {
-        var glow = ctx.createRadialGradient(0, -3, R * 0.4, 0, -3, R * 2.1);
-        glow.addColorStop(0, 'rgba(255, 209, 92, ' + ((speed - 0.7) * 0.6).toFixed(2) + ')');
-        glow.addColorStop(1, 'rgba(255, 209, 92, 0)');
-        ctx.fillStyle = glow;
-        ctx.beginPath();
-        ctx.arc(0, -3, R * 2.1, 0, Math.PI * 2);
-        ctx.fill();
+        var glow = glowSprite(R);
+        ctx.globalAlpha = Math.min(1, (speed - 0.7) * 0.6 / 0.18);
+        ctx.drawImage(glow, -glow.width / 2, -3 - glow.height / 2);
+        ctx.globalAlpha = 1;
       }
 
       ctx.scale(dir, 1); // Figur ist nach rechts gezeichnet, dir spiegelt sie

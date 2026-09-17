@@ -76,7 +76,7 @@
     <h2>Etagenbreiten</h2>
     <div class="card">
       <canvas id="floors" width="640" height="360"></canvas>
-      <div class="note">Breite schrumpft mit der Höhe von 158 px auf 66 px. Unten der Startboden.</div>
+      <div class="note">Breite schrumpft mit der Höhe von 158 px auf 48 px – die ersten 100 Etagen bleiben auf Startbreite, danach zieht es an. Unten der Startboden.</div>
     </div>
 
     <h2>Combo-Stufen</h2>
@@ -305,18 +305,18 @@
       var w = cv.width / 2;
 
       var t0 = C.PLANK_THEMES[0];
-      S.drawFloor(ctx, { plankX: 20, plankWidth: C.PLANK_WIDTH_START }, 26, false, t0);
-      S.drawFloor(ctx, { plankX: 20, plankWidth: 108 }, 56, false, t0);
-      S.drawFloor(ctx, { plankX: 20, plankWidth: C.PLANK_WIDTH_TARGET }, 86, false, t0);
-      S.drawFloor(ctx, { plankX: 20, plankWidth: 120 }, 116, true, t0);
+      // Direkt aus der Schwierigkeitskurve gelesen, damit die Vorschau
+      // nicht veraltet, sobald an der Kurve geschraubt wird.
+      var proben = [0, 200, 400, 800];
+      proben.forEach(function (etage, i) {
+        var pw = Math.round(C.plankWidthAt(etage));
+        var y = 26 + i * 30;
+        S.drawFloor(ctx, { plankX: 20, plankWidth: pw, seq: etage }, y, etage % 100 === 0 && i === 3, t0);
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.font = '9px sans-serif';
+        ctx.fillText('ab Etage ' + etage + ' (' + pw + ' px)', 20 + pw + 8, y + 3);
+      });
       S.drawGround(ctx, 150, w);
-
-      ctx.fillStyle = 'rgba(255,255,255,0.55)';
-      ctx.font = '9px sans-serif';
-      ctx.fillText('Start (150 px)', 20 + C.PLANK_WIDTH_START + 8, 29);
-      ctx.fillText('mittel (108 px)', 20 + 108 + 8, 59);
-      ctx.fillText('eng (66 px)', 20 + C.PLANK_WIDTH_TARGET + 8, 89);
-      ctx.fillText('jede 10. Etage', 20 + 120 + 8, 119);
       ctx.fillText('Startboden', 20, 144);
     })();
 

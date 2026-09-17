@@ -108,18 +108,14 @@
     FLOOR_SPACING: 58,
     FLOOR_SPACING_JITTER: 10,
     FLOOR_THICK: 6,
-    // Bewusst unter 164 px (= halbe Laufbreite): darüber deckt jede Platte
-    // zwangsläufig die Bildmitte ab, und man klettert ohne jede Eingabe
-    // endlos weiter – im Testlauf kam eine völlig unbediente Figur so bis
-    // Etage 105.
-    PLANK_WIDTH_START: 158,
-    PLANK_WIDTH_TARGET: 66, // > 2*CHAR_R + Puffer, sonst kaum noch zu treffen
-    PLANK_RAMP_START_FLOOR: 25,
-    // Über die ganze Welten-Reihe hinweg schmaler werden, nicht schon nach
-    // 80 Etagen am Minimum sein. Gegengemessen: bei 900 Etagen Rampe war
-    // die Platte ab Etage ~300 wieder so schmal, dass Fehlsprünge tief
-    // durchfielen – genau daran endeten die Testläufe.
-    PLANK_RAMP_FLOORS: 1400,
+    // Plattenbreite als Stützstellen (Etage -> px), dazwischen linear.
+    // Die ersten 100 Etagen bleiben zum Reinkommen auf Startbreite, danach
+    // zieht es an. Die Startbreite liegt bewusst unter 164 px (= halbe
+    // Laufbreite): darüber deckt jede Platte zwangsläufig die Bildmitte ab,
+    // und man klettert ohne jede Eingabe endlos weiter (im Testlauf kam
+    // eine völlig unbediente Figur so bis Etage 105). Unten ist bei 48 px
+    // Schluss, das ist mit 24 px Figurenbreite gerade noch zu treffen.
+    PLANK_WIDTH_CURVE: [[0, 158], [100, 158], [300, 95], [500, 76], [800, 62], [1400, 48]],
     FLOOR_MARK_EVERY: 10, // jede zehnte Etage wird hervorgehoben (wie im Original)
     FLOOR_THEME_EVERY: 100, // alle 100 Etagen wechselt die Optik der Plattformen
 
@@ -131,31 +127,33 @@
     // sind das 307 px, also gut fünf Etagen, die man danebenspringen darf,
     // bevor es eng wird.
     CAMERA_FOLLOW_RATIO: 0.36,
-    // Wie schnell die Basis dem Aufstieg höchstens nachzieht (px/frame).
-    // Bewusst langsamer als man klettern kann: wer Tempo macht, steigt im
-    // Bild nach oben und sammelt damit Luft nach unten – genau das macht
-    // einen schnellen Lauf in Icy Tower sicher. Zöge die Kamera sofort
-    // nach, wäre der Puffer nach einem Fehlsprung immer derselbe, egal wie
-    // gut man vorher gespielt hat.
-    CAMERA_CATCHUP: 0.9,
-    // ... aber höchstens so weit zurückbleiben, sonst klebt die Figur oben
+    // Die Basis zieht dem Aufstieg anteilig nach (LERP), aber höchstens mit
+    // CAMERA_CATCHUP px/frame. Der Anteil sorgt dafür, dass das Bild beim
+    // Klettern sichtbar mitgeht – mit einem festen, langsamen Tempo blieb es
+    // beim schnellen Hochspielen einfach stehen und rückte erst nach, wenn
+    // man kurz wartete. Der Deckel hält den Vorsprung als Belohnung: wer
+    // Tempo macht, steigt trotzdem etwas im Bild und gewinnt Luft nach
+    // unten – nur eben nicht unbegrenzt.
+    CAMERA_FOLLOW_LERP: 0.12,
+    CAMERA_CATCHUP: 3.2,
+    // ... und höchstens so weit zurückbleiben, sonst klebt die Figur oben
     // am Rand und stirbt irgendwann weit außerhalb des sichtbaren Bildes.
-    CAMERA_MAX_LAG: 130,
-    CAMERA_MAX_TOP: 60, // näher als das darf die Figur der Oberkante nie kommen
+    CAMERA_MAX_LAG: 110,
+    // Näher als das darf die Figur der Oberkante nie kommen; ab da nimmt
+    // die Kamera den Sprung mit. Bewusst nicht zu klein: bei 60 px klebte
+    // die Figur in 90 % der Bilder ganz oben und man sah nicht mehr, wohin
+    // man springt. Bei 130 px bleiben gut zwei Etagen Vorausschau, und
+    // zwischen 130 und 216 px steigt man erst sichtbar im Bild, bevor die
+    // Kamera überhaupt mitgeht.
+    CAMERA_MAX_TOP: 130,
     SCROLL_START_FLOOR: 4, // ab dieser erreichten Etage beginnt das Hochwandern
     SCROLL_START_MS: 8000, // ... spätestens aber nach dieser Zeit, damit Trödeln unten nicht ewig geht
-    // Tempo der Kamera, in px/frame. Zum Einordnen: wer je Sprung nur EINE
-    // Etage schafft, steigt mit ~1.0 px/frame, wer zwei Etagen nimmt mit
-    // ~2.2. Die Kamera muss also spürbar unter 1.0 bleiben, solange eine
-    // Runde noch normal läuft – sonst ist sie nicht einzuholen.
-    SCROLL_SPEED_START: 0.4, // ~24 px/s
-    SCROLL_SPEED_MAX: 1.8, // ~108 px/s, verlangt echtes Lauftempo
-    // Sehr lange Rampe: die ersten Minuten sollen fahrbar bleiben, der
-    // Druck kommt erst in den oberen Welten. (Vorher waren es 100 Etagen –
-    // damit war bei Etage 100 schon Vollgas-Pflicht.) Entscheidend ist
-    // nicht das Klettertempo selbst, sondern die Sekunden nach einem
-    // Fehlsprung: da steigt man kaum, und die Kamera frisst den Puffer.
-    SCROLL_RAMP_FLOORS: 1500,
+    // Tempo der Kamera als Stützstellen (Etage -> px/frame). Zum Einordnen:
+    // wer je Sprung nur EINE Etage schafft, steigt mit ~1.0 px/frame, wer
+    // zwei nimmt mit ~2.2, ein sauberer Vollgas-Lauf schafft gut 3.
+    // Deshalb ist bei 3.6 (216 px/s) irgendwann für jeden Schluss – die
+    // Kurve läuft oben nicht aus, sie holt einen ein.
+    SCROLL_SPEED_CURVE: [[0, 0.4], [100, 0.5], [300, 1.35], [500, 1.8], [800, 2.3], [1400, 3.0], [2200, 3.6]],
     // Verloren, sobald die Figur komplett aus dem sichtbaren Bild ist –
     // kein zusätzlicher Puffer darunter.
     PRUNE_MARGIN: 200,
@@ -211,32 +209,28 @@
     TRAIL_HUE_STEP: 11,
   };
 
-  // Lineare Annäherung von start -> target über [rampStart, rampStart+range],
-  // danach konstant beim Zielwert.
-  constants.rampValue = function (value, start, target, rampStart, range) {
-    if (value <= rampStart) return start;
-    var t = Math.min(1, (value - rampStart) / range);
-    return start + t * (target - start);
+  // Wert aus einer Stützstellen-Kurve [[Etage, Wert], ...] ablesen,
+  // dazwischen linear, außerhalb der Endpunkt. Stützstellen statt einer
+  // einzigen Rampe, weil die Kurve nicht gleichmäßig sein soll: unten flach
+  // zum Reinkommen, dann steil, oben wieder flacher – aber nie waagerecht.
+  constants.curveAt = function (curve, x) {
+    if (x <= curve[0][0]) return curve[0][1];
+    for (var i = 1; i < curve.length; i++) {
+      if (x <= curve[i][0]) {
+        var a = curve[i - 1];
+        var b = curve[i];
+        return a[1] + (b[1] - a[1]) * ((x - a[0]) / (b[0] - a[0]));
+      }
+    }
+    return curve[curve.length - 1][1];
   };
 
   constants.plankWidthAt = function (floorNumber) {
-    return constants.rampValue(
-      floorNumber,
-      constants.PLANK_WIDTH_START,
-      constants.PLANK_WIDTH_TARGET,
-      constants.PLANK_RAMP_START_FLOOR,
-      constants.PLANK_RAMP_FLOORS
-    );
+    return constants.curveAt(constants.PLANK_WIDTH_CURVE, floorNumber);
   };
 
   constants.scrollSpeedAt = function (floorNumber) {
-    return constants.rampValue(
-      floorNumber,
-      constants.SCROLL_SPEED_START,
-      constants.SCROLL_SPEED_MAX,
-      constants.SCROLL_START_FLOOR,
-      constants.SCROLL_RAMP_FLOORS
-    );
+    return constants.curveAt(constants.SCROLL_SPEED_CURVE, floorNumber);
   };
 
   // Plattform-Welten, die alle FLOOR_THEME_EVERY Etagen durchgewechselt

@@ -315,11 +315,13 @@
     if (camera.scrolling) camera.base -= C.scrollSpeedAt(chr.maxFloor);
 
     var targetBase = chr.anchorY - C.CANVAS_H * C.CAMERA_FOLLOW_RATIO;
-    // Begrenzt nachziehen statt sofort: wer schneller klettert als die
-    // Kamera nachkommt, steigt im Bild nach oben und gewinnt damit Luft
-    // nach unten. Diese "Gutschrift" ist auf CAMERA_MAX_LAG gedeckelt.
+    // Anteilig nachziehen, aber je Bild höchstens CAMERA_CATCHUP px: das
+    // Bild geht beim Klettern sichtbar mit, ohne den Sprung eins zu eins
+    // mitzumachen. Wer schneller steigt als die Kamera nachkommt, gewinnt
+    // Luft nach unten – gedeckelt auf CAMERA_MAX_LAG.
     if (targetBase < camera.base) {
-      camera.base = Math.max(targetBase, camera.base - C.CAMERA_CATCHUP);
+      var step = Math.min((camera.base - targetBase) * C.CAMERA_FOLLOW_LERP, C.CAMERA_CATCHUP);
+      camera.base -= step;
     }
     if (camera.base - targetBase > C.CAMERA_MAX_LAG) camera.base = targetBase + C.CAMERA_MAX_LAG;
 
