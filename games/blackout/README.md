@@ -222,7 +222,17 @@ liegen beim Halten die Daumen. Vorher waren die Zonen an der Spielfläche
 festgemacht, damit war der äußerste Zentimeter auf beiden Seiten tot.
 Nachgewiesen mit `tools/browser/touch_bars.js`: ein 900×360 breites
 Fenster (130 px Balken je Seite), Berührungen mitten im Balken müssen laufen
-und springen auslösen – auch beide gleichzeitig.
+und springen auslösen – auch beide gleichzeitig. Wie breit diese Balken auf
+echten Geräten sind, misst `tools/browser/viewports.js`:
+
+| Gerät (quer) | Balken je Seite |
+|---|---|
+| iPhone SE (568×320) | 0 px – passt genau |
+| iPhone 14 (844×390) | 75 px |
+| Pixel (892×412) | 80 px |
+
+Auf zwei von drei Geräten wären also je gut anderthalb Zentimeter am Rand
+tot gewesen – genau dort, wo die Daumen liegen.
 
 Zwei weitere Fallen, beide behoben: „Loslassen" wird jetzt am **Fenster**
 abgefangen statt am Element (wandert der Daumen beim Loslassen über den

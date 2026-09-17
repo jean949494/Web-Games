@@ -52,6 +52,7 @@ gefunden wird.
 | `crosshair.js` | das Fadenkreuz des Geschützes |
 | `loop3.js` | längerer Lauf am Stück |
 | `soak.js` | Dauerlauf über hunderte Räume: Speicher, hängende Räume, Unmögliches |
+| `viewports.js` | sechs typische Geräte: passt die Bühne, greift der Dreh-Hinweis, sind die Knöpfe groß genug |
 
 Bildschirmfotos landen in `browser/out/` (nicht eingecheckt).
 
