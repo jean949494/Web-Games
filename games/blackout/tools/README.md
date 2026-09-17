@@ -51,12 +51,23 @@ gefunden wird.
 | `ragdoll.js`, `respawn.js` | Tod, Puppe, Wiedereinstieg im selben Raum |
 | `crosshair.js` | das Fadenkreuz des Geschützes |
 | `loop3.js` | längerer Lauf am Stück |
+| `soak.js` | Dauerlauf über hunderte Räume: Speicher, hängende Räume, Unmögliches |
 
 Bildschirmfotos landen in `browser/out/` (nicht eingecheckt).
 
 ## Wenn ein Skript einen Fehler meldet
 
-Erst den Raum ansehen, nicht sofort das Modell lockern. Alle bisherigen
-Befunde waren echte Baufehler, bis auf zwei – und die zwei waren ein Modell,
-das zu **streng** war und dadurch ganze Raumtypen entwertet hat. Beides
-kommt vor; welches von beidem, sieht man erst im Kachelbild.
+Erst den Raum ansehen, nicht sofort das Modell lockern. Die Befunde waren
+bisher von drei Sorten:
+
+1. **Echte Baufehler** im Raumgenerator (Rampen versiegeln Schächte, Minen
+   im Engpass, Rampe endet unter einer Platte).
+2. Ein Erreichbarkeitsmodell, das zu **streng** war und dadurch ganze
+   Raumtypen entwertet hat – Kamine galten nie als erreichbar.
+3. Ein **Physikfehler**: Alle vier Schrägen hatten die Hypotenuse verkehrt
+   herum gewickelt. Zwei Jahre Spielen hätten das nicht gefunden, der
+   Dauerlauf-Test fand es in einer Minute.
+
+Welches von den dreien es ist, sieht man erst im Kachelbild oder im
+Bildschirmfoto. Und: Ein Test, der hängen bleibt, ist nicht automatisch ein
+kaputter Test – zweimal war es das Spiel.

@@ -47,24 +47,34 @@
     }
 
     // 45-Grad-Schrägen: Hypotenuse immer, die beiden Katheten nur nach außen.
+    //
+    // ACHTUNG, hier lag ein Fehler: Alle vier Hypotenusen waren verkehrt
+    // herum gewickelt, die Außenseite lag also auf der massiven Seite. Die
+    // Katheten stimmten, damit widersprachen sich die Segmente ein und
+    // derselben Kachel. Beim Laufen über eine Rampe fiel das nicht auf, weil
+    // dort meist die Kante der massiven Nachbarkachel näher liegt und
+    // gewinnt. Aufgefallen ist es erst, als ein Schalter direkt über einer
+    // einzeln stehenden Schräge lag: Die Spielfigur galt dort als "in der
+    // Wand" und wurde in einem einzigen Bild 80 Pixel weit weggeschoben.
     if (type === C.T_SLOPE_BL) {
-      // massiv unten links, Hypotenuse von oben-links nach unten-rechts
-      segs.push(makeSegment(x0, y0, x1, y1));
+      // massiv unten links: Hypotenuse unten-rechts -> oben-links,
+      // damit die Außenseite oben rechts liegt
+      segs.push(makeSegment(x1, y1, x0, y0));
       if (!solidLeft) segs.push(makeSegment(x0, y0, x0, y1));
       if (!solidDown) segs.push(makeSegment(x0, y1, x1, y1));
     } else if (type === C.T_SLOPE_BR) {
-      // massiv unten rechts, Hypotenuse von unten-links nach oben-rechts
-      segs.push(makeSegment(x0, y1, x1, y0));
+      // massiv unten rechts: Hypotenuse oben-rechts -> unten-links
+      segs.push(makeSegment(x1, y0, x0, y1));
       if (!solidDown) segs.push(makeSegment(x0, y1, x1, y1));
       if (!solidRight) segs.push(makeSegment(x1, y1, x1, y0));
     } else if (type === C.T_SLOPE_TL) {
-      // massiv oben links, Hypotenuse von unten-links nach oben-rechts
-      segs.push(makeSegment(x1, y0, x0, y1));
+      // massiv oben links: Hypotenuse unten-links -> oben-rechts
+      segs.push(makeSegment(x0, y1, x1, y0));
       if (!solidUp) segs.push(makeSegment(x1, y0, x0, y0));
       if (!solidLeft) segs.push(makeSegment(x0, y0, x0, y1));
     } else if (type === C.T_SLOPE_TR) {
-      // massiv oben rechts, Hypotenuse von oben-links nach unten-rechts
-      segs.push(makeSegment(x1, y1, x0, y0));
+      // massiv oben rechts: Hypotenuse oben-links -> unten-rechts
+      segs.push(makeSegment(x0, y0, x1, y1));
       if (!solidUp) segs.push(makeSegment(x1, y0, x0, y0));
       if (!solidRight) segs.push(makeSegment(x1, y1, x1, y0));
     }

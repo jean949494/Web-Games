@@ -37,6 +37,28 @@ Warum sich das so anfühlt, wie es sich anfühlt:
 - **Nachsicht-Fenster**: Coyote Time (4 Frames), Sprungpuffer (5), Wandpuffer
   (4) – alles aus dem Original übernommen.
 
+### Ein Fehler, der lange unsichtbar war: die Schrägen waren umgestülpt
+
+Die Weltgeometrie wird in *orientierte* Liniensegmente zerlegt – jede Kante
+weiß, welche Seite außen ist. Bei allen vier Schrägen-Typen war die
+Hypotenuse **verkehrt herum gewickelt**: Außen lag rechnerisch auf der
+massiven Seite. Die beiden Katheten stimmten, damit widersprachen sich die
+Segmente ein und derselben Kachel.
+
+Beim Laufen über eine Rampe fiel das nie auf, weil dort meist die Kante der
+massiven Nachbarkachel näher liegt und die Abfrage gewinnt. Sichtbar wurde
+es erst im Dauerlauf-Test (`tools/browser/soak.js`), als ein Schalter direkt
+über einer einzeln stehenden Schräge lag: Die Figur galt dort als „in der
+Wand" und wurde in einem einzigen Bild **80 Pixel weit** weggeschoben – der
+Schalter war nicht auslösbar, der Raum nicht zu schaffen. Betroffen waren
+28 von 1200 geprüften Räumen; jetzt sind es 0 (größte Abweichung 0,1 px).
+
+Nebenbei stimmt seitdem auch etwas, das hier vorher fälschlich behauptet
+stand: Auf einer langen Abwärtsschräge wird man jetzt **wirklich schneller
+als auf flachem Boden** (3,42 gegen 3,33 px/Frame). Vorher kam die
+Abfahrt auf 3,32 – also kein Extra-Schub, und der ganze Zweck eines
+Rampen-Raums war damit dahin.
+
 ## Gegner
 
 - **Mine** – steht still, tötet bei Berührung. Verengt Wege.
