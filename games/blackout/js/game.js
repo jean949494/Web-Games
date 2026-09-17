@@ -542,11 +542,20 @@
     ctx.textAlign = 'right';
     ctx.fillStyle = '#eef3ff';
     ctx.fillText('Raum ' + (roomIndex + 1), C.CANVAS_W - 14, 28);
+    // Ein einziges Wort als Wegweiser, mehr nicht - Tutorialtext gibt es
+    // hier keinen. Nach dem Schalter steht "Tür" da, weil der Rückweg sonst
+    // gerade für jüngere Spieler die Stelle ist, an der sie ratlos stehen
+    // bleiben: Der Schalter ist gedrückt, und nichts sagt, wohin jetzt.
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 12px system-ui, sans-serif';
     if (!switchOn) {
-      ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(94,225,163,0.75)';
-      ctx.font = 'bold 12px system-ui, sans-serif';
       ctx.fillText('Schalter', C.CANVAS_W / 2, 24);
+    } else {
+      // Mitatmen im selben Takt wie die Tür, damit klar ist, was gemeint ist
+      var puls = 0.55 + 0.3 * (0.5 + 0.5 * Math.sin(doorPulse));
+      ctx.fillStyle = 'rgba(94,225,163,' + puls.toFixed(2) + ')';
+      ctx.fillText('Tür', C.CANVAS_W / 2, 24);
     }
   }
 
