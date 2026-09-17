@@ -215,6 +215,10 @@ soll am Gerät getroffen werden, nicht im Kopf.
 
 Am Rechner: Pfeiltasten/A+D laufen, Leertaste/Pfeil hoch springen, Esc pausiert.
 
+**Wegschalten pausiert automatisch.** Auf dem Handy wird man ständig
+unterbrochen – ohne Pause läuft man nach dem Zurückkommen sofort in ein
+Geschütz, das längst zielt, mit einer Uhr, die man nicht im Blick hatte.
+
 **Die Zonen hängen am Bildschirm, nicht an der Spielfläche.** Das Spiel läuft
 in 640×360 und wird mittig eingepasst; ein heutiges Handy im Querformat ist
 eher 19,5:9, also bleiben links und rechts schwarze Balken – und genau dort
@@ -330,6 +334,16 @@ Stirbst du vorher, ist es weg. Das macht den Rückweg zur eigentlichen
 Entscheidung: Nimmst du das Goldstück neben dem Geschütz noch mit?
 Ungebanktes Gold steht sichtbar getrennt neben der Uhr (`+6s`).
 
+Damit das eine echte Entscheidung ist, muss das Gold auch erreichbar sein.
+Es wird deshalb **über einer begehbaren Kachel** gesetzt, null bis drei
+Kacheln darüber – mehr gibt die Sprunghöhe (3,09) nicht her. Vorher wurde
+frei gewürfelt, und nachgemessen lag dadurch rund ein Drittel außer
+Reichweite, in Rampen- und Wellental-Räumen sogar 40 %: Dort ist der halbe
+Raum offene Luft über einer Schräge. Sichtbare Belohnung, die man nicht
+holen kann, sieht nach einem Fehler aus und verzerrt obendrein die
+Zeitrechnung. Jetzt sind es 100 %, nachgerechnet in
+`tools/level_test.js` über 1438 Goldstücke aus 480 Räumen.
+
 **Die letzten zehn Sekunden hört man.** Ein trockener Tick pro Sekunde, die
 letzten drei etwas höher – an derselben Stelle, an der die Uhr rot wird. Wer
 auf den Raum schaut statt auf die Zahl, merkt es trotzdem.
@@ -340,6 +354,21 @@ das ungebankte Gold und den Fortschritt im Raum – aber der Lauf geht
 weiter. Der einzige echte Gegner ist die Uhr. Das erhält das „sofort
 nochmal" des Originals und passt zugleich zur Vorgabe, es spürbar
 zu entschärfen.
+
+## Vor einer echten Veröffentlichung noch rausnehmen
+
+Drei Dinge sind nur zum Testen drin und gehören nicht in eine Fassung, die
+bei Poki liegt – sie widersprechen der Vorgabe „Minimal-Menü":
+
+1. **Die unterlegene Steuerung.** Sobald am Handy entschieden ist, fliegt
+   die andere raus, samt Umschalter und Schaubild.
+2. **Der Umschalter „Sturz-Tod: mild / original (hart)".** Der ist zum
+   Vergleichen da, nicht zum Einstellen. Eine Einstellung, die ein Kind
+   nicht versteht, gehört nicht ins Menü.
+3. Nichts weiter – die `?debug`-Schnittstelle ist an die Adresse gebunden
+   und stört niemanden, der sie nicht aufruft.
+
+Danach besteht das Menü aus Titel, ▶, Ton und Rekord. Das ist die Vorgabe.
 
 ## Bewusst noch offen
 
@@ -357,7 +386,9 @@ zu entschärfen.
   liegt an der garantierten Treppe: Sie ist der Weg für alle, die den Kamin
   nicht hochkommen. In der Simulation blieben genau drei Räume ohne
   gefundenen Weg, alle drei Schacht-Räume – dort ist der Kamin die schnelle
-  Route und die Treppe der Umweg.
+  Route und die Treppe der Umweg. Alle drei einzeln nachgeprüft: Mit
+  breiterem Strahl (2500 statt 1500) findet dieselbe Suche jedes Mal einen
+  Weg. Es lag also am Suchbudget, nicht am Raum.
 
 Alle Werkzeuge liegen unter `tools/` mit eigener Beschreibung, oder als
 `npm run check:physik`, `check:geometrie`, `check:raeume`,

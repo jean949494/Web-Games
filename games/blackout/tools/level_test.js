@@ -18,7 +18,19 @@ const C = BO.constants;
 function tileOf(px, py) { return { x: Math.floor(px / C.TILE), y: Math.floor(py / C.TILE) }; }
 
 let problems = [];
-let stats = { rooms: 0, archetypes: {}, hazards: 0, golds: 0 };
+let stats = { rooms: 0, archetypes: {}, hazards: 0, golds: 0,
+              gold: { total: 0, reachable: 0, beispiele: [] } };
+
+/** Kacheln, auf denen man stehen kann (leer, darunter massiv). */
+function standable(g) {
+  const out = [];
+  for (let y = 1; y < C.ROOM_H - 1; y++) {
+    for (let x = 1; x < C.ROOM_W - 1; x++) {
+      if (g[y][x] === C.T_EMPTY && g[y + 1][x] !== C.T_EMPTY) out.push({ x, y });
+    }
+  }
+  return out;
+}
 
 const ROOMS_PER_SEED = 12;
 const SEEDS = 40;
@@ -52,6 +64,21 @@ for (let s = 0; s < SEEDS; s++) {
       const t = tileOf(gold.x, gold.y);
       if (g[t.y] && g[t.y][t.x] !== C.T_EMPTY) problems.push(`Seed${s} R${i}: Gold in der Wand`);
     });
+
+    // Erreichbarkeit des Goldes. Bewusst streng gerechnet: höchstens drei
+    // Kacheln über einer begehbaren Kachel und höchstens drei zur Seite -
+    // die Physik schafft mehr (3.09 hoch, über 15 weit), das hier ist also
+    // die untere Schranke. Sichtbares Gold, das man nicht holen kann, sieht
+    // nach einem Fehler aus und verzerrt die Zeitrechnung.
+    const steh = standable(g);
+    room.golds.forEach((gold) => {
+      const t = tileOf(gold.x, gold.y);
+      stats.gold.total++;
+      const ok = steh.some(p => Math.abs(p.x - t.x) <= 3 && p.y - t.y >= 0 && p.y - t.y <= 3);
+      if (ok) stats.gold.reachable++;
+      else stats.gold.beispiele.length < 5 &&
+        stats.gold.beispiele.push(`Seed${1000 + s} R${i} (${BO.level.ARCHETYPE_NAMES[room.archetype]}) bei ${t.x},${t.y}`);
+    });
   }
 }
 
@@ -59,6 +86,10 @@ console.log(`Räume erzeugt: ${stats.rooms}`);
 console.log(`Archetypen: ${JSON.stringify(stats.archetypes)} (0=Plattformen, 1=Schacht, 2=Säulen)`);
 console.log(`Gefahren gesamt: ${stats.hazards} (Ø ${(stats.hazards / stats.rooms).toFixed(1)}/Raum)`);
 console.log(`Gold gesamt: ${stats.golds} (Ø ${(stats.golds / stats.rooms).toFixed(1)}/Raum)`);
+const gq = stats.gold.reachable / stats.gold.total * 100;
+console.log(`Gold in Reichweite: ${gq.toFixed(1)} % (${stats.gold.reachable}/${stats.gold.total}, ` +
+  `streng gerechnet: max. 3 Kacheln hoch und 3 zur Seite)`);
+stats.gold.beispiele.forEach(b => console.log(`  unerreichbar: ${b}`));
 
 if (problems.length) {
   console.log(`\nPROBLEME: ${problems.length}`);

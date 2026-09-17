@@ -609,11 +609,21 @@
     var spawnX = floorPlat.x1 + 1;
     var doorX = Math.min(floorPlat.x1 + 3, floorPlat.x2);
 
+    // In der obersten Zeile steht links die Uhr und rechts die Raumnummer.
+    // Ein Schalter, der dort in einer Ecke sitzt, verschwindet halb hinter
+    // der Schrift - man sieht dann nicht mehr, ob er schon gedrückt ist.
+    // Die Mitte der obersten Zeile bleibt erlaubt, dort steht nur das kurze
+    // Wort "Schalter" beziehungsweise "Tür".
+    function unterDerAnzeige(p) {
+      return p.y <= 1 && (p.x1 <= 5 || p.x2 >= C.ROOM_W - 6);
+    }
+
     var best = null, bestScore = -1;
     usable.forEach(function (p) {
       if (p === floorPlat && usable.length > 1) return;
       var px = (p.x1 + p.x2) / 2;
       var score = Math.abs(px - spawnX) + (FLOOR_Y - p.y) * 1.5;
+      if (unterDerAnzeige(p)) score -= 12; // nur als letzte Wahl
       if (score > bestScore) { bestScore = score; best = p; }
     });
     if (!best) best = floorPlat;
@@ -778,10 +788,35 @@
     // Gold gibt Zeit - der Grund, Risiken einzugehen statt nur durchzurennen.
     // Anders als Gefahren darf Gold im Kletterschacht liegen: Wer sich
     // hochschraubt, soll unterwegs etwas mitnehmen können.
+    //
+    // Gesetzt wird ÜBER einer begehbaren Kachel, nicht frei im Raum. Vorher
+    // wurde gewürfelt, und nachgemessen lag dadurch rund ein Drittel des
+    // Goldes außer Reichweite - in Rampen- und Wellental-Räumen sogar 40 %,
+    // weil dort der halbe Raum offene Luft über einer Schräge ist. Sichtbare
+    // Belohnung, die man nicht holen kann, ist schlimmer als gar keine: Sie
+    // sieht nach einem Fehler aus und verzerrt obendrein die Zeitrechnung.
     var goldCount = 2 + Math.floor(rnd() * 3);
-    for (i = 0; i < goldCount; i++) {
-      spot = freeTile(false, true);
-      if (spot) golds.push({ x: spot.x, y: spot.y, taken: false });
+    var goldSpots = standableTiles(grid);
+    var belegt = {};
+    for (i = 0; i < goldCount && goldSpots.length; i++) {
+      var platziert = false;
+      for (var g2 = 0; g2 < 20 && !platziert; g2++) {
+        var base = goldSpots[Math.floor(rnd() * goldSpots.length)];
+        // Null bis drei Kacheln darüber: unten liegt es auf dem Weg, oben
+        // muss man dafür springen. Mehr gibt die Sprunghöhe (3.09) nicht her.
+        var up = Math.floor(rnd() * 4);
+        var gx = base.x + (rnd() < 0.34 ? (rnd() < 0.5 ? -1 : 1) : 0);
+        var gy = base.y - up;
+        if (gx < 1 || gx > C.ROOM_W - 2 || gy < 1) continue;
+        if (grid[gy][gx] !== C.T_EMPTY) continue;
+        if (belegt[gx + ',' + gy]) continue;
+        var gc = tileCenter(gx, gy);
+        if (Math.abs(gc.x - room.spawn.x) < 50 && Math.abs(gc.y - room.spawn.y) < 40) continue;
+        if (Math.abs(gc.x - room.door.x) < 40 && Math.abs(gc.y - room.door.y) < 40) continue;
+        belegt[gx + ',' + gy] = true;
+        golds.push({ x: gc.x, y: gc.y, taken: false });
+        platziert = true;
+      }
     }
 
     return { hazards: hazards, golds: golds };

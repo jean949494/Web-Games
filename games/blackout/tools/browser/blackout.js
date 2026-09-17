@@ -73,6 +73,21 @@ require('fs').mkdirSync(OUT, { recursive: true });
   });
   console.log('Status vor Ende:', teleported);
 
+  // Wegschalten muss pausieren. Auf dem Handy passiert das ständig, und ohne
+  // Pause läuft man nach dem Zurückkommen sofort in ein zielendes Geschütz.
+  // (Im Testbrowser lässt sich echtes Wegschalten nicht auslösen, deshalb
+  // wird document.hidden gesetzt und das Ereignis von Hand geschickt -
+  // geprüft wird hier die Verdrahtung, nicht der Browser.)
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.waitForTimeout(200);
+  const nachWegschalten = await page.evaluate(() => window.BO.game.getState());
+  console.log(`Nach dem Wegschalten: ${nachWegschalten}` +
+    (nachWegschalten === 'paused' ? '  OK' : '  FEHL - erwartet: paused'));
+  if (nachWegschalten !== 'paused') errors.push('Wegschalten pausiert nicht');
+
   await browser.close();
   console.log('\n=== JS-Fehler ===');
   errors.length ? errors.forEach(e => console.log(e)) : console.log('keine');

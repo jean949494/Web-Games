@@ -173,6 +173,15 @@
     global.addEventListener('resize', fitStage);
     global.addEventListener('orientationchange', fitStage);
 
+    // Wegschalten pausiert. Ohne das läuft man nach dem Zurückkommen sofort
+    // weiter - mit einem Geschütz, das schon auf einen zielt, und einer Uhr,
+    // die man nicht im Blick hatte. Auf dem Handy passiert das ständig.
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden && BO.game.getState() === BO.game.STATES.PLAYING) {
+        BO.game.pause();
+      }
+    });
+
     SG.poki.init().then(function () {
       SG.poki.gameLoadingFinished();
     });
