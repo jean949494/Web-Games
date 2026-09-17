@@ -166,6 +166,12 @@
     // Lauf NICHT - er kostet Zeit, das gesammelte Gold und den Fortschritt
     // im Raum. So bleibt das "nochmal sofort" aus dem Original erhalten.
     timeLeft--;
+    // Die letzten zehn Sekunden hörbar machen: Die Uhr wird an derselben
+    // Stelle rot. Ein Ton pro Sekunde, die letzten drei etwas höher - wer
+    // auf den Raum schaut statt auf die Zahl, merkt es trotzdem.
+    if (timeLeft > 0 && timeLeft < 10 * 60 && timeLeft % 60 === 0 && BO.sounds) {
+      BO.sounds.playTick(timeLeft <= 3 * 60);
+    }
     if (timeLeft <= 0) {
       timeLeft = 0;
       endRun();
@@ -660,6 +666,14 @@
       ninja.ypos = t.y;
       ninja.xspeed = 0;
       ninja.yspeed = 0;
+      return true;
+    },
+
+    /** Testhilfe: Uhr stellen (nur mit "?debug"). */
+    debugSetTime: function (frames) {
+      if (!/[?&]debug\b/.test(global.location ? global.location.search : '')) return false;
+      if (state !== STATES.PLAYING) return false;
+      timeLeft = Math.max(1, Math.min(TIME_MAX, frames));
       return true;
     },
 

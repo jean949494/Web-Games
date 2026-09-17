@@ -261,10 +261,10 @@ direkt an einer Mine ausgenommen:
 | Raum | Anteil tödlicher Stellen | Median bis zum Schuss | Geschütze |
 |---|---|---|---|
 | 1–2 | 0 % | – | 0 |
-| 3 | 17 % | 1,7 s | 0 |
-| 4–7 | 38–45 % | 1,6 s | 1 |
-| 8–11 | 53–65 % | 1,6 s | 2 |
-| 12–20 | 63–70 % | 1,4 s | 3 |
+| 3 | 13 % | 1,1 s | 0 |
+| 4–7 | 30–39 % | 1,7 s | 1 |
+| 8–11 | 51–61 % | 1,7 s | 2 |
+| 12–20 | 59–66 % | 1,5 s | 3 |
 
 Drei saubere Stufen, je eine pro Geschütz, danach ein Plateau. Das ist
 Absicht: **Ab Raum 12 steigt nicht mehr die Gefahr, sondern der Zeitdruck**
@@ -303,9 +303,9 @@ durch, Hinweg zum Schalter und Rückweg zur Tür, und braucht
 
 | | Sekunden |
 |---|---|
-| im Median | 6,7 |
-| in 90 % der Fälle unter | 9,0 |
-| schnellster / langsamster Raum | 2,2 / 15,2 |
+| im Median | 6,8 |
+| in 90 % der Fälle unter | 9,2 |
+| schnellster / langsamster Raum | 2,0 / 15,8 |
 
 Bei festen 10 s hieß das für jemanden, der kaum stirbt: Die Uhr klebt
 dauerhaft am Deckel. Sechs simulierte Läufe über vierzehn Räume endeten alle
@@ -329,6 +329,10 @@ Original), aber gutgeschrieben wird es erst beim Durchschreiten der Tür.
 Stirbst du vorher, ist es weg. Das macht den Rückweg zur eigentlichen
 Entscheidung: Nimmst du das Goldstück neben dem Geschütz noch mit?
 Ungebanktes Gold steht sichtbar getrennt neben der Uhr (`+6s`).
+
+**Die letzten zehn Sekunden hört man.** Ein trockener Tick pro Sekunde, die
+letzten drei etwas höher – an derselben Stelle, an der die Uhr rot wird. Wer
+auf den Raum schaut statt auf die Zahl, merkt es trotzdem.
 
 **Sterben kostet Zeit, nicht den Lauf.** In N startet man nach dem Tod
 sofort dasselbe Level neu, ohne Strafe. Hier kostet ein Tod 3 Sekunden,

@@ -50,6 +50,12 @@
       SG.audio.tone(900, 70, { type: 'square', slideTo: 160, gain: 0.07 });
     },
 
+    // Letzte zehn Sekunden: ein trockener Tick pro Sekunde. Bewusst leise
+    // und kurz - er soll die rote Uhr hörbar machen, nicht hetzen.
+    playTick: function (letzte) {
+      SG.audio.tone(letzte ? 300 : 210, 45, { type: 'square', gain: letzte ? 0.05 : 0.035 });
+    },
+
     playDeath: function () {
       // absteigend: "Strom weg"
       SG.audio.tone(320, 260, { type: 'sawtooth', slideTo: 60, gain: 0.09 });
