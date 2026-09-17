@@ -50,23 +50,38 @@
     var btnSchemePause = document.getElementById('btn-scheme-pause');
     var btnImpact = document.getElementById('btn-impact');
     var btnImpactPause = document.getElementById('btn-impact-pause');
+    var schemePreviews = [document.getElementById('scheme-preview'),
+                          document.getElementById('scheme-preview-pause')];
 
     var bestScoreEl = document.getElementById('best-score');
     var goScoreEl = document.getElementById('go-score');
     var goBestEl = document.getElementById('go-best');
+    var goDeathsEl = document.getElementById('go-deaths');
 
     SG.analytics.setGame(BO.GAME_ID);
     BO.game.init(canvas);
-    BO.input.attach(stage);
+    // Die Steuerung hängt am ganzen Bildschirm, nicht an der Spielfläche:
+    // Die ist mittig eingepasst und lässt auf breiten Handys links und
+    // rechts schwarze Balken - genau da, wo die Daumen liegen.
+    BO.input.attach(document.body);
 
     setSoundIcon(btnSoundMenu, SG.audio.isEnabled());
     setSoundIcon(btnSoundPause, SG.audio.isEnabled());
     bestScoreEl.textContent = 'Rekord: ' + SG.storage.getBest(BO.GAME_ID) + ' Räume';
 
+    // Kleines Schaubild vom Handy mit den Zonen. Zwei Wörter erklären den
+    // Unterschied zwischen den Varianten nicht - ein Bild schon.
+    var SCHEME_PREVIEW = {
+      halves: '<span>←</span><span>→</span><span class="sp-jump">Sprung</span>',
+      stick: '<span class="sp-stick">◉</span><span class="sp-jump">Sprung</span>',
+    };
+
     function refreshSettingLabels() {
       var s = SCHEME_LABEL[BO.game.settings.scheme] || 'Bildschirmhälften';
       btnScheme.textContent = s;
       btnSchemePause.textContent = s;
+      var preview = SCHEME_PREVIEW[BO.game.settings.scheme] || SCHEME_PREVIEW.halves;
+      schemePreviews.forEach(function (el) { if (el) el.innerHTML = preview; });
       var imp = BO.game.settings.impactOriginal ? 'original (hart)' : 'mild';
       btnImpact.textContent = imp;
       btnImpactPause.textContent = imp;
@@ -96,6 +111,7 @@
           break;
         case BO.game.STATES.GAMEOVER:
           goScoreEl.textContent = payload.score;
+          goDeathsEl.textContent = payload.deaths ? (payload.deaths + (payload.deaths === 1 ? ' Versuch daneben' : ' Versuche daneben')) : 'ohne einen Tod';
           goBestEl.textContent = payload.newBest
             ? 'Neuer Rekord!'
             : ('Rekord: ' + payload.best + ' Räume');
@@ -156,6 +172,15 @@
     fitStage();
     global.addEventListener('resize', fitStage);
     global.addEventListener('orientationchange', fitStage);
+
+    // Wegschalten pausiert. Ohne das läuft man nach dem Zurückkommen sofort
+    // weiter - mit einem Geschütz, das schon auf einen zielt, und einer Uhr,
+    // die man nicht im Blick hatte. Auf dem Handy passiert das ständig.
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden && BO.game.getState() === BO.game.STATES.PLAYING) {
+        BO.game.pause();
+      }
+    });
 
     SG.poki.init().then(function () {
       SG.poki.gameLoadingFinished();

@@ -15,13 +15,15 @@
 
     <div id="screen-menu" class="screen">
       <div class="title">BLACKOUT</div>
-      <div class="hint">Schalter finden, Tür nehmen, bevor die Zeit ausgeht</div>
+      <div class="hint">Schalter finden, Tür nehmen – die Uhr ist dein Leben</div>
+      <div class="hint">Gold zählt erst, wenn du durch die Tür bist</div>
       <button id="btn-start" class="btn-primary" aria-label="Start">▶</button>
 
       <div class="settings">
         <div class="setting">
           <span class="setting-label">Steuerung</span>
           <button id="btn-scheme" class="pill" aria-label="Steuerung umschalten">Bildschirmhälften</button>
+          <div id="scheme-preview" class="scheme-preview" aria-hidden="true"></div>
         </div>
         <div class="setting">
           <span class="setting-label">Sturz-Tod</span>
@@ -44,6 +46,7 @@
         <div class="setting">
           <span class="setting-label">Steuerung</span>
           <button id="btn-scheme-pause" class="pill">Bildschirmhälften</button>
+          <div id="scheme-preview-pause" class="scheme-preview" aria-hidden="true"></div>
         </div>
         <div class="setting">
           <span class="setting-label">Sturz-Tod</span>
@@ -53,18 +56,23 @@
     </div>
 
     <div id="screen-gameover" class="screen" hidden>
-      <div class="title small">Erwischt</div>
+      <div class="title small">Zeit abgelaufen</div>
       <div id="go-score" class="go-score">0</div>
       <div class="go-label">Räume geschafft</div>
+      <div id="go-deaths" class="go-label"></div>
       <div id="go-best" class="go-best"></div>
       <button id="btn-restart" class="btn-primary" aria-label="Neustart">↻</button>
     </div>
 
-    <div id="touch-guide" class="touch-guide" hidden>
-      <div class="tg-zone tg-left">←</div>
-      <div class="tg-zone tg-right">→</div>
-      <div class="tg-zone tg-jump">SPRUNG</div>
-    </div>
+  </div>
+
+  <!-- Bewusst AUSSERHALB der Bühne: Die Steuerzonen gehen über den ganzen
+       Bildschirm, nicht nur über die mittig eingepasste Spielfläche. Lägen
+       sie in der Bühne, zeigte die Hilfe die Zonen an der falschen Stelle. -->
+  <div id="touch-guide" class="touch-guide" hidden>
+    <div class="tg-zone tg-left">←</div>
+    <div class="tg-zone tg-right">→</div>
+    <div class="tg-zone tg-jump">SPRUNG</div>
   </div>
 
   <div id="rotate-hint" class="rotate-hint" hidden>
@@ -80,6 +88,7 @@
   <script src="js/sounds.js"></script>
   <script src="js/world.js"></script>
   <script src="js/ninja.js"></script>
+  <script src="js/ragdoll.js"></script>
   <script src="js/hazards.js"></script>
   <script src="js/level.js"></script>
   <script src="js/game.js"></script>

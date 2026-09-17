@@ -17,10 +17,35 @@
 
   // Zeit-Ökonomie: knapp genug, dass man sich bewegen muss, großzügig genug
   // für das Poki-Publikum.
+  // Die Uhr ist im Original die LEBENSSPANNE des Ninjas, keine Rundenuhr:
+  // ein einziger durchlaufender Countdown. Gold ist wörtlich
+  // Lebensverlängerung - und wird erst beim Durchschreiten der Tür
+  // gutgeschrieben. Wer vorher stirbt, verliert es.
   var TIME_START = 45 * 60; // Frames
-  var TIME_PER_ROOM = 15 * 60;
-  var TIME_PER_GOLD = 2 * 60;
+  var TIME_PER_ROOM = 10 * 60;
+  var TIME_PER_ROOM_MIN = 6 * 60;
+  var TIME_PER_GOLD = 2 * 60; // exakt wie im Original
+  var TIME_DEATH_PENALTY = 3 * 60;
   var TIME_MAX = 99 * 60;
+  var RESPAWN_FRAMES = 36;
+
+  /**
+   * Zeitgutschrift pro geschafftem Raum - sie schrumpft mit der Raumnummer.
+   *
+   * Grund, nachgemessen mit `scratchpad/run_sim.js`: Die Strahlensuche spielt
+   * jeden Raum durch (Hinweg zum Schalter, Rückweg zur Tür) und braucht im
+   * Median 6,8 s, in 90 % der Fälle unter 14 s. Bei festen 10 s Gutschrift
+   * heißt das für jemanden, der kaum stirbt: Die Uhr läuft dauerhaft am
+   * Deckel von 99 s an, und der Lauf endet nie. Ein Endlosspiel ohne Ende
+   * ist aber keins - es ist nur ein Spiel ohne Pointe.
+   *
+   * Ab Raum 25 sind es 6 s, also knapp unter dem Median. Von da an kostet
+   * jeder Raum netto Zeit, und der Lauf läuft aus. Bis Raum 5 bleibt es bei
+   * den vollen 10 s, damit Anfänger nichts davon merken.
+   */
+  function timeForRoom(index) {
+    return Math.max(TIME_PER_ROOM_MIN, TIME_PER_ROOM - Math.floor(index / 5) * 60);
+  }
 
   var canvas, ctx;
   var state = STATES.MENU;
@@ -28,6 +53,8 @@
 
   var room, ninja, roomIndex, timeLeft, score, best, seed;
   var switchOn, particles, flash, shake, doorPulse, thinkCursor;
+  var pendingGold, deaths, respawnTimer, ragdoll;
+  var timeGain, timeGainValue; // Restframes und Wert der Einblendung "+Ns"
   var accMs, lastTs, rafId, simFrame;
   var settings = { impactOriginal: false, scheme: 'halves' };
 
@@ -46,11 +73,16 @@
       impactLimit: settings.impactOriginal ? C.IMPACT_LIMIT_ORIGINAL : C.IMPACT_LIMIT_MILD,
     });
     ninja.onDeath = function (reason) {
+      ragdoll = new BO.Ragdoll(room.world, ninja.xpos, ninja.ypos, ninja.xspeed, ninja.yspeed);
       spawnDeathBurst(reason);
-      shake = 14;
+      shake = 5; // N selbst hat gar keinen Screenshake - hier nur ein Hauch
+      deaths++;
+      // Ungebanktes Gold ist weg - das ist der Preis, nicht der Lauf.
+      pendingGold = 0;
+      timeLeft = Math.max(0, timeLeft - TIME_DEATH_PENALTY);
+      respawnTimer = RESPAWN_FRAMES;
       if (BO.sounds) BO.sounds.playDeath();
-      SG.analytics.track('death', { reason: reason, room: roomIndex });
-      setTimeout(endRun, 550);
+      SG.analytics.track('death', { reason: reason, room: roomIndex, deaths: deaths });
     };
     ninja.onJump = function (kind) {
       if (BO.sounds) BO.sounds.playJump(kind);
@@ -58,8 +90,16 @@
     switchOn = false;
     doorPulse = 0;
     thinkCursor = 0;
+    ragdoll = null;
     // Geschütze getrennt führen, damit sie reihum denken können
     room.turrets = room.hazards.filter(function (h) { return h.kind === 'turret'; });
+    // Die Vorwarnung war bisher nur zu sehen. Ein Ton dazu ist wichtiger,
+    // als er klingt: Man schaut beim Anschleichen auf die eigene Figur,
+    // nicht auf das Geschütz.
+    room.turrets.forEach(function (t) {
+      t.onCharge = function () { if (BO.sounds) BO.sounds.playCharge(); };
+      t.onFire = function () { if (BO.sounds) BO.sounds.playShot(); };
+    });
   }
 
   function startRun() {
@@ -71,6 +111,11 @@
     flash = 0;
     shake = 0;
     simFrame = 0;
+    pendingGold = 0;
+    deaths = 0;
+    respawnTimer = 0;
+    timeGain = 0;
+    timeGainValue = 0;
     loadRoom(0);
     state = STATES.PLAYING;
     accMs = 0;
@@ -88,14 +133,19 @@
     best = SG.storage.getBest(BO.GAME_ID);
     SG.audio.playGameOver();
     SG.poki.gameplayStop();
-    SG.analytics.track('game_over', { score: score, rooms: roomIndex, best: best, newBest: isNewBest });
-    emitChange({ newBest: isNewBest });
+    SG.analytics.track('game_over', { score: score, rooms: roomIndex, best: best, newBest: isNewBest, deaths: deaths });
+    emitChange({ newBest: isNewBest, deaths: deaths });
   }
 
   function nextRoom() {
     roomIndex++;
     score = roomIndex;
-    timeLeft = Math.min(TIME_MAX, timeLeft + TIME_PER_ROOM);
+    // Jetzt erst wird das gesammelte Gold gutgeschrieben.
+    var gain = timeForRoom(roomIndex) + pendingGold * TIME_PER_GOLD;
+    timeGainValue = Math.round(gain / 60);
+    timeGain = 110;
+    timeLeft = Math.min(TIME_MAX, timeLeft + gain);
+    pendingGold = 0;
     flash = 12;
     if (BO.sounds) BO.sounds.playDoor();
     SG.analytics.track('room_cleared', { room: roomIndex });
@@ -108,15 +158,31 @@
     simFrame++;
     if (shake > 0) shake--;
     if (flash > 0) flash--;
+    if (timeGain > 0) timeGain--;
     doorPulse += 0.08;
 
-    if (!ninja.dead) {
-      timeLeft--;
-      if (timeLeft <= 0) {
-        timeLeft = 0;
-        ninja.kill('time');
-        return;
-      }
+    // Die Uhr ist der einzige echte Gegner: Sie läuft immer weiter, auch
+    // während man nach einem Tod neu eingesetzt wird. Ein Tod beendet den
+    // Lauf NICHT - er kostet Zeit, das gesammelte Gold und den Fortschritt
+    // im Raum. So bleibt das "nochmal sofort" aus dem Original erhalten.
+    timeLeft--;
+    // Die letzten zehn Sekunden hörbar machen: Die Uhr wird an derselben
+    // Stelle rot. Ein Ton pro Sekunde, die letzten drei etwas höher - wer
+    // auf den Raum schaut statt auf die Zahl, merkt es trotzdem.
+    if (timeLeft > 0 && timeLeft < 10 * 60 && timeLeft % 60 === 0 && BO.sounds) {
+      BO.sounds.playTick(timeLeft <= 3 * 60);
+    }
+    if (timeLeft <= 0) {
+      timeLeft = 0;
+      endRun();
+      return;
+    }
+
+    if (ninja.dead) {
+      updateParticles();
+      if (ragdoll) ragdoll.update();
+      if (respawnTimer > 0 && --respawnTimer <= 0) loadRoom(roomIndex);
+      return;
     }
 
     ninja.tick();
@@ -149,7 +215,7 @@
       var dx = ninja.xpos - gold.x, dy = ninja.ypos - gold.y;
       if (dx * dx + dy * dy < 240) {
         gold.taken = true;
-        timeLeft = Math.min(TIME_MAX, timeLeft + TIME_PER_GOLD);
+        pendingGold++; // erst an der Tür wird daraus Zeit
         spawnSparkle(gold.x, gold.y);
         if (BO.sounds) BO.sounds.playGold();
       }
@@ -182,7 +248,7 @@
   }
 
   function spawnDeathBurst() {
-    for (var i = 0; i < 26; i++) {
+    for (var i = 0; i < 14; i++) {
       var a = Math.random() * Math.PI * 2;
       var s = 1 + Math.random() * 3.4;
       particles.push({
@@ -221,12 +287,17 @@
     ctx.translate(ox, oy);
 
     if (room) {
-      drawTiles();
       drawGold();
       drawSwitchAndDoor();
       drawHazards();
       drawParticles();
+      if (ragdoll) ragdoll.draw(ctx);
       if (ninja && !ninja.dead) drawNinja();
+      // Kacheln ZULETZT, über Figur und Partikel. Das kostet nichts und
+      // verdeckt sämtliche Durchdringungs-Artefakte der Kollisionsauflösung -
+      // laut Game-Feel-Recherche der wichtigste Einzeltrick für den sauberen
+      // Look des Originals.
+      drawTiles();
     }
 
     ctx.restore();
@@ -453,14 +524,44 @@
     ctx.font = 'bold 20px system-ui, sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText(secs + 's', 14, 28);
+    // Breite noch mit der GROSSEN Schrift messen. Vorher stand das
+    // measureText hinter dem Font-Wechsel und maß die kleine - der Zusatz
+    // klebte dadurch an der Uhr.
+    var clockW = ctx.measureText(secs + 's').width;
+    // Ungebanktes Gold getrennt anzeigen - es zählt erst, wenn man die Tür
+    // erreicht. Genau das macht den Rückweg spannend.
+    if (pendingGold > 0) {
+      ctx.fillStyle = '#ffd45c';
+      ctx.font = 'bold 13px system-ui, sans-serif';
+      ctx.fillText('+' + (pendingGold * 2) + 's', 16 + clockW + 26, 27);
+    }
+    // Kurz nach der Tür: wie viel Zeit der Raum gebracht hat. Die Gutschrift
+    // schrumpft mit der Raumnummer - ohne Anzeige würde niemand merken, dass
+    // die Luft dünner wird.
+    if (timeGain > 0) {
+      ctx.globalAlpha = Math.min(1, timeGain / 30);
+      ctx.fillStyle = '#5ee1a3';
+      ctx.font = 'bold 15px system-ui, sans-serif';
+      ctx.fillText('+' + timeGainValue + 's', 16 + clockW + 26, 44);
+      ctx.globalAlpha = 1;
+    }
     ctx.textAlign = 'right';
     ctx.fillStyle = '#eef3ff';
     ctx.fillText('Raum ' + (roomIndex + 1), C.CANVAS_W - 14, 28);
+    // Ein einziges Wort als Wegweiser, mehr nicht - Tutorialtext gibt es
+    // hier keinen. Nach dem Schalter steht "Tür" da, weil der Rückweg sonst
+    // gerade für jüngere Spieler die Stelle ist, an der sie ratlos stehen
+    // bleiben: Der Schalter ist gedrückt, und nichts sagt, wohin jetzt.
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 12px system-ui, sans-serif';
     if (!switchOn) {
-      ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(94,225,163,0.75)';
-      ctx.font = 'bold 12px system-ui, sans-serif';
       ctx.fillText('Schalter', C.CANVAS_W / 2, 24);
+    } else {
+      // Mitatmen im selben Takt wie die Tür, damit klar ist, was gemeint ist
+      var puls = 0.55 + 0.3 * (0.5 + 0.5 * Math.sin(doorPulse));
+      ctx.fillStyle = 'rgba(94,225,163,' + puls.toFixed(2) + ')';
+      ctx.fillText('Tür', C.CANVAS_W / 2, 24);
     }
   }
 
@@ -568,6 +669,33 @@
       return true;
     },
 
+    /** Testhilfe: Uhr stellen (nur mit "?debug"). */
+    debugSetTime: function (frames) {
+      if (!/[?&]debug\b/.test(global.location ? global.location.search : '')) return false;
+      if (state !== STATES.PLAYING) return false;
+      timeLeft = Math.max(1, Math.min(TIME_MAX, frames));
+      return true;
+    },
+
+    /** Testhilfe: Figur an eine beliebige Stelle setzen (nur mit "?debug"). */
+    debugPlace: function (x, y) {
+      if (!/[?&]debug\b/.test(global.location ? global.location.search : '')) return false;
+      if (!ninja || ninja.dead) return false;
+      ninja.xpos = x;
+      ninja.ypos = y;
+      ninja.xspeed = 0;
+      ninja.yspeed = 0;
+      return true;
+    },
+
+    /** Testhilfe: gezielter Tod (nur mit "?debug"). */
+    debugKill: function () {
+      if (!/[?&]debug\b/.test(global.location ? global.location.search : '')) return false;
+      if (!ninja || ninja.dead) return false;
+      ninja.kill('debug');
+      return true;
+    },
+
     getDebugState: function () {
       return {
         state: state,
@@ -576,6 +704,9 @@
         room: roomIndex,
         timeLeft: timeLeft,
         switchOn: switchOn,
+        pendingGold: pendingGold,
+        deaths: deaths,
+        ragdoll: ragdoll ? { life: +ragdoll.life.toFixed(2), head: [Math.round(ragdoll.points[0].x), Math.round(ragdoll.points[0].y)] } : null,
         ninja: ninja ? {
           x: Math.round(ninja.xpos), y: Math.round(ninja.ypos),
           vx: +ninja.xspeed.toFixed(3), vy: +ninja.yspeed.toFixed(3),
@@ -584,7 +715,11 @@
         } : null,
         hazards: room ? room.hazards.length : 0,
         turrets: room && room.turrets ? room.turrets.map(function (t) {
-          return { phase: t.phase, timer: Math.round(t.shotTimer), aimDist: t.aimDist == null ? null : Math.round(t.aimDist) };
+          return {
+            phase: t.phase, timer: Math.round(t.shotTimer),
+            aimDist: t.aimDist == null ? null : Math.round(t.aimDist),
+            x: t.x, y: t.y, aimX: t.aimX, aimY: t.aimY,
+          };
         }) : [],
       };
     },

@@ -12,7 +12,8 @@ npm run dev
 ein Tipp aufs Spiel startet es. **Jede gespeicherte Änderung lädt die
 Seite automatisch neu** – kein manuelles Aktualisieren nötig.
 
-Es ist keine Installation nötig (kein `npm install`), nur Node.
+Für den Dev-Server ist keine Installation nötig (kein `npm install`), nur
+Node. Nur die Browser-Tests (siehe unten) brauchen einmalig `npm install`.
 
 Die Konsole zeigt beim Start zusätzlich eine WLAN-Adresse
 (`http://192.168.x.x:5173/`). Wenn dein Handy im selben WLAN ist, kannst
@@ -28,7 +29,7 @@ https://jean949494.github.io/Web-Games/
 ```
 
 Einzelnes Spiel direkt:
-`https://jean949494.github.io/Web-Games/games/astro-ascent/`
+`https://jean949494.github.io/Web-Games/games/blackout/`
 
 **Aktualisieren nach einer Änderung:**
 
@@ -64,9 +65,29 @@ Danach zeigt dieselbe Seite oben die genaue URL an.
 3. `npm run deploy` – fertig, das neue Spiel ist unter
    `https://jean949494.github.io/Web-Games/games/<spielname>/` erreichbar
 
+## Nachrechnen statt hoffen
+
+Blackout bringt eigene Messskripte mit (`games/blackout/tools/`, dort auch
+die Beschreibung). Sie ersetzen kein Spielen, fangen aber Dinge ab, die man
+beim Spielen nie zuverlässig findet – etwa einen Raum, aus dem man nicht
+herauskommt.
+
+| Befehl | prüft | Dauer |
+|---|---|---|
+| `npm run check:physik` | Bewegungswerte gegen die Originalzahlen | Sekunden |
+| `npm run check:geometrie` | ob „innen" und „außen" jeder Kachelform stimmen | Sekunden |
+| `npm run check:raeume` | Raumstruktur über 480 Räume | Sekunden |
+| `npm run check:loesbar` | ob jeder Raum wirklich lösbar ist | Minuten |
+| `npm run check:zeit` | ob die Uhr im richtigen Verhältnis steht | Minuten |
+| `npm run check:druck` | die Schwierigkeitskurve | Minuten |
+
+Nach jeder Änderung am Raumgenerator gehört `check:loesbar` dazu – dort sind
+bislang alle echten Fehler aufgefallen.
+
 ## Kurzfassung
 
 | Zweck | Befehl |
 |---|---|
 | Beim Coden sofort sehen | `npm run dev` |
 | Auf echtem Handy testen | `npm run deploy`, dann Seite neu laden |
+| Nach Änderungen am Raumbau | `npm run check:loesbar` |
