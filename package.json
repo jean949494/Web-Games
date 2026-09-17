@@ -7,6 +7,7 @@
     "dev": "node scripts/dev-server.js",
     "deploy": "bash scripts/deploy.sh",
     "check:physik": "node games/blackout/tools/physik_test.js",
+    "check:geometrie": "node games/blackout/tools/geometrie_test.js",
     "check:raeume": "node games/blackout/tools/level_test.js",
     "check:loesbar": "node games/blackout/tools/solver_mines.js 12 9 0",
     "check:zeit": "node games/blackout/tools/run_sim.js 6 12",

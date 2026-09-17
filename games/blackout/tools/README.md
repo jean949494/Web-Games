@@ -15,6 +15,7 @@ es durchrechnen.
 | Datei | prüft |
 |---|---|
 | `physik_test.js` | Bewegungswerte gegen die dokumentierten Originalzahlen (Endfallgeschwindigkeit, Sprunghöhe, Wandsprung-Impuls …) |
+| `geometrie_test.js` | ob „innen" und „außen" jeder Kachelform mit der echten Geometrie übereinstimmen – der Test, der bei den umgestülpten Schrägen gefehlt hat |
 | `slope_test.js` | Stürze auf Schrägen – dort überlebt man mehr als auf flachem Boden |
 | `uphill_test.js` | ob man eine 45-Grad-Rampe hochlaufen kann |
 | `turret_test.js`, `turret_test2.js` | Geschütz-Verhalten: Stillstehen tötet, Laufen schützt, Deckung setzt zurück |

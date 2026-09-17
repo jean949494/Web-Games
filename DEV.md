@@ -75,6 +75,7 @@ herauskommt.
 | Befehl | prüft | Dauer |
 |---|---|---|
 | `npm run check:physik` | Bewegungswerte gegen die Originalzahlen | Sekunden |
+| `npm run check:geometrie` | ob „innen" und „außen" jeder Kachelform stimmen | Sekunden |
 | `npm run check:raeume` | Raumstruktur über 480 Räume | Sekunden |
 | `npm run check:loesbar` | ob jeder Raum wirklich lösbar ist | Minuten |
 | `npm run check:zeit` | ob die Uhr im richtigen Verhältnis steht | Minuten |

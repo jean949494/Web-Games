@@ -356,5 +356,5 @@ zu entschärfen.
   Route und die Treppe der Umweg.
 
 Alle Werkzeuge liegen unter `tools/` mit eigener Beschreibung, oder als
-`npm run check:physik`, `check:raeume`, `check:loesbar`, `check:zeit`,
-`check:druck`.
+`npm run check:physik`, `check:geometrie`, `check:raeume`,
+`check:loesbar`, `check:zeit`, `check:druck`.

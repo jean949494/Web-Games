@@ -34,8 +34,9 @@ npm run dev      # lokaler Server mit Live-Reload, http://localhost:5173/
 npm run deploy   # aktuellen Stand auf die öffentliche Test-URL schicken
 ```
 
-Dazu die Messskripte von Blackout – `check:physik`, `check:raeume`,
-`check:loesbar`, `check:zeit`, `check:druck`. Ausführlich erklärt in
+Dazu die Messskripte von Blackout – `check:physik`, `check:geometrie`,
+`check:raeume`, `check:loesbar`, `check:zeit`, `check:druck`. Ausführlich
+erklärt in
 [`DEV.md`](DEV.md).
 
 ## Gemeinsames Grundgerüst
