@@ -6,6 +6,13 @@ HTML/CSS/JavaScript.
 
 ## Spiele
 
+- [`games/blackout`](games/blackout/) – Endlos-Platformer nach dem Vorbild
+  von *N – The Way of the Ninja*. Die Bewegungsphysik ist ein exakter Port
+  der N++-Physik (Konstanten aus dem reverse-engineerten Original, gegen
+  die dokumentierten Werte nachgemessen). Querformat.
+  Der am weitesten entwickelte Titel hier – mit eigenen Messskripten unter
+  [`games/blackout/tools`](games/blackout/tools/), die Lösbarkeit,
+  Zeit-Haushalt und Schwierigkeitskurve nachrechnen.
 - [`games/kurve-solo`](games/kurve-solo/) – Endlos-Climber: Linie hinter
   sich herziehen, Hindernissen ausweichen, Feld wird mit der Höhe
   schmaler und verzwickter
@@ -19,10 +26,6 @@ HTML/CSS/JavaScript.
 - [`games/astro-ascent`](games/astro-ascent/) – Endlos-Climber im
   Weltall: schwereloser Ladesprung von Wand zu Wand, Asteroiden
   ausweichen, Laser-Geschütze im Rhythmus timen
-- [`games/blackout`](games/blackout/) – Endlos-Platformer nach dem Vorbild
-  von *N – The Way of the Ninja*. Die Bewegungsphysik ist ein exakter Port
-  der N++-Physik (Konstanten aus dem reverse-engineerten Original, gegen
-  die dokumentierten Werte nachgemessen). Querformat.
 
 ## Loslegen
 
@@ -31,7 +34,9 @@ npm run dev      # lokaler Server mit Live-Reload, http://localhost:5173/
 npm run deploy   # aktuellen Stand auf die öffentliche Test-URL schicken
 ```
 
-Ausführlich erklärt in [`DEV.md`](DEV.md).
+Dazu die Messskripte von Blackout – `check:physik`, `check:raeume`,
+`check:loesbar`, `check:zeit`, `check:druck`. Ausführlich erklärt in
+[`DEV.md`](DEV.md).
 
 ## Gemeinsames Grundgerüst
 

@@ -654,6 +654,17 @@
       return true;
     },
 
+    /** Testhilfe: Figur an eine beliebige Stelle setzen (nur mit "?debug"). */
+    debugPlace: function (x, y) {
+      if (!/[?&]debug\b/.test(global.location ? global.location.search : '')) return false;
+      if (!ninja || ninja.dead) return false;
+      ninja.xpos = x;
+      ninja.ypos = y;
+      ninja.xspeed = 0;
+      ninja.yspeed = 0;
+      return true;
+    },
+
     /** Testhilfe: gezielter Tod (nur mit "?debug"). */
     debugKill: function () {
       if (!/[?&]debug\b/.test(global.location ? global.location.search : '')) return false;
@@ -681,7 +692,11 @@
         } : null,
         hazards: room ? room.hazards.length : 0,
         turrets: room && room.turrets ? room.turrets.map(function (t) {
-          return { phase: t.phase, timer: Math.round(t.shotTimer), aimDist: t.aimDist == null ? null : Math.round(t.aimDist) };
+          return {
+            phase: t.phase, timer: Math.round(t.shotTimer),
+            aimDist: t.aimDist == null ? null : Math.round(t.aimDist),
+            x: t.x, y: t.y, aimX: t.aimX, aimY: t.aimY,
+          };
         }) : [],
       };
     },

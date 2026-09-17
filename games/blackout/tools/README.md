@@ -47,6 +47,7 @@ gefunden wird.
 | `touch.js` | beide Steuerungsvarianten, Mehrfinger-Betrieb |
 | `touch_bars.js` | dass die Steuerzonen bis in die schwarzen Balken reichen |
 | `gallery.js` | ein Bildschirmfoto je Raum, dazu Gefahren- und Zeitwerte |
+| `aim.js` | Fadenkreuz beim Zielen und in der Vorwarnung – ist es lesbar? |
 | `ragdoll.js`, `respawn.js` | Tod, Puppe, Wiedereinstieg im selben Raum |
 | `crosshair.js` | das Fadenkreuz des Geschützes |
 | `loop3.js` | längerer Lauf am Stück |
