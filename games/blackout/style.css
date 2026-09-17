@@ -128,6 +128,35 @@ canvas#game {
 
 .pill:active { background: rgba(255, 255, 255, 0.16); }
 
+/* Kleines Schaubild unter dem Steuerungs-Knopf.
+   Grund: Die Wahl zwischen den beiden Varianten lässt sich mit zwei Wörtern
+   ("Bildschirmhälften" / "Joystick") nicht erklären. Ein daumengroßes Bild
+   vom Handy mit den Zonen sagt es sofort - und genau diese Wahl soll am
+   Gerät getroffen werden. */
+.scheme-preview {
+  width: 68px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 5px;
+  display: flex;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.scheme-preview span {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.45);
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.scheme-preview span:last-child { border-right: none; }
+.scheme-preview .sp-jump { flex: 2; background: rgba(94, 225, 163, 0.1); color: rgba(94, 225, 163, 0.75); }
+.scheme-preview .sp-stick { flex: 2; background: rgba(255, 177, 92, 0.1); color: rgba(255, 177, 92, 0.8); }
+
 .sound-corner {
   position: absolute;
   top: max(8px, env(safe-area-inset-top));

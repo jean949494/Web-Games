@@ -187,6 +187,10 @@ Handy antesten, die schlechtere fliegt danach raus:
   ebenfalls digital ist, nicht analog.
 - **Joystick**: Daumen-Stick erscheint links, wo man aufsetzt; Sprung rechts.
 
+Unter dem Umschalter steht ein daumengroßes Schaubild vom Handy mit den
+Zonen. Zwei Wörter erklären den Unterschied nicht – und genau diese Wahl
+soll am Gerät getroffen werden, nicht im Kopf.
+
 Am Rechner: Pfeiltasten/A+D laufen, Leertaste/Pfeil hoch springen, Esc pausiert.
 
 **Die Zonen hängen am Bildschirm, nicht an der Spielfläche.** Das Spiel läuft
@@ -267,19 +271,26 @@ durch, Hinweg zum Schalter und Rückweg zur Tür, und braucht
 
 | | Sekunden |
 |---|---|
-| im Median | 6,8 |
-| in 90 % der Fälle unter | 14,0 |
-| schnellster / langsamster Raum | 2,2 / 25,5 |
+| im Median | 6,7 |
+| in 90 % der Fälle unter | 9,0 |
+| schnellster / langsamster Raum | 2,2 / 15,2 |
 
 Bei festen 10 s hieß das für jemanden, der kaum stirbt: Die Uhr klebt
-dauerhaft am Deckel. Sechs simulierte Läufe über zwölf Räume endeten alle
-mit 46 bis 93 s Rest – der Lauf wäre nie zu Ende gegangen. Ein Endlosspiel
+dauerhaft am Deckel. Sechs simulierte Läufe über vierzehn Räume endeten alle
+mit 94 bis 99 s Rest – der Lauf wäre nie zu Ende gegangen. Ein Endlosspiel
 ohne Ende ist aber keins, sondern nur ein Spiel ohne Pointe. Ab Raum 25
 liegt die Gutschrift knapp unter dem Median, von da an kostet jeder Raum
 netto Zeit und der Lauf läuft aus. Bis Raum 5 bleibt es bei den vollen
 10 s, damit Anfänger nichts davon merken. Nach jeder Tür steht kurz
 sichtbar, wie viel es war (`+8s`) – sonst würde niemand merken, dass die
 Luft dünner wird.
+
+Ehrlicherweise: Für jemanden, der wirklich kaum stirbt, ist auch das keine
+harte Grenze. Drei Goldstücke pro Raum bringen zusammen 6 s, die Uhr steht
+also weiter am Deckel, solange man sie einsammelt und lebend zur Tür kommt.
+Der eigentliche Gegner ist dann nicht mehr die Uhr, sondern das Sterben – so
+wie im Original auch. Die schrumpfende Gutschrift sorgt nur dafür, dass es
+nicht *beliebig* lange gut geht.
 
 **Gold zählt erst an der Tür.** Jedes Stück bringt +2 s (exakt wie im
 Original), aber gutgeschrieben wird es erst beim Durchschreiten der Tür.
@@ -304,7 +315,13 @@ zu entschärfen.
   echte Runden, keine Suche.
 - **Die Strahlensuche ist kein Mensch.** Sie stirbt nicht an Geschützen, sie
   verwirft nur die Äste, in denen sie stirbt. Für Geometrie und Zeit ist sie
-  ein guter Maßstab, für Nervenkitzel nicht.
+  ein guter Maßstab, für Nervenkitzel nicht. Sie hält Eingaben außerdem
+  immer zehn Bilder am Stück – **tippen kann sie nicht**, und damit auch
+  keine Wandsprung-Kette. Dass trotzdem jeder Raum als lösbar durchgeht,
+  liegt an der garantierten Treppe: Sie ist der Weg für alle, die den Kamin
+  nicht hochkommen. In der Simulation blieben genau drei Räume ohne
+  gefundenen Weg, alle drei Schacht-Räume – dort ist der Kamin die schnelle
+  Route und die Treppe der Umweg.
 
 Alle Werkzeuge liegen unter `tools/` mit eigener Beschreibung, oder als
 `npm run check:physik`, `check:raeume`, `check:loesbar`, `check:zeit`,

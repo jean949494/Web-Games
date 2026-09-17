@@ -50,6 +50,8 @@
     var btnSchemePause = document.getElementById('btn-scheme-pause');
     var btnImpact = document.getElementById('btn-impact');
     var btnImpactPause = document.getElementById('btn-impact-pause');
+    var schemePreviews = [document.getElementById('scheme-preview'),
+                          document.getElementById('scheme-preview-pause')];
 
     var bestScoreEl = document.getElementById('best-score');
     var goScoreEl = document.getElementById('go-score');
@@ -67,10 +69,19 @@
     setSoundIcon(btnSoundPause, SG.audio.isEnabled());
     bestScoreEl.textContent = 'Rekord: ' + SG.storage.getBest(BO.GAME_ID) + ' Räume';
 
+    // Kleines Schaubild vom Handy mit den Zonen. Zwei Wörter erklären den
+    // Unterschied zwischen den Varianten nicht - ein Bild schon.
+    var SCHEME_PREVIEW = {
+      halves: '<span>←</span><span>→</span><span class="sp-jump">Sprung</span>',
+      stick: '<span class="sp-stick">◉</span><span class="sp-jump">Sprung</span>',
+    };
+
     function refreshSettingLabels() {
       var s = SCHEME_LABEL[BO.game.settings.scheme] || 'Bildschirmhälften';
       btnScheme.textContent = s;
       btnSchemePause.textContent = s;
+      var preview = SCHEME_PREVIEW[BO.game.settings.scheme] || SCHEME_PREVIEW.halves;
+      schemePreviews.forEach(function (el) { if (el) el.innerHTML = preview; });
       var imp = BO.game.settings.impactOriginal ? 'original (hart)' : 'mild';
       btnImpact.textContent = imp;
       btnImpactPause.textContent = imp;
