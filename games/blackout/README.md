@@ -13,7 +13,7 @@ Konstanten, Reihenfolge der Rechenschritte, Kollisionsauflösung,
 Sprunglogik und Aufpralltod inklusive.
 
 Nachgemessen gegen die dokumentierten Originalwerte
-(`scratchpad/physik_test.js`):
+(`tools/physik_test.js`):
 
 | Größe | Original | Dieser Port |
 |---|---|---|
@@ -72,7 +72,7 @@ Warum sich das so anfühlt, wie es sich anfühlt:
     nur alle 0,3 s – in der Zeit legst du 2,5 Kacheln zurück. Deshalb kann man
     durch eine Schusslinie huschen.
 
-  Nachgemessen (`scratchpad/turret_test2.js`): Stillstehen → tot nach 2,2 s.
+  Nachgemessen (`tools/turret_test2.js`): Stillstehen → tot nach 2,2 s.
   Volles Tempo durchlaufen → überlebt, obwohl fünf Schüsse fallen; sie gehen
   alle dorthin, wo man *war*.
 
@@ -105,12 +105,13 @@ Deshalb wird nicht frei gewürfelt:
    dem, was die Physik hergibt (3.09 hoch, über 15 weit).
 3. Gefahren werden nie so gesetzt, dass ein Weg komplett dicht ist.
 
-Nachgewiesen mit `scratchpad/solver_test.js` bzw. `solver_mines.js`: eine
-Strahlensuche, die den Raum mit der **echten Physik** durchspielt (Minen
-als tödliche Hindernisse eingerechnet). Findet sie einen Weg, ist der Raum
-bewiesen lösbar. Stand: **216 von 216** geprüften Räumen – je 108 aus den
-Nummern 0–8 und 12–20, über zwölf Seeds, also alle sieben Archetypen
-mehrfach.
+Nachgewiesen mit `tools/solver_test.js` bzw. `tools/solver_mines.js`
+(`npm run check:loesbar`): eine Strahlensuche, die den Raum mit der
+**echten Physik** durchspielt – Minen als tödliche Hindernisse eingerechnet.
+Findet sie einen Weg, ist der Raum bewiesen lösbar; findet sie keinen, heißt
+das „nicht nachgewiesen", nicht „unmöglich". Stand: **216 von 216**
+geprüften Räumen – je 108 aus den Nummern 0–8 und 12–20, über zwölf Seeds,
+also alle sieben Archetypen mehrfach.
 
 Diese Prüfung hat drei echte Fehler aufgedeckt, die im Spiel jeweils einen
 Lauf beendet hätten:
@@ -143,8 +144,37 @@ frei gewürfelt, keine Spitze war erreichbar, und der Schalter landete in
 
 | Raumtyp | Schalterhöhe vorher | jetzt | auf dem Boden |
 |---|---|---|---|
-| Schacht | Ø 6,1 (max 7) | Ø 8,1 (max 12) | 5 % → 0 % |
-| Säulen | Ø 1,5 (max 8) | Ø 6,4 (max 10) | 60 % → 3 % |
+| Schacht | Ø 6,1 (max 7) | Ø 8,7 (max 12) | 5 % → 0 % |
+| Säulen | Ø 1,5 (max 8) | Ø 6,6 (max 10) | 60 % → 3 % |
+
+### Und einen fünften: das Modell kannte keine Decken
+
+Gefunden hat ihn die Laufzeit-Simulation (`tools/run_sim.js`), nicht die
+Lösbarkeitsprüfung – weil sie auch den **Rückweg zur Tür** mitspielt und
+dadurch mehr Räume anfasst. Ein Raum hatte eine Rampe, die unter eine Platte
+führte:
+
+```
+ 8 #...M....................#
+ 9 #..#####.................#     <- Platte
+10 #...\....................#     <- Rampe endet hier, zwei Kacheln darunter
+11 #...#\...................#
+12 #...##\..................#
+13 #...###\.S.D....M........#
+```
+
+Die oberste Rampenstufe liegt genau zwei Kacheln unter der Platte – nach
+Höhe und Weite also erreichbar. Nur ist direkt über dem Kopf massiv:
+springen geht nicht, seitlich heraus geht nur hinunter, und vom Boden aus
+sind es fünf Kacheln. Der Schalter lag auf dieser Platte, der Raum war nicht
+lösbar. Das Modell prüft jetzt, ob es zwischen den beiden Flächen überhaupt
+eine freie Spalte gibt.
+
+Dieselbe Prüfung entwertete anschließend ein Viertel aller Plattform-Räume:
+Frei gewürfelte Plattformen landen oft direkt übereinander, und der Schalter
+rutschte zurück auf den Boden. Sie werden deshalb nicht mehr gewürfelt,
+sondern als Schlangenlinie gesetzt – abwechselnd nach links und rechts, je
+zwei Kacheln höher, drei bis fünf Kacheln Lücke.
 
 ## Steuerung
 
@@ -164,7 +194,7 @@ in 640×360 und wird mittig eingepasst; ein heutiges Handy im Querformat ist
 eher 19,5:9, also bleiben links und rechts schwarze Balken – und genau dort
 liegen beim Halten die Daumen. Vorher waren die Zonen an der Spielfläche
 festgemacht, damit war der äußerste Zentimeter auf beiden Seiten tot.
-Nachgewiesen mit `scratchpad/pwtest/touch_bars.js`: ein 900×360 breites
+Nachgewiesen mit `tools/browser/touch_bars.js`: ein 900×360 breites
 Fenster (130 px Balken je Seite), Berührungen mitten im Balken müssen laufen
 und springen auslösen – auch beide gleichzeitig.
 
@@ -185,6 +215,25 @@ Nach Absprache **spürbar entschärft**, aber nicht zahnlos:
   umschaltbar, um beides direkt zu vergleichen.
 - Raum 1 ist bewusst leer: dort lernt man die Bewegung ohne Strafe.
   Minen ab Raum 2, Drohnen ab Raum 3, Geschütze ab Raum 4.
+
+Wie hart das wirklich ist, lässt sich messen, ohne einen Spieler zu
+simulieren (`tools/pressure_test.js`): Figur auf eine begehbare Kachel
+setzen, **nichts drücken**, Zeit bis zum Tod stoppen. Genau das ist die
+Zeit, die man zum Überlegen hat. 24 Seeds, 14 Stellen je Raum, Kacheln
+direkt an einer Mine ausgenommen:
+
+| Raum | Anteil tödlicher Stellen | Median bis zum Schuss | Geschütze |
+|---|---|---|---|
+| 1–2 | 0 % | – | 0 |
+| 3 | 17 % | 1,7 s | 0 |
+| 4–7 | 38–45 % | 1,6 s | 1 |
+| 8–11 | 53–65 % | 1,6 s | 2 |
+| 12–20 | 63–70 % | 1,4 s | 3 |
+
+Drei saubere Stufen, je eine pro Geschütz, danach ein Plateau. Das ist
+Absicht: **Ab Raum 12 steigt nicht mehr die Gefahr, sondern der Zeitdruck**
+(siehe unten). Ein Raum, in dem 100 % der Stellen tödlich wären, hätte keine
+Deckung mehr – und Deckung ist die halbe Spielmechanik.
 
 ## Der Tod als Pointe
 
@@ -213,7 +262,7 @@ Start 45 s, Deckel bei 99 s.
 
 **Die Gutschrift pro Raum schrumpft** – von 10 s auf 6 s ab Raum 25, eine
 Sekunde weniger alle fünf Räume. Das ist keine Willkür, sondern nachgemessen
-(`scratchpad/run_sim.js`): Die Strahlensuche spielt jeden Raum vollständig
+(`tools/run_sim.js`): Die Strahlensuche spielt jeden Raum vollständig
 durch, Hinweg zum Schalter und Rückweg zur Tür, und braucht
 
 | | Sekunden |
@@ -256,7 +305,7 @@ zu entschärfen.
 - **Die Strahlensuche ist kein Mensch.** Sie stirbt nicht an Geschützen, sie
   verwirft nur die Äste, in denen sie stirbt. Für Geometrie und Zeit ist sie
   ein guter Maßstab, für Nervenkitzel nicht.
-- In 5 von 72 simulierten Räumen fand sie den **Rückweg zur Tür** nicht
-  (Hinweg zum Schalter dagegen in 216 von 216). Vermutlich reicht die
-  Suchtiefe nicht; falls nicht, wäre es ein echter Befund – der Rückweg von
-  einem hohen Schalter ist die Stelle, an der ein Raum noch kippen könnte.
+
+Alle Werkzeuge liegen unter `tools/` mit eigener Beschreibung, oder als
+`npm run check:physik`, `check:raeume`, `check:loesbar`, `check:zeit`,
+`check:druck`.

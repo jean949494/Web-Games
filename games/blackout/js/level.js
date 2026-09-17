@@ -144,6 +144,34 @@
     return true;
   }
 
+  /**
+   * Ist über der Absprungfläche überhaupt Platz zum Springen?
+   *
+   * Das Modell prüfte lange nur Höhe und Weite - nie die DECKE. Gefunden hat
+   * den Fehler die Laufzeit-Simulation: Ein Raum hatte eine Rampe, die unter
+   * eine Platte führte. Die oberste Stufe der Rampe lag genau zwei Kacheln
+   * unter der Platte, nach Höhe und Weite also erreichbar - aber direkt über
+   * dem Kopf war massiv. Springen ging nicht, seitlich heraus auch nicht
+   * (daneben ging es nur hinunter), und vom Boden aus waren es fünf Kacheln.
+   * Der Schalter lag auf dieser Platte: Raum nicht lösbar.
+   *
+   * Geprüft wird deshalb, ob es im Bereich zwischen beiden Flächen mindestens
+   * EINE Spalte gibt, in der von der Zielhöhe bis zur Absprunghöhe alles frei
+   * ist. Nur dort passt man senkrecht durch.
+   */
+  function hasHeadroom(grid, a, b) {
+    var lo = Math.max(1, Math.min(a.x1, b.x1));
+    var hi = Math.min(C.ROOM_W - 2, Math.max(a.x2, b.x2));
+    for (var x = lo; x <= hi; x++) {
+      var clear = true;
+      for (var y = b.y; y <= a.y - 1; y++) {
+        if (grid[y][x] !== C.T_EMPTY) { clear = false; break; }
+      }
+      if (clear) return true;
+    }
+    return false;
+  }
+
   function platformsConnected(grid, platforms) {
     var shafts = shaftCells(grid);
     var adj = platforms.map(function () { return []; });
@@ -157,7 +185,8 @@
         else gap = 0;
         var rise = a.y - b.y; // positiv = b liegt höher
         var reachable = false;
-        if (rise > 0 && rise <= REACH_UP && gap <= REACH_ACROSS) reachable = true;
+        if (rise > 0 && rise <= REACH_UP && gap <= REACH_ACROSS &&
+            hasHeadroom(grid, a, b)) reachable = true;
         if (rise <= 0 && -rise <= SAFE_DROP && gap <= REACH_ACROSS + 2) reachable = true;
         // Wandsprung-Schacht: senkrecht deutlich weiter hoch - aber nur,
         // wenn der Schacht die gesamte Höhe zwischen beiden Flächen abdeckt.
@@ -202,13 +231,36 @@
 
   var FLOOR_Y = C.ROOM_H - 2; // begehbare Zeile direkt über dem Rand
 
+  /**
+   * Plattform-Raum: eine versetzte Leiter, abwechselnd linke und rechte
+   * Raumhälfte, je zwei Kacheln höher.
+   *
+   * Vorher wurden Lage und Höhe frei gewürfelt. Das landete regelmäßig zwei
+   * Plattformen direkt übereinander - man stand dann unter einer Decke und
+   * kam nicht hoch. Seit das Erreichbarkeitsmodell die Decke mitprüft, fielen
+   * genau solche Plattformen als Schalterplatz aus, und der Schalter rutschte
+   * in 30 % der Fälle zurück auf den Boden. Ein Plattform-Raum, in dem man
+   * nicht klettert, ist aber nur ein leerer Raum mit Deko.
+   */
   function buildPlatformRoom(grid, rnd) {
     var count = 3 + Math.floor(rnd() * 3);
+    var y = FLOOR_Y - 2 - Math.floor(rnd() * 2);
+    var dir = rnd() < 0.5 ? 1 : -1;
+    var x = dir > 0 ? 2 + Math.floor(rnd() * 3) : C.ROOM_W - 5 - Math.floor(rnd() * 3);
     for (var i = 0; i < count; i++) {
-      var w = 3 + Math.floor(rnd() * 5);
-      var x = 2 + Math.floor(rnd() * (C.ROOM_W - 4 - w));
-      var y = 4 + Math.floor(rnd() * 8);
+      if (y < 3) break;
+      var w = 3 + Math.floor(rnd() * 4);
+      // An der Wand umkehren, statt aus dem Raum hinauszulaufen.
+      if (x < 2) { x = 2; dir = 1; }
+      if (x + w - 1 > C.ROOM_W - 3) { x = C.ROOM_W - 2 - w; dir = -1; }
       fillRect(grid, x, y, x + w - 1, y, C.T_SOLID);
+      // Lücke von drei bis fünf Kacheln: deutlich unter der Sprungweite
+      // (über 15 bei vollem Tempo), aber weit genug, dass man zielen muss.
+      // Ein früherer Versuch setzte immer abwechselnd in die linke und die
+      // rechte Raumhälfte - dabei entstanden Lücken von neun Kacheln, die
+      // zwei Plattformen gar nicht mehr verbanden.
+      x += dir * (w + 2 + Math.floor(rnd() * 3));
+      y -= 2;
     }
   }
 

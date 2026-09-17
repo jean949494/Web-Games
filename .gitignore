@@ -1,3 +1,5 @@
 node_modules/
 .DS_Store
 *.log
+games/blackout/tools/browser/out/
+node_modules
